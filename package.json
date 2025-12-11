@@ -10,7 +10,10 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist -f --repo https://github.com/goneplaying/easybill.git"
+    "deploy": "gh-pages -d dist -f --repo https://github.com/goneplaying/easybill.git",
+    "deploy:production": "npm run build && gh-pages -d dist -f --repo https://github.com/goneplaying/easybill.git --branch gh-pages",
+    "deploy:staging": "npm run build && gh-pages -d dist -f --repo https://github.com/goneplaying/easybill.git --branch gh-pages-staging",
+    "deploy:v1.1": "npm run build && gh-pages -d dist -f --repo https://github.com/goneplaying/easybill.git --branch gh-pages-v1.1"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",
