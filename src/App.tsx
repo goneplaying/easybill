@@ -1,15 +1,34 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "./components/theme-provider";
 import HomePage from "./pages/easybill/HomePage";
-import OrdersPage from "./pages/easybill/v2/OrdersPage";
+import VersionsPage from "./pages/easybill/VersionsPage";
+import ShippingPage from "./pages/easybill/1.1/ShippingPage";
+import DashboardPage from "./pages/easybill/1.1/DashboardPage";
+import SettingsPage from "./pages/easybill/1.1/SettingsPage";
+import ToolsPage from "./pages/easybill/1.1/ToolsPage";
+// Version 1.2 imports
+import ShippingPage12 from "./pages/easybill/1.2/ShippingPage";
+import DashboardPage12 from "./pages/easybill/1.2/DashboardPage";
+import SettingsPage12 from "./pages/easybill/1.2/SettingsPage";
+import ToolsPage12 from "./pages/easybill/1.2/ToolsPage";
 
 function App() {
   return (
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
-      <BrowserRouter>
+      <BrowserRouter basename="/easybill">
         <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/orders" element={<OrdersPage />} />
+          <Route index element={<HomePage />} />
+          <Route path="versions" element={<VersionsPage />} />
+          {/* Version 1.1 routes */}
+          <Route path="1.1/shipping" element={<ShippingPage />} />
+          <Route path="1.1/dashboard" element={<DashboardPage />} />
+          <Route path="1.1/settings" element={<SettingsPage />} />
+          <Route path="1.1/tools" element={<ToolsPage />} />
+          {/* Version 1.2 routes */}
+          <Route path="1.2/shipping" element={<ShippingPage12 />} />
+          <Route path="1.2/dashboard" element={<DashboardPage12 />} />
+          <Route path="1.2/settings" element={<SettingsPage12 />} />
+          <Route path="1.2/tools" element={<ToolsPage12 />} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>

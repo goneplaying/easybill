@@ -5,6 +5,7 @@ import { X, ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
 
 function Sheet({
   ...props
@@ -75,9 +76,9 @@ function SheetContent({
 }) {
   const sideClasses = {
     top: "inset-x-0 top-0 border-b data-[state=closed]:slide-out-to-top data-[state=open]:slide-in-from-top",
-    right: "inset-y-0 right-0 h-full w-full border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm",
+    right: "inset-y-0 right-0 h-full w-full border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right lg:max-w-sm",
     bottom: "inset-x-0 bottom-0 border-t data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
-    left: "inset-y-0 left-0 h-full w-full border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left sm:max-w-sm",
+    left: "inset-y-0 left-0 h-full w-full border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left lg:max-w-sm",
   }
 
   return (
@@ -101,7 +102,7 @@ function SheetContent({
         {...props}
       >
         {children}
-        <div className="absolute top-[40px] right-[40px] flex items-center gap-6">
+        <div className="absolute top-6 right-6 lg:top-[40px] lg:right-[40px] flex items-center gap-6">
           {onToggleSelectAll && (
             <div className="flex items-center gap-2">
               <Checkbox
@@ -118,34 +119,42 @@ function SheetContent({
             {(onPrevClick || onNextClick) && (
               <div className="flex items-center -space-x-px">
                 {onPrevClick && (
-                  <button
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={onPrevClick}
                     disabled={isPrevDisabled}
-                    className="flex h-8 w-8 items-center justify-center rounded-l-md border border-input bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 cursor-pointer shadow-sm"
+                    className="rounded-l-md rounded-r-none w-8 h-8 p-0"
                   >
                     <ChevronLeft className="size-4" />
                     <span className="sr-only">Previous</span>
-                  </button>
+                  </Button>
                 )}
                 {onNextClick && (
-                  <button
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={onNextClick}
                     disabled={isNextDisabled}
-                    className="flex h-8 w-8 items-center justify-center rounded-r-md border border-input bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 cursor-pointer shadow-sm"
+                    className="rounded-r-md rounded-l-none w-8 h-8 p-0"
                   >
                     <ChevronRight className="size-4" />
                     <span className="sr-only">Next</span>
-                  </button>
+                  </Button>
                 )}
               </div>
             )}
             {showCloseButton && (
-              <DialogPrimitive.Close
+              <DialogPrimitive.Close asChild>
+                <Button
+                  variant="secondary"
+                  size="sm"
                 data-slot="sheet-close"
-                className="flex h-8 w-8 items-center justify-center rounded-md border border-input bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus:outline-hidden focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none cursor-pointer shadow-sm"
+                  className="w-8 h-8 p-0"
               >
                 <X className="size-4" />
                 <span className="sr-only">Close</span>
+                </Button>
               </DialogPrimitive.Close>
             )}
           </div>

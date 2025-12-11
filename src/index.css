@@ -47,7 +47,7 @@
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --foreground: #212427;
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
@@ -121,12 +121,36 @@
 
 @font-face {
   font-family: 'Ryker';
-  src: url('https://www.wirkus.me/easybill/fonts/ryker-bold.eot');
-  src: url('https://www.wirkus.me/easybill/fonts/ryker-bold.eot?#iefix') format('embedded-opentype'),
-       url('https://www.wirkus.me/easybill/fonts/ryker-bold.woff2') format('woff2'),
-       url('https://www.wirkus.me/easybill/fonts/ryker-bold.woff') format('woff'),
-       url('https://www.wirkus.me/easybill/fonts/ryker-bold.otf') format('opentype');
+  src: url('@/assets/fonts/ryker-bold.eot');
+  src: url('@/assets/fonts/ryker-bold.eot?#iefix') format('embedded-opentype'),
+       url('@/assets/fonts/ryker-bold.woff2') format('woff2'),
+       url('@/assets/fonts/ryker-bold.woff') format('woff'),
+       url('@/assets/fonts/ryker-bold.otf') format('opentype');
   font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Ryker';
+  src: url('@/assets/fonts/ryker-medium.eot');
+  src: url('@/assets/fonts/ryker-medium.eot?#iefix') format('embedded-opentype'),
+       url('@/assets/fonts/ryker-medium.woff2') format('woff2'),
+       url('@/assets/fonts/ryker-medium.woff') format('woff'),
+       url('@/assets/fonts/ryker-medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geist';
+  src: url('@/assets/fonts/geist-variablefont.eot');
+  src: url('@/assets/fonts/geist-variablefont.eot?#iefix') format('embedded-opentype'),
+       url('@/assets/fonts/geist-variablefont.woff2') format('woff2'),
+       url('@/assets/fonts/geist-variablefont.woff') format('woff'),
+       url('@/assets/fonts/geist-variablefont..ttf') format('truetype');
+  font-weight: 100 900;
   font-style: normal;
   font-display: swap;
 }
@@ -136,21 +160,28 @@
     @apply border-border outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground antialiased font-light;
+    @apply bg-background text-foreground font-light;
+    font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+    -webkit-font-smoothing: antialiased;
   }
   h1 {
     font-size: 34px;
     font-family: 'Ryker', sans-serif;
     font-weight: bold;
+    letter-spacing: 0.01em;
   }
   h2 {
-    font-size: 28px;
+    font-size: 20px;
     font-family: 'Ryker', sans-serif;
     font-weight: bold;
   }
   h3 {
     font-family: 'Ryker', sans-serif;
-    font-weight: bold;
+    font-weight: 500;
+  }
+  h4 {
+    font-family: 'Ryker', sans-serif;
+    font-weight: 500;
   }
 }
 
@@ -202,4 +233,39 @@
     min-width: 2.25rem;
     flex: 0 0 2.25rem;
   }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  }
+}
+
+/* Increase spacing between text and action button in Sonner toasts */
+[data-sonner-toast] [data-button] {
+  margin-left: 1rem;
+}
+
+/* Set Sonner toast width to 480px for screens larger than lg */
+@media (min-width: 1024px) {
+  [data-sonner-toast] {
+    width: 480px;
+    max-width: 480px;
+  }
+}
+
+/* Hide scrollbars in tables by default */
+[data-slot="table-container"],
+.overflow-x-auto {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+[data-slot="table-container"]::-webkit-scrollbar,
+.overflow-x-auto::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
