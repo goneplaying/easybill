@@ -2722,7 +2722,7 @@ function ShippingPage() {
 
     // Return a new array reference to ensure React detects changes
     return result;
-  }, [ordersState1, importquelle, kaufdatum, importdatum, isChecked, isChecked2, isChecked3, isChecked4, isChecked8, isChecked10, isChecked5, isChecked9, isChecked5, isChecked6, fehlerRowNr, checklistMap, temporaryVisibleIcons]);
+  }, [ordersState1, importquelle, kaufdatum, importdatum, isChecked, isChecked2, isChecked3, isChecked4, isChecked5, isChecked9, isChecked6, fehlerRowNr, checklistMap, temporaryVisibleIcons]);
 
   // Filter data for table 2 (only base orders)
   const filteredData2 = React.useMemo(() => {
@@ -2787,50 +2787,8 @@ function ShippingPage() {
       );
     }
 
-    // Apply filter for "Rechnungen nicht versendet" checkbox (rows where "Rechnung versendet" icon is hidden)
-    if (isChecked2) {
-      result = result.filter((order) => {
-        const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
-        if (rowNr === null) return false;
-        const checklistData = checklistMap.get(rowNr);
-        const showIcon = checklistData?.rechnungVersendet ?? false;
-        return !showIcon; // Show only rows where icon is hidden
-      });
-    }
-
-    // Apply filter for "Bestellungen bezahlt, nicht gesendet" checkbox (rows where "Sendung erstellt" icon is hidden AND "Bezahlt am" has a date)
-    if (isChecked3) {
-      result = result.filter((order) => {
-        const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
-        if (rowNr === null) return false;
-        const checklistData = checklistMap.get(rowNr);
-        const showIcon = checklistData?.sendungErstellt ?? false;
-        const iconHidden = !showIcon;
-        const bezahltAmHasDate = order.bezahltAm && order.bezahltAm !== null && order.bezahltAm !== "";
-        return iconHidden && bezahltAmHasDate;
-      });
-    }
-
-    // Apply filter for "Fehler" checkbox (rows where "Fehler" icon is visible - either permanently or temporarily)
-    if (isChecked4) {
-      result = result.filter((order) => {
-        const orderNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
-        if (orderNr === null) return false;
-        
-        // Check permanent visibility
-        const isPermanentlyVisible = fehlerRowNr !== null && fehlerRowNr !== undefined && orderNr === fehlerRowNr;
-        
-        // Check temporary visibility
-        const iconId = `fehler-${orderNr}`;
-        const isTemporarilyVisible = temporaryVisibleIcons !== undefined && temporaryVisibleIcons.has(iconId) && temporaryVisibleIcons.get(iconId)! > Date.now();
-        
-        // Check if it's the last row (should be excluded from permanent visibility)
-        const isLastRow = result.indexOf(order) === result.length - 1;
-        const permanentCheck = isPermanentlyVisible && !isLastRow;
-        
-        return permanentCheck || isTemporarilyVisible;
-      });
-    }
+    // Note: Filters for "Rechnungen nicht versendet", "Bestellungen bezahlt, nicht gesendet", and "Fehler"
+    // are intentionally NOT applied to the Sendungen table - they only apply to Bestellungen table
 
     // Filter IN Versandvorgang rows (this is for the Sendungen table)
     result = result.filter((order) => order.type === "Versandvorgang");
@@ -2844,7 +2802,7 @@ function ShippingPage() {
 
     // Return a new array reference to ensure React detects changes
     return result;
-  }, [ordersState2, importquelle, kaufdatum, importdatum, isChecked7, isChecked8, isChecked10, isChecked2, isChecked4, fehlerRowNr, checklistMap, temporaryVisibleIcons]);
+  }, [ordersState2, importquelle, kaufdatum, importdatum, isChecked, isChecked7, isChecked8, isChecked10]);
 
   // filteredOrders for sheet navigation - uses active table's data
   // Must be declared here after filteredData1 and filteredData2 are defined
@@ -3403,6 +3361,10 @@ function ShippingPage() {
               <div className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
                 <HelpCircle className="size-5 text-white" />
               </div>
+            </div>
+            {/* Version number at bottom */}
+            <div className="hidden lg:flex mt-auto text-xs text-white/60">
+              v1.4
             </div>
           </div>
           {/* Left part - 300px width */}
@@ -5067,7 +5029,7 @@ function ShippingPage() {
                   <div className="min-w-full">
                     <div>
                       <h3 className="text-lg font-semibold mb-3">
-                        Es wurden {count} Bestellungen ohne Sendung gefunden
+                        In den ausgewählten Bestellungen wurden {count} ohne erstellte Sendung gefunden
                       </h3>
                       <p className="text-sm">
                         Sollen Sendungen für diese Bestellungen erstellt werden?
