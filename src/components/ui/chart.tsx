@@ -69,7 +69,7 @@ ChartContainer.displayName = "Chart"
 
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(
-    ([_, config]) => config.theme || config.color
+    ([, config]) => config.theme || config.color
   )
 
   if (!colorConfig.length) {
@@ -197,6 +197,7 @@ const ChartTooltipContent = React.forwardRef<
                 )}
               >
                 {formatter && item?.value !== undefined && item.name ? (
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   (formatter as any)(item.value, [item], item.name, item.payload, item.payload?.tooltipPayload)
                 ) : (
                   <>

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // Airtable API utility functions
 const AIRTABLE_BASE_ID = "appe8E88rjO5PPZwy";
 

@@ -22,7 +22,7 @@ const AIRTABLE_VIEW_ID = import.meta.env.VITE_AIRTABLE_VIEW_ID || "shrZnuF0zypmA
 // Type for Airtable records (dynamic based on fields)
 type AirtableRecord = {
   id: string;
-  [key: string]: any;
+  [key: string]: unknown;
 };
 
 export default function ToolsPage() {

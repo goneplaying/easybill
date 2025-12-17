@@ -10,6 +10,7 @@ import type {
 
 // Extend ColumnMeta to include className
 declare module "@tanstack/react-table" {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface ColumnMeta<TData, TValue> {
     className?: string;
   }
@@ -229,6 +230,7 @@ function DataTable<TData, TValue>({
 
   // Custom global filter function that searches across all columns including formatted values
   // Create a closure with access to columns for searching formatted values
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const globalFilterFn = React.useCallback((row: any, _columnId: string, filterValue: any) => {
     if (!filterValue) return true;
     
@@ -238,6 +240,7 @@ function DataTable<TData, TValue>({
     const rowData = row.original;
     
     // Helper function to recursively search through values
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const searchInValue = (value: any): boolean => {
       if (value === null || value === undefined) return false;
       
@@ -300,6 +303,7 @@ function DataTable<TData, TValue>({
     if (onFilteredDataChange) {
       onFilteredDataChange(table.getFilteredRowModel().rows.map((row) => row.original));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [table.getFilteredRowModel().rows, onFilteredDataChange]);
 
 
@@ -948,6 +952,7 @@ function getSelectColumn<TData>(activeTab?: string): ColumnDef<TData> {
       </div>
     ),
     cell: ({ row }) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const rowType = (row.original as any)?.type;
       const shouldHide = activeTab === "rechnung" && rowType === "Versandvorgang";
       
@@ -970,4 +975,5 @@ function getSelectColumn<TData>(activeTab?: string): ColumnDef<TData> {
   };
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export { DataTable, DataTableColumnHeader, getSelectColumn };

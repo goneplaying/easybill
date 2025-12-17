@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable react-hooks/exhaustive-deps */
 import * as React from "react";
 import type { ColumnDef, VisibilityState, RowSelectionState } from "@tanstack/react-table";
 import {
@@ -18,7 +20,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Search, X, Plus, Truck, CreditCard, Package, MoreHorizontal, Check, ArrowRightFromLine, Circle, RotateCcw, CalendarIcon, Filter, Settings2, ChevronDown, File, ToyBrick, Settings, HelpCircle, Merge, Menu, LayoutDashboard, ClipboardList, QrCode, Mail, ListChecks, AlertTriangle } from "lucide-react";
+import { Search, X, Plus, Truck, CreditCard, Package, MoreHorizontal, Check, Circle, RotateCcw, RefreshCw, CalendarIcon, Filter, Settings2, ChevronDown, File, ToyBrick, Settings, HelpCircle, Merge, Menu, LayoutDashboard, ClipboardList, QrCode, Mail, ListChecks, AlertTriangle, CloudDownload, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import {
@@ -68,6 +70,10 @@ import type { DateRange } from "react-day-picker";
 import { Link } from "react-router-dom";
 import logo from "@/assets/easybill-logo.svg";
 import logoPlus from "@/assets/easybill-logo+.svg";
+import bestellungenCSV from "@/assets/tables/bestellungen.csv?raw";
+import sendungenCSV from "@/assets/tables/sendungen.csv?raw";
+import checklistenCSV from "@/assets/tables/checklisten.csv?raw";
+import { parseCSV, parseChecklistCSV } from "@/lib/csvParser";
 
 // Define the data type
 type Order = {
@@ -179,8 +185,9 @@ function generateArticles(order: Order): Article[] {
   return articles;
 }
 
-// Sample data
-const orders: Order[] = [
+// Sample data - now loaded from CSV files
+// @ts-expect-error - Sample data kept for reference, not used in production
+const _orders: Order[] = [
   {
     nr: 1,
     kaufdatum: "2025-11-01",
@@ -727,7 +734,8 @@ const orders: Order[] = [
 ];
 
 // Additional rows for table 1 only
-const table1AdditionalRows: Order[] = [
+// @ts-expect-error - Sample data kept for reference, not used in production
+const _table1AdditionalRows: Order[] = [
   {
     nr: 4,
     kaufdatum: "2025-11-12",
@@ -1359,9 +1367,10 @@ const getColumns = (
   onDienstleisterChange: (row: Order, newValue: string) => void,
   tableId: string = "default",
   isRowMarked?: (row: Order) => boolean,
-  fehlerRowNr?: number | null,
-  totalRowCount?: number,
-  temporaryVisibleIcons?: Map<string, number>
+  _fehlerRowNr?: number | null,
+  _totalRowCount?: number,
+  _temporaryVisibleIcons?: Map<string, number>,
+  checklistMap: Map<number, import("@/lib/csvParser").ChecklistData> = new Map()
 ): ColumnDef<Order>[] => {
   // Custom select column that shows icons when unchecked
   const customSelectColumn: ColumnDef<Order> = {
@@ -1441,42 +1450,33 @@ const getColumns = (
         </div>
       ),
       cell: ({ row }) => {
-        // For Sendungen table (activeTab === "versand"), show sequential number based on versanddatum order
-        if (activeTab === "versand") {
-          return (
-            <div className="flex items-center justify-center h-full w-full">
-              <span>{row.index + 1}</span>
-            </div>
-          );
-        }
-        // For other tables, show the original nr value
+        // Show the original nr value for all tables
         return (
           <div className="flex items-center justify-center h-full w-full">
             <span>{row.getValue("nr")}</span>
           </div>
         );
       },
-      // Custom sorting function for Sendungen table - sort by versanddatum
+      // Custom sorting function - sort by nr for all tables
       sortingFn: (rowA: any, rowB: any) => {
-        // For Sendungen table, sort by versanddatum
-        if (activeTab === "versand") {
-          const a = rowA.original?.versanddatum;
-          const b = rowB.original?.versanddatum;
-          if (!a && !b) return 0;
-          if (!a) return 1;
-          if (!b) return -1;
-          return a.localeCompare(b);
-        }
-        // For other tables, sort by nr value (default behavior)
         const a = rowA.original?.nr;
         const b = rowB.original?.nr;
         if (typeof a === "number" && typeof b === "number") {
           return a - b;
         }
         if (typeof a === "string" && typeof b === "string") {
+          // Try to parse as numbers for comparison
+          const aNum = parseInt(a);
+          const bNum = parseInt(b);
+          if (!isNaN(aNum) && !isNaN(bNum)) {
+            return aNum - bNum;
+          }
           return a.localeCompare(b);
         }
-        return String(a || "").localeCompare(String(b || ""));
+        // Handle mixed types
+        const aNum = typeof a === "number" ? a : parseInt(String(a)) || 0;
+        const bNum = typeof b === "number" ? b : parseInt(String(b)) || 0;
+        return aNum - bNum;
       },
     },
     {
@@ -1732,7 +1732,7 @@ const getColumns = (
                 className="h-auto w-auto p-0 text-muted-foreground hover:text-foreground"
                 onClick={(e) => e.stopPropagation()}
               >
-                <ChevronDown className="h-3 w-3" />
+                <ChevronDown className="h-3 w-3 opacity-50" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
@@ -1774,7 +1774,7 @@ const getColumns = (
                 className="h-auto w-auto p-0 text-muted-foreground hover:text-foreground"
                 onClick={(e) => e.stopPropagation()}
               >
-                <ChevronDown className="h-3 w-3" />
+                <ChevronDown className="h-3 w-3 opacity-50" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
@@ -1813,7 +1813,7 @@ const getColumns = (
                 className="h-auto w-auto p-0 text-muted-foreground hover:text-foreground"
                 onClick={(e) => e.stopPropagation()}
               >
-                <ChevronDown className="h-3 w-3" />
+                <ChevronDown className="h-3 w-3 opacity-50" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" onClick={(e) => e.stopPropagation()}>
@@ -1861,11 +1861,9 @@ const getColumns = (
       </div>
     ),
     cell: ({ row }) => {
-      const hideContent = row.original.importdatum === "2025-12-09";
       const rowNr = typeof row.original.nr === 'number' ? row.original.nr : parseInt(String(row.original.nr)) || null;
-      const iconId = `rechnung-versendet-${rowNr}`;
-      const isTemporarilyVisible = temporaryVisibleIcons !== undefined && temporaryVisibleIcons.has(iconId) && temporaryVisibleIcons.get(iconId)! > Date.now();
-      const showIcon = (!hideContent || isTemporarilyVisible);
+      const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
+      const showIcon = checklistData?.rechnungVersendet ?? false;
       return (
         <div className="flex items-center justify-center h-full">
           {showIcon && <Check className="size-4" />}
@@ -1881,19 +1879,19 @@ const getColumns = (
     enableHiding: true,
   },
   {
-    id: `floating-col-8-${tableId}`,
+    id: `floating-col-7-${tableId}`,
     header: () => (
       <div className="flex items-center justify-center h-full w-full min-h-[44px]">
-        <Settings2 className="size-4" />
+        <Package className="size-4" />
       </div>
     ),
     cell: ({ row }) => {
-      const rowNr = row.original.nr;
-      const hideIcon = rowNr === 3 || rowNr === 8 || rowNr === 13 || rowNr === 17;
-      const hideContent = row.original.importdatum === "2025-12-09";
+      const rowNr = typeof row.original.nr === 'number' ? row.original.nr : parseInt(String(row.original.nr)) || null;
+      const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
+      const showIcon = checklistData?.sendungErstellt ?? false;
       return (
         <div className="flex items-center justify-center h-full">
-          {!hideIcon && !hideContent && <Check className="size-4" />}
+          {showIcon && <Check className="size-4" />}
         </div>
       );
     },
@@ -1906,17 +1904,19 @@ const getColumns = (
     enableHiding: true,
   },
   {
-    id: `floating-col-7-${tableId}`,
+    id: `floating-col-8-${tableId}`,
     header: () => (
       <div className="flex items-center justify-center h-full w-full min-h-[44px]">
-        <Package className="size-4" />
+        <Settings2 className="size-4" />
       </div>
     ),
     cell: ({ row }) => {
-      const hideContent = row.original.importdatum === "2025-12-09";
+      const rowNr = typeof row.original.nr === 'number' ? row.original.nr : parseInt(String(row.original.nr)) || null;
+      const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
+      const showIcon = checklistData?.versandprofilHinzugefuegt ?? false;
       return (
         <div className="flex items-center justify-center h-full">
-          {!hideContent && <Check className="size-4" />}
+          {showIcon && <Check className="size-4" />}
         </div>
       );
     },
@@ -1936,10 +1936,12 @@ const getColumns = (
       </div>
     ),
     cell: ({ row }) => {
-      const hideContent = row.original.importdatum === "2025-12-09";
+      const rowNr = typeof row.original.nr === 'number' ? row.original.nr : parseInt(String(row.original.nr)) || null;
+      const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
+      const showIcon = checklistData?.picklisteErstellt ?? false;
       return (
         <div className="flex items-center justify-center h-full">
-          {!hideContent && <Check className="size-4" />}
+          {showIcon && <Check className="size-4" />}
         </div>
       );
     },
@@ -1959,10 +1961,12 @@ const getColumns = (
       </div>
     ),
     cell: ({ row }) => {
-      const hideContent = row.original.importdatum === "2025-12-09";
+      const rowNr = typeof row.original.nr === 'number' ? row.original.nr : parseInt(String(row.original.nr)) || null;
+      const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
+      const showIcon = checklistData?.packlisteErstellt ?? false;
       return (
         <div className="flex items-center justify-center h-full">
-          {!hideContent && <Check className="size-4" />}
+          {showIcon && <Check className="size-4" />}
         </div>
       );
     },
@@ -1982,10 +1986,12 @@ const getColumns = (
       </div>
     ),
     cell: ({ row }) => {
-      const hideContent = row.original.importdatum === "2025-12-09";
+      const rowNr = typeof row.original.nr === 'number' ? row.original.nr : parseInt(String(row.original.nr)) || null;
+      const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
+      const showIcon = checklistData?.paketlisteGedruckt ?? false;
       return (
         <div className="flex items-center justify-center h-full">
-          {!hideContent && <Check className="size-4" />}
+          {showIcon && <Check className="size-4" />}
         </div>
       );
     },
@@ -2005,10 +2011,12 @@ const getColumns = (
       </div>
     ),
     cell: ({ row }) => {
-      const hideContent = row.original.importdatum === "2025-12-09";
+      const rowNr = typeof row.original.nr === 'number' ? row.original.nr : parseInt(String(row.original.nr)) || null;
+      const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
+      const showIcon = checklistData?.versendet ?? false;
       return (
         <div className="flex items-center justify-center h-full">
-          {!hideContent && <Check className="size-4" />}
+          {showIcon && <Check className="size-4" />}
         </div>
       );
     },
@@ -2028,11 +2036,9 @@ const getColumns = (
       </div>
     ),
     cell: ({ row }) => {
-      const isLastRow = totalRowCount !== undefined && row.index === totalRowCount - 1;
       const rowNr = typeof row.original.nr === 'number' ? row.original.nr : parseInt(String(row.original.nr)) || null;
-      const iconId = `fehler-${rowNr}`;
-      const isTemporarilyVisible = temporaryVisibleIcons !== undefined && temporaryVisibleIcons.has(iconId) && temporaryVisibleIcons.get(iconId)! > Date.now();
-      const showIcon = (fehlerRowNr !== null && fehlerRowNr !== undefined && rowNr === fehlerRowNr && !isLastRow) || isTemporarilyVisible;
+      const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
+      const showIcon = checklistData?.fehler ?? false;
       return (
         <div className="flex items-center justify-center h-full">
           {showIcon && <AlertTriangle className="size-4 text-destructive" />}
@@ -2088,7 +2094,7 @@ const columnLabels1: Record<string, string> = {
   "floating-col-4-rechnung": "Packliste erstellt",
   "floating-col-5-rechnung": "Paketlabel gedruckt",
   "floating-col-6-rechnung": "Pickliste erstellt",
-  "floating-col-7-rechnung": "Versandvorgang erstellt",
+  "floating-col-7-rechnung": "Sendung erstellt",
   "floating-col-8-rechnung": "Versandprofil hinzugefügt",
   "floating-col-9-rechnung": "Rechnung versendet",
 };
@@ -2124,16 +2130,47 @@ const columnLabels2: Record<string, string> = {
   "floating-col-4-versand": "Packliste erstellt",
   "floating-col-5-versand": "Paketlabel gedruckt",
   "floating-col-6-versand": "Pickliste erstellt",
-  "floating-col-7-versand": "Versandvorgang erstellt",
+  "floating-col-7-versand": "Sendung erstellt",
   "floating-col-8-versand": "Versandprofil hinzugefügt",
   "floating-col-9-versand": "Rechnung versendet",
 };
 
 function ShippingPage() {
+  // Load data from CSV files
+  const loadCSVData = React.useCallback(() => {
+    try {
+      // Parse Bestellungen CSV
+      const bestellungenData = parseCSV(bestellungenCSV).map(order => ({
+        ...order,
+        type: order.type || "Bestellung"
+      }));
+      
+      // Parse Sendungen CSV
+      const sendungenData = parseCSV(sendungenCSV).map(order => ({
+        ...order,
+        type: order.type || "Versandvorgang"
+      }));
+      
+      // Parse Checklisten CSV
+      const checklistMap = parseChecklistCSV(checklistenCSV);
+      
+      return { bestellungenData, sendungenData, checklistMap };
+    } catch (error) {
+      console.error("Error loading CSV data:", error);
+      toast.error("Fehler beim Laden der CSV-Dateien");
+      return { bestellungenData: [], sendungenData: [], checklistMap: new Map() };
+    }
+  }, []);
+
+  // Initialize data from CSV files
+  const initialData = React.useMemo(() => loadCSVData(), [loadCSVData]);
+  
   // Separate data sources for each table
-  const [ordersState1, setOrdersState1] = React.useState<Order[]>([...orders, ...table1AdditionalRows]);
-  const [ordersState2, setOrdersState2] = React.useState<Order[]>(orders);
-  const [ordersState] = React.useState<Order[]>(orders); // Keep for compatibility with filters
+  const [ordersState1, setOrdersState1] = React.useState<Order[]>(initialData.bestellungenData);
+  const [ordersState2, setOrdersState2] = React.useState<Order[]>(initialData.sendungenData);
+  const [ordersState] = React.useState<Order[]>(initialData.bestellungenData); // Keep for compatibility with filters
+  const [checklistMap, setChecklistMap] = React.useState<Map<number, import("@/lib/csvParser").ChecklistData>>(initialData.checklistMap);
+  const [refreshIconRotation, setRefreshIconRotation] = React.useState(0);
   const [selectedOrder, setSelectedOrder] = React.useState<Order | null>(null);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
   const [isFilterSheetOpen, setIsFilterSheetOpen] = React.useState(false);
@@ -2196,6 +2233,11 @@ function ShippingPage() {
   const [versandverpackung, setVersandverpackung] = React.useState<string>("");
   const [activeTab, setActiveTab] = React.useState<string>("rechnung"); // State for active tab
   const [showNoSelectionAlert, setShowNoSelectionAlert] = React.useState(false);
+  const [showAddressMatchAlert, setShowAddressMatchAlert] = React.useState(false);
+  const [addressMatchStep, setAddressMatchStep] = React.useState(0); // 0 = Initial, 1 = Adressdaten, 2 = Versandprofile, 3 = Sendungen erstellt
+  const [showSingleRowSendungModal, setShowSingleRowSendungModal] = React.useState(false);
+  const [singleRowSendungStep, setSingleRowSendungStep] = React.useState(0); // 0 = initial, 1 = versandprofil, 2 = success
+  const [showRechnungErneutVersendenModal, setShowRechnungErneutVersendenModal] = React.useState(false);
 
   // Get unique versandland values from orders data
   const versandlandOptions = React.useMemo(() => {
@@ -2292,20 +2334,20 @@ function ShippingPage() {
     importdatum: false,
     importquelle: false,
     info: true,
-    email: false,
+    email: true,
     telefonnummer: false,
     versandNetto: false,
     versandBrutto: false,
     versandland: false,
-    versandprofil: true,
+    versandprofil: false,
     versanddienstleister: false,
     versandverpackung: false,
     versandtGemeldet: false,
     statusVersanddokumente: false,
     versanddatum: false,
-    // Floating columns: show 9, 8, 7 (right-[300px], right-[250px], right-[200px])
+    // Floating columns: show 9, 7 (right-[300px], right-[200px]) - hide 8 (Versandprofil hinzugefügt)
     "floating-col-9-rechnung": true,
-    "floating-col-8-rechnung": true,
+    "floating-col-8-rechnung": false,
     "floating-col-7-rechnung": true,
     "floating-col-6-rechnung": false,
     "floating-col-5-rechnung": false,
@@ -2330,13 +2372,13 @@ function ShippingPage() {
     bestellnummer: true,
     importdatum: false,
     importquelle: false,
-    // Floating columns: show 4, 5, 3 (right-[100px], right-[50px], right-[50px])
+    // Floating columns: show 4, 5, 3, 8 (right-[100px], right-[50px], right-[50px], right-[150px])
     "floating-col-4-versand": true,
     "floating-col-5-versand": true,
     "floating-col-3-versand": true,
     "floating-col-6-versand": false,
     "floating-col-7-versand": false,
-    "floating-col-8-versand": false,
+    "floating-col-8-versand": true,
     "floating-col-9-versand": false,
     "floating-col-2-versand": false,
     info: true,
@@ -2381,19 +2423,29 @@ function ShippingPage() {
     ).length;
   }, [ordersState1]);
 
-  // Count rows where "Rechnung versendet" icon is hidden (importdatum = "2025-12-09" or "09.12.2025")
+  // Count rows where "Rechnung versendet" icon is hidden (checklistData?.rechnungVersendet is false or undefined)
   const rechnungVersendetHiddenCount = React.useMemo(() => {
-    return ordersState1.filter(
-      (order) => order.importdatum === "2025-12-09" || order.importdatum === "09.12.2025"
-    ).length;
-  }, [ordersState1]);
+    return ordersState1.filter((order) => {
+      const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+      if (rowNr === null) return false;
+      const checklistData = checklistMap.get(rowNr);
+      const showIcon = checklistData?.rechnungVersendet ?? false;
+      return !showIcon; // Count rows where icon is hidden
+    }).length;
+  }, [ordersState1, checklistMap]);
 
-  // Count rows where "Versandvorgang erstellt" icon is hidden (importdatum = "2025-12-09" or "09.12.2025")
+  // Count rows where "Sendung erstellt" icon is hidden AND "Bezahlt am" has a date
   const versanddokumenteCount = React.useMemo(() => {
-    return ordersState1.filter(
-      (order) => order.importdatum === "2025-12-09" || order.importdatum === "09.12.2025"
-    ).length;
-  }, [ordersState1]);
+    return ordersState1.filter((order) => {
+      const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+      if (rowNr === null) return false;
+      const checklistData = checklistMap.get(rowNr);
+      const showIcon = checklistData?.sendungErstellt ?? false;
+      const iconHidden = !showIcon;
+      const bezahltAmHasDate = order.bezahltAm && order.bezahltAm !== null && order.bezahltAm !== "";
+      return iconHidden && bezahltAmHasDate;
+    }).length;
+  }, [ordersState1, checklistMap]);
 
   // Count rows where "Fehler" icon is visible (permanently or temporarily)
   const fehlerCount = React.useMemo(() => {
@@ -2469,6 +2521,13 @@ function ShippingPage() {
     ).length;
   }, [ordersState1]);
 
+  // Count marked rows for the active tab
+  const markedRowsCount = React.useMemo(() => {
+    const currentMarkedRows = activeTab === "versand" ? markedRows2 : markedRows1;
+    const currentVisibleRows = activeTab === "versand" ? visibleRows2 : visibleRows1;
+    return currentVisibleRows.filter(row => currentMarkedRows.has(row.nr)).length;
+  }, [activeTab, markedRows1, markedRows2, visibleRows1, visibleRows2]);
+
   // Count rows in Bestellungen table where Versandprofil is "DPD International"
   const dpdInternationalCount = React.useMemo(() => {
     return ordersState1.filter(
@@ -2480,13 +2539,6 @@ function ShippingPage() {
   const filterItems = React.useMemo(
     () => [
       {
-        id: "new-orders-checkbox",
-        count: importdatumCount,
-        label: "Zuletzt importiert",
-        checked: isChecked,
-        onCheckedChange: (checked: boolean) => setIsChecked(checked),
-      },
-      {
         id: "new-orders-checkbox-2",
         count: rechnungVersendetHiddenCount,
         label: "Rechnungen nicht versendet",
@@ -2496,7 +2548,7 @@ function ShippingPage() {
       {
         id: "new-orders-checkbox-3",
         count: versanddokumenteCount,
-        label: "Kein Versandvorgang",
+        label: "Bestellungen bezahlt, nicht gesendet",
         checked: isChecked3,
         onCheckedChange: (checked: boolean) => setIsChecked3(checked),
       },
@@ -2596,18 +2648,28 @@ function ShippingPage() {
       );
     }
 
-    // Apply filter for "Rechnungen nicht versendet" checkbox (importdatum = "2025-12-09" or "09.12.2025" - rows where "Rechnung versendet" icon is hidden)
+    // Apply filter for "Rechnungen nicht versendet" checkbox (rows where "Rechnung versendet" icon is hidden)
     if (isChecked2) {
-      result = result.filter(
-        (order) => order.importdatum === "2025-12-09" || order.importdatum === "09.12.2025"
-      );
+      result = result.filter((order) => {
+        const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+        if (rowNr === null) return false;
+        const checklistData = checklistMap.get(rowNr);
+        const showIcon = checklistData?.rechnungVersendet ?? false;
+        return !showIcon; // Show only rows where icon is hidden
+      });
     }
 
-    // Apply filter for "Kein Versand-vorgang" checkbox (importdatum = "2025-12-09" or "09.12.2025" - rows where "Versandvorgang erstellt" icon is hidden)
+    // Apply filter for "Bestellungen bezahlt, nicht gesendet" checkbox (rows where "Sendung erstellt" icon is hidden AND "Bezahlt am" has a date)
     if (isChecked3) {
-      result = result.filter(
-        (order) => order.importdatum === "2025-12-09" || order.importdatum === "09.12.2025"
-      );
+      result = result.filter((order) => {
+        const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+        if (rowNr === null) return false;
+        const checklistData = checklistMap.get(rowNr);
+        const showIcon = checklistData?.sendungErstellt ?? false;
+        const iconHidden = !showIcon;
+        const bezahltAmHasDate = order.bezahltAm && order.bezahltAm !== null && order.bezahltAm !== "";
+        return iconHidden && bezahltAmHasDate;
+      });
     }
 
     // Apply filter for "Fehler" checkbox (rows where "Fehler" icon is visible - either permanently or temporarily)
@@ -2660,7 +2722,7 @@ function ShippingPage() {
 
     // Return a new array reference to ensure React detects changes
     return result;
-  }, [ordersState1, importquelle, kaufdatum, importdatum, isChecked, isChecked2, isChecked3, isChecked4, isChecked8, isChecked10, isChecked5, isChecked9, isChecked5, isChecked6, fehlerRowNr]);
+  }, [ordersState1, importquelle, kaufdatum, importdatum, isChecked, isChecked2, isChecked3, isChecked4, isChecked8, isChecked10, isChecked5, isChecked9, isChecked5, isChecked6, fehlerRowNr, checklistMap, temporaryVisibleIcons]);
 
   // Filter data for table 2 (only base orders)
   const filteredData2 = React.useMemo(() => {
@@ -2725,18 +2787,28 @@ function ShippingPage() {
       );
     }
 
-    // Apply filter for "Rechnungen nicht versendet" checkbox (importdatum = "2025-12-09" or "09.12.2025" - rows where "Rechnung versendet" icon is hidden)
+    // Apply filter for "Rechnungen nicht versendet" checkbox (rows where "Rechnung versendet" icon is hidden)
     if (isChecked2) {
-      result = result.filter(
-        (order) => order.importdatum === "2025-12-09" || order.importdatum === "09.12.2025"
-      );
+      result = result.filter((order) => {
+        const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+        if (rowNr === null) return false;
+        const checklistData = checklistMap.get(rowNr);
+        const showIcon = checklistData?.rechnungVersendet ?? false;
+        return !showIcon; // Show only rows where icon is hidden
+      });
     }
 
-    // Apply filter for "Kein Versand-vorgang" checkbox (importdatum = "2025-12-09" or "09.12.2025" - rows where "Versandvorgang erstellt" icon is hidden)
+    // Apply filter for "Bestellungen bezahlt, nicht gesendet" checkbox (rows where "Sendung erstellt" icon is hidden AND "Bezahlt am" has a date)
     if (isChecked3) {
-      result = result.filter(
-        (order) => order.importdatum === "2025-12-09" || order.importdatum === "09.12.2025"
-      );
+      result = result.filter((order) => {
+        const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+        if (rowNr === null) return false;
+        const checklistData = checklistMap.get(rowNr);
+        const showIcon = checklistData?.sendungErstellt ?? false;
+        const iconHidden = !showIcon;
+        const bezahltAmHasDate = order.bezahltAm && order.bezahltAm !== null && order.bezahltAm !== "";
+        return iconHidden && bezahltAmHasDate;
+      });
     }
 
     // Apply filter for "Fehler" checkbox (rows where "Fehler" icon is visible - either permanently or temporarily)
@@ -2763,17 +2835,16 @@ function ShippingPage() {
     // Filter IN Versandvorgang rows (this is for the Sendungen table)
     result = result.filter((order) => order.type === "Versandvorgang");
 
-    // Sort by versanddatum (ascending), null values go to the end
+    // Sort by nr (ascending)
     result.sort((a, b) => {
-      if (!a.versanddatum && !b.versanddatum) return 0;
-      if (!a.versanddatum) return 1;
-      if (!b.versanddatum) return -1;
-      return a.versanddatum.localeCompare(b.versanddatum);
+      const aNr = typeof a.nr === "number" ? a.nr : parseInt(String(a.nr)) || 0;
+      const bNr = typeof b.nr === "number" ? b.nr : parseInt(String(b.nr)) || 0;
+      return aNr - bNr;
     });
 
     // Return a new array reference to ensure React detects changes
     return result;
-  }, [ordersState2, importquelle, kaufdatum, importdatum, isChecked7, isChecked8, isChecked10]);
+  }, [ordersState2, importquelle, kaufdatum, importdatum, isChecked7, isChecked8, isChecked10, isChecked2, isChecked4, fehlerRowNr, checklistMap, temporaryVisibleIcons]);
 
   // filteredOrders for sheet navigation - uses active table's data
   // Must be declared here after filteredData1 and filteredData2 are defined
@@ -3333,12 +3404,6 @@ function ShippingPage() {
                 <HelpCircle className="size-5 text-white" />
               </div>
             </div>
-            {/* Version number at bottom */}
-            <div className="hidden lg:block mt-auto pt-4">
-              <div className="text-white/70 text-xs text-center font-medium">
-                v1.2
-              </div>
-            </div>
           </div>
           {/* Left part - 300px width */}
           <div className="hidden lg:block w-[300px] flex-shrink-0 py-[40px] px-[24px] border-r border-border" data-name="FilterDiv">
@@ -3391,7 +3456,7 @@ function ShippingPage() {
                       .filter((item) => {
                         // When Bestellungen tab is active (rechnung), show only these items
                         if (activeTab === "rechnung") {
-                          return ["new-orders-checkbox", "new-orders-checkbox-2", "new-orders-checkbox-3", "new-orders-checkbox-4"].includes(item.id);
+                          return ["new-orders-checkbox-2", "new-orders-checkbox-3", "new-orders-checkbox-4"].includes(item.id);
                         }
                         // When Sendungen tab is active, show only these items
                         if (activeTab === "versand") {
@@ -3425,7 +3490,7 @@ function ShippingPage() {
                         </div>
                         <Label
                           htmlFor={item.id}
-                          className="text-sm font-normal leading-[1.2] text-muted-foreground group-hover:text-accent-foreground cursor-pointer break-words"
+                          className="text-sm font-light leading-[1.2] text-muted-foreground group-hover:text-accent-foreground cursor-pointer break-words"
                         >
                           {item.label === "Kein Versandvorgang" ? (
                             <>
@@ -3488,7 +3553,7 @@ function ShippingPage() {
                         </div>
                         <Label
                           htmlFor={item.id}
-                          className="text-sm font-normal leading-[1.2] text-muted-foreground group-hover:text-accent-foreground cursor-pointer break-words"
+                          className="text-sm font-light leading-[1.2] text-muted-foreground group-hover:text-accent-foreground cursor-pointer break-words"
                         >
                           {item.label === "Kein Versandvorgang" ? (
                             <>
@@ -3843,7 +3908,7 @@ function ShippingPage() {
                 <TabsContent value="rechnung">
                 <div ref={dataTableRef1}>
                   <DataTable
-                    columns={getColumns(activeTab, versandverpackungOptions, handleVerpackungChange, versandprofilOptions, handleProfilChange, versanddienstleisterOptions, handleDienstleisterChange, "rechnung", (row) => markedRows1.has(row.nr), fehlerRowNr, filteredData1.length, temporaryVisibleIcons)}
+                    columns={getColumns(activeTab, versandverpackungOptions, handleVerpackungChange, versandprofilOptions, handleProfilChange, versanddienstleisterOptions, handleDienstleisterChange, "rechnung", (row) => markedRows1.has(row.nr), fehlerRowNr, filteredData1.length, temporaryVisibleIcons, checklistMap)}
                     data={filteredData1}
                     enableGlobalFilter={true}
                     globalFilter={globalFilter1}
@@ -3866,12 +3931,25 @@ function ShippingPage() {
                     onRowReorder={handleRowReorder1}
                     toolbarLeft={
                       <>
-                        <Button className="h-9 w-9 shadow-sm">
-                          <Plus className="size-4" />
+                        <Button 
+                          className="h-9 w-9 shadow-sm"
+                          onClick={() => {
+                            setRefreshIconRotation(prev => prev + 180);
+                            const { bestellungenData, sendungenData, checklistMap: newChecklistMap } = loadCSVData();
+                            setOrdersState1(bestellungenData);
+                            setOrdersState2(sendungenData);
+                            setChecklistMap(newChecklistMap);
+                            toast.success("Daten wurden erfolgreich geladen");
+                          }}
+                        >
+                          <RefreshCw 
+                            className="size-4 transition-transform duration-500" 
+                            style={{ transform: `rotate(${refreshIconRotation}deg)` }}
+                          />
                         </Button>
                         <Label className="text-sm font-medium flex-col items-start sm:flex-row sm:items-center gap-0 sm:gap-0.5">
                           <span>Bestellungen</span>
-                          <span className="sm:ml-0.5">importieren</span>
+                          <span className="sm:ml-0.5">aktualisieren</span>
                         </Label>
                       </>
                     }
@@ -3892,7 +3970,7 @@ function ShippingPage() {
                 <TabsContent value="versand">
                   <div ref={dataTableRef2}>
                     <DataTable
-                      columns={getColumns(activeTab, versandverpackungOptions, handleVerpackungChange, versandprofilOptions, handleProfilChange, versanddienstleisterOptions, handleDienstleisterChange, "versand", (row) => markedRows2.has(row.nr), fehlerRowNr, filteredData2.length, temporaryVisibleIcons)}
+                      columns={getColumns(activeTab, versandverpackungOptions, handleVerpackungChange, versandprofilOptions, handleProfilChange, versanddienstleisterOptions, handleDienstleisterChange, "versand", (row) => markedRows2.has(row.nr), fehlerRowNr, filteredData2.length, temporaryVisibleIcons, checklistMap)}
                       data={filteredData2}
                     enableGlobalFilter={true}
                     globalFilter={globalFilter2}
@@ -3915,12 +3993,25 @@ function ShippingPage() {
                     tableName="VersandvorgaengeTable"
                     toolbarLeft={
                       <>
-                        <Button className="h-9 w-9 shadow-sm">
-                          <Plus className="size-4" />
+                        <Button 
+                          className="h-9 w-9 shadow-sm"
+                          onClick={() => {
+                            setRefreshIconRotation(prev => prev + 180);
+                            const { bestellungenData, sendungenData, checklistMap: newChecklistMap } = loadCSVData();
+                            setOrdersState1(bestellungenData);
+                            setOrdersState2(sendungenData);
+                            setChecklistMap(newChecklistMap);
+                            toast.success("Daten wurden erfolgreich geladen");
+                          }}
+                        >
+                          <RefreshCw 
+                            className="size-4 transition-transform duration-500" 
+                            style={{ transform: `rotate(${refreshIconRotation}deg)` }}
+                          />
                         </Button>
                         <Label className="text-sm font-medium flex-col items-start sm:flex-row sm:items-center gap-0 sm:gap-0.5">
                           <span>Bestellungen</span>
-                          <span className="sm:ml-0.5">importieren</span>
+                          <span className="sm:ml-0.5">aktualisieren</span>
                         </Label>
                       </>
                     }
@@ -3971,6 +4062,54 @@ function ShippingPage() {
             #{selectedOrder?.bestellnummer}
           </SheetTitle>
           <div className="flex items-center gap-2 mt-4 mb-4">
+            <Button 
+              variant="default" 
+              className="px-3"
+              onClick={() => {
+                if (selectedOrder) {
+                  // Ensure all changes are saved (they're already saved when fields change, but ensure consistency)
+                  const orderIndex1 = ordersState1.findIndex(o => o.nr === selectedOrder.nr);
+                  if (orderIndex1 !== -1) {
+                    setOrdersState1(prev => prev.map((o, idx) => idx === orderIndex1 ? selectedOrder : o));
+                  }
+                  const orderIndex2 = ordersState2.findIndex(o => o.nr === selectedOrder.nr);
+                  if (orderIndex2 !== -1) {
+                    setOrdersState2(prev => prev.map((o, idx) => idx === orderIndex2 ? selectedOrder : o));
+                  }
+                  
+                  // Close the sheet
+                  setIsSheetOpen(false);
+                  
+                  // Clear all filters to show all filtered rows
+                  setIsChecked(false);
+                  setIsChecked2(false);
+                  setIsChecked3(false);
+                  setIsChecked4(false);
+                  setIsChecked5(false);
+                  setIsChecked6(false);
+                  setIsChecked7(false);
+                  setIsChecked8(false);
+                  setIsChecked9(false);
+                  setIsChecked10(false);
+                  setGlobalFilter("");
+                  setGlobalFilter1("");
+                  setGlobalFilter2("");
+                  setImportquelle("");
+                  setZeilennummern("");
+                  setKaufdatum(undefined);
+                  setImportdatum(undefined);
+                  setSteuerland("");
+                  setVersanddatum(undefined);
+                  setVersandland("");
+                  setVersandzielland("");
+                  setVersandprofil("");
+                  setVersanddienstleister("");
+                  setVersandverpackung("");
+                }
+              }}
+            >
+              Speichern
+            </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !px-2 !py-2">
@@ -3980,14 +4119,17 @@ function ShippingPage() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="bg-actionbar text-actionbar-foreground border-actionbar-foreground/10">
-                <DropdownMenuItem className="text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground focus:bg-actionbar-hover focus:text-actionbar-foreground">
-                  Rechnung per E-Mail versenden
+                <DropdownMenuItem className="text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground focus:bg-actionbar-hover focus:text-actionbar-foreground text-sm font-medium">
+                  <Mail className="size-4 text-white" />
+                  {markedRowsCount > 1 ? "Rechnungen per E-Mail versenden" : "Rechnung per E-Mail versenden"}
                 </DropdownMenuItem>
-                <DropdownMenuItem className="text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground focus:bg-actionbar-hover focus:text-actionbar-foreground">
-                  Rechnung downloaden
+                <DropdownMenuItem className="text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground focus:bg-actionbar-hover focus:text-actionbar-foreground text-sm font-medium">
+                  <CloudDownload className="size-4 text-white" />
+                  {markedRowsCount > 1 ? "Rechnungen downloaden" : "Rechnung downloaden"}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            {false && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !px-2 !py-2">
@@ -4005,7 +4147,8 @@ function ShippingPage() {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button variant="outline" className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !px-2 !py-2">
+            )}
+            <Button variant="outline" className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !pl-2 !pr-3 !py-2">
               <Package className="size-4" />
               {((sheetWidth ?? 1255) >= 640 && !isUnderSm) && <span>Sendung erstellen</span>}
             </Button>
@@ -4406,7 +4549,7 @@ function ShippingPage() {
                     .filter((item) => {
                       // When Bestellungen tab is active (rechnung), show only these items
                       if (activeTab === "rechnung") {
-                        return ["new-orders-checkbox", "new-orders-checkbox-2", "new-orders-checkbox-3", "new-orders-checkbox-4"].includes(item.id);
+                        return ["new-orders-checkbox-2", "new-orders-checkbox-3", "new-orders-checkbox-4"].includes(item.id);
                       }
                       // When Sendungen tab is active, show only these items
                       if (activeTab === "versand") {
@@ -4440,7 +4583,7 @@ function ShippingPage() {
                         </div>
                         <Label
                           htmlFor={item.id}
-                          className="text-sm font-normal leading-[1.2] text-muted-foreground group-hover:text-accent-foreground cursor-pointer break-words"
+                          className="text-sm font-light leading-[1.2] text-muted-foreground group-hover:text-accent-foreground cursor-pointer break-words"
                         >
                           {item.label === "Kein Versandvorgang" ? (
                             <>
@@ -4503,7 +4646,7 @@ function ShippingPage() {
                         </div>
                         <Label
                           htmlFor={item.id}
-                          className="text-sm font-normal leading-[1.2] text-muted-foreground group-hover:text-accent-foreground cursor-pointer break-words"
+                          className="text-sm font-light leading-[1.2] text-muted-foreground group-hover:text-accent-foreground cursor-pointer break-words"
                         >
                           {item.label === "Kein Versandvorgang" ? (
                             <>
@@ -4660,29 +4803,42 @@ function ShippingPage() {
       </Sheet>
 
       {/* Floating buttons container */}
-      <div className="fixed bottom-6 lg:bottom-10 left-1/2 -translate-x-1/2 z-50 flex gap-1 bg-actionbar p-1 rounded-[11px] shadow-lg">
+      <div className="fixed bottom-6 lg:bottom-10 left-1/2 -translate-x-1/2 z-50 flex gap-1 bg-actionbar p-1 rounded-[11px] shadow-lg transition-all duration-300">
         <Button onClick={handleToggleMarkAll} className="w-[98px]">
           {allRowsSelected ? "Abwählen" : "Auswählen"}
         </Button>
-        {activeTab !== "versand" && (
+        {activeTab === "rechnung" && (
           <>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !px-2 !py-2">
+            <Button variant="outline" className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !px-2 !py-2 flex-shrink-0 transition-all duration-300">
                   <File className="size-4" />
-                  <span className="max-[1180px]:hidden">Rechnung</span>
+                  <span className="max-[1180px]:hidden">{markedRowsCount > 1 ? "Rechnungen" : "Rechnung"}</span>
                   <ChevronDown className="size-4 opacity-50 hidden sm:inline-block" />
             </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-actionbar text-actionbar-foreground border-actionbar-foreground/10">
+              <DropdownMenuContent align="end" className="bg-actionbar text-actionbar-foreground border-actionbar-foreground/10 -translate-y-1">
                 <DropdownMenuItem 
-                  className="text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground focus:bg-actionbar-hover focus:text-actionbar-foreground"
+                  className="text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground focus:bg-actionbar-hover focus:text-actionbar-foreground text-sm font-medium w-full pr-3"
                   onClick={() => checkSelectionBeforeAction(() => {
-                    // Count marked rows that are also visible
-                    const currentMarkedRows = activeTab === "versand" ? markedRows2 : markedRows1;
-                    const currentVisibleRows = activeTab === "versand" ? visibleRows2 : visibleRows1;
+                    // Count marked rows that are also visible (we're in rechnung tab)
                     // Filter to only count marked rows that are visible
-                    const markedVisibleRows = currentVisibleRows.filter(row => currentMarkedRows.has(row.nr));
+                    const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
+                    
+                    // Check if any selected rows already have "Rechnung versendet" visible
+                    const rowsWithRechnungVersendet = markedVisibleRows.filter(row => {
+                      const rowNr = typeof row.nr === 'number' ? row.nr : parseInt(String(row.nr)) || null;
+                      if (rowNr === null) return false;
+                      const checklistData = checklistMap.get(rowNr);
+                      return checklistData?.rechnungVersendet === true;
+                    });
+                    
+                    // If there are rows with already sent invoices, show confirmation modal
+                    if (rowsWithRechnungVersendet.length > 0) {
+                      setShowRechnungErneutVersendenModal(true);
+                      return;
+                    }
+                    
                     const count = markedVisibleRows.length;
                     
                     // Show "Rechnung versendet" icons temporarily for all visible rows except the last one
@@ -4754,119 +4910,100 @@ function ShippingPage() {
                     }
                   })}
                 >
-                  Rechnung per E-Mail versenden
+                  <Mail className="size-4 text-white" />
+                  {markedRowsCount > 1 ? "Rechnungen per E-Mail versenden" : "Rechnung per E-Mail versenden"}
                 </DropdownMenuItem>
                 <DropdownMenuItem 
-                  className="text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground focus:bg-actionbar-hover focus:text-actionbar-foreground"
+                  className="text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground focus:bg-actionbar-hover focus:text-actionbar-foreground text-sm font-medium w-full"
                   onClick={() => checkSelectionBeforeAction(() => {
                     // Handle Rechnung downloaden
                   })}
                 >
-                  Rechnung downloaden
+                  <CloudDownload className="size-4 text-white" />
+                  {markedRowsCount > 1 ? "Rechnungen downloaden" : "Rechnung downloaden"}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button 
-              variant="outline" 
-              className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !px-2 !py-2"
-              onClick={() => checkSelectionBeforeAction(() => {
-                // Handle Bestellungen verbinden
-              })}
-            >
-              <Merge className="size-4 rotate-90" />
-              <span className="max-[1180px]:hidden">Bestellungen verbinden</span>
-            </Button>
           </>
         )}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !px-2 !py-2">
-              <Settings2 className="size-4" />
-              <span className="max-[1180px]:hidden">Versandprofil</span>
-              <ChevronDown className="size-4 opacity-50 hidden sm:inline-block" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-actionbar text-actionbar-foreground border-actionbar-foreground/10">
-            <DropdownMenuItem 
-              className="text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground focus:bg-actionbar-hover focus:text-actionbar-foreground"
-              onClick={() => checkSelectionBeforeAction(() => {
-                // Handle Aus Auwahl Versandprofil erstellen
-              })}
-            >
-              Aus Auwahl Versandprofil erstellen
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              className="text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground focus:bg-actionbar-hover focus:text-actionbar-foreground"
-              onClick={() => checkSelectionBeforeAction(() => {
-                // Handle Zum Versandprofil hinzufügen
-              })}
-            >
-              Zum Versandprofil hinzufügen
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        {activeTab !== "versand" && (
+        {activeTab === "versand" && (
           <Button 
             variant="outline" 
-            className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !px-2 !py-2"
+            className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !pl-2 !pr-3 !py-2"
             onClick={() => checkSelectionBeforeAction(() => {
-              // Handle Sendung erstellen
+              // Handle Sendungen verbinden
+            })}
+          >
+            <Merge className="size-4 rotate-90" />
+            <span className="max-[1180px]:hidden">Sendungen verbinden</span>
+          </Button>
+        )}
+        {activeTab === "versand" && (
+          <>
+            <Button 
+              variant="outline" 
+              className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !pl-2 !pr-3 !py-2"
+              onClick={() => checkSelectionBeforeAction(() => {
+                // Handle Versandprofil hinzufügen
+              })}
+            >
+              <Settings2 className="size-4" />
+              <span className="max-[1180px]:hidden">Versandprofil hinzufügen</span>
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !px-2 !py-2 flex-shrink-0">
+                  <File className="size-4" />
+                  <span className="max-[1180px]:hidden">Versanddokumente</span>
+                  <ChevronDown className="size-4 opacity-50 hidden sm:inline-block" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="bg-actionbar text-actionbar-foreground border-actionbar-foreground/10 -translate-y-1">
+                <DropdownMenuItem 
+                  className="text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground focus:bg-actionbar-hover focus:text-actionbar-foreground text-sm font-medium"
+                  onClick={() => checkSelectionBeforeAction(() => {
+                    // Handle Versanddokumente downloaden
+                  })}
+                >
+                  <CloudDownload className="size-4 text-white" />
+                  Versanddokumente downloaden
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  className="text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground focus:bg-actionbar-hover focus:text-actionbar-foreground text-sm font-medium"
+                  onClick={() => checkSelectionBeforeAction(() => {
+                    // Handle Versanddokumente drucken
+                  })}
+                >
+                  <Printer className="size-4 text-white" />
+                  Versanddokumente drucken
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </>
+        )}
+        {activeTab === "rechnung" && (
+          <Button 
+            variant="outline" 
+            className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !pl-2 !pr-3 !py-2 mr-0 flex-shrink-0 transition-all duration-300"
+            onClick={() => checkSelectionBeforeAction(() => {
+              // Get marked rows (this button is only shown when activeTab === "rechnung")
+              const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
+              
+              // Show different modal based on number of selected rows
+              if (markedVisibleRows.length === 1) {
+                // Single row - show single row modal
+                setShowSingleRowSendungModal(true);
+                setSingleRowSendungStep(0);
+              } else {
+                // Multiple rows - show address matching modal
+                setShowAddressMatchAlert(true);
+                setAddressMatchStep(0);
+              }
             })}
           >
             <Package className="size-4" />
-            <span className="max-[1180px]:hidden">Sendung erstellen</span>
+            <span className="max-[1180px]:hidden">{markedRowsCount > 1 ? "Sendungen erstellen" : "Sendung erstellen"}</span>
           </Button>
-        )}
-        {activeTab !== "rechnung" && (
-          <>
-        <Button 
-          variant="outline" 
-          className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !px-2 !py-2"
-          onClick={() => checkSelectionBeforeAction(() => {
-            // Handle Versandverpackung
-          })}
-        >
-          <Package className="size-4" />
-          <span className="max-[1180px]:hidden">Versandverpackung</span>
-        </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !px-2 !py-2">
-              <File className="size-4" />
-              <span className="max-[1180px]:hidden">Versanddokumente</span>
-              <ChevronDown className="size-4 opacity-50 hidden sm:inline-block" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="bg-actionbar text-actionbar-foreground border-actionbar-foreground/10">
-            <DropdownMenuItem 
-              className="text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground focus:bg-actionbar-hover focus:text-actionbar-foreground"
-              onClick={() => checkSelectionBeforeAction(() => {
-                // Handle Versanddokumente downloaden
-              })}
-            >
-              Versanddokumente downloaden
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-              className="text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground focus:bg-actionbar-hover focus:text-actionbar-foreground"
-              onClick={() => checkSelectionBeforeAction(() => {
-                // Handle Versanddokumente drucken
-              })}
-            >
-              Versanddokumente drucken
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <Button 
-          variant="outline" 
-          className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !px-2 !py-2"
-          onClick={() => checkSelectionBeforeAction(() => {
-            // Handle Export
-          })}
-        >
-          <ArrowRightFromLine className="size-4" />
-          <span className="max-[1180px]:hidden">Export</span>
-        </Button>
-          </>
         )}
         <Button variant="outline" className="h-9 w-9 p-0 bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 shadow-sm">
           <MoreHorizontal className="size-4" />
@@ -4882,13 +5019,583 @@ function ShippingPage() {
                 ? "Es wurden keine Bestellungen ausgewählt" 
                 : "Es wurden keine Sendungen ausgewählt"}
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              Die Aktionen werden nur auf ausgewählte Zeilen angewendet.
+            <AlertDialogDescription className="!text-foreground">
+              Die Aktionen können nur auf markierte Zeilen angewendet werden.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction onClick={() => setShowNoSelectionAlert(false)}>
               OK
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Alert Dialog for address matching with carousel */}
+      <AlertDialog 
+        open={showAddressMatchAlert} 
+        onOpenChange={(open) => {
+          setShowAddressMatchAlert(open);
+          if (!open) {
+            setAddressMatchStep(0);
+          }
+        }}
+      >
+        <AlertDialogContent className="max-w-[512px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xs font-normal text-muted-foreground font-sans">Sendungen erstellen</AlertDialogTitle>
+          </AlertDialogHeader>
+          {/* Carousel Container */}
+          <div className="relative overflow-hidden">
+            <div 
+              className="flex transition-transform duration-300 ease-in-out"
+              style={{ transform: `translateX(-${addressMatchStep * 100}%)` }}
+            >
+              {/* Step 0: Initial */}
+              {React.useMemo(() => {
+                const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
+                const rowsWithoutSendung = markedVisibleRows.filter((order) => {
+                  const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+                  if (rowNr === null) return false;
+                  const checklistData = checklistMap.get(rowNr);
+                  const showIcon = checklistData?.sendungErstellt ?? false;
+                  return !showIcon;
+                });
+                const count = rowsWithoutSendung.length;
+                
+                return (
+                  <div className="min-w-full">
+                    <div>
+                      <h3 className="text-lg font-semibold mb-3">
+                        Es wurden {count} Bestellungen ohne Sendung gefunden
+                      </h3>
+                      <p className="text-sm">
+                        Sollen Sendungen für diese Bestellungen erstellt werden?
+                      </p>
+                    </div>
+                  </div>
+                );
+              }, [visibleRows1, markedRows1, checklistMap])}
+              
+              {/* Step 1: Adressdaten */}
+              <div className="min-w-full">
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Bestellungen verbinden</h3>
+                  <p className="text-sm">
+                    Es wurden Bestellungen mit gleichen Kunden-/Lieferdaten gefunden. Sollen sie zu einer Sendung zusammengefasst werden?
+                  </p>
+                </div>
+              </div>
+              
+              {/* Step 2: Versandprofile */}
+              <div className="min-w-full">
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Versandprofil(e) hinzufügen</h3>
+                  <p className="text-sm">
+                    Für einige Bestellungen sind passende Versandprofile verfügbar. Möchten Sie sie hinzufügen?
+                  </p>
+                </div>
+              </div>
+              
+              {/* Step 3: Sendungen erstellt */}
+              <div className="min-w-full">
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">4 neue Sendungen wurden erstellt</h3>
+                  <p className="text-sm">
+                    Möchten Sie sie jetzt anzeigen?
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <AlertDialogFooter className="!flex-row !justify-between sm:!justify-between items-center mt-6">
+            {addressMatchStep === 0 ? (
+              <>
+                <AlertDialogAction 
+                  onClick={() => {
+                    setShowAddressMatchAlert(false);
+                    setAddressMatchStep(0);
+                  }}
+                  className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                >
+                  Abbrechen
+                </AlertDialogAction>
+                <Button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setAddressMatchStep(1); // Move to address matching step
+                  }}
+                >
+                  Ja
+                </Button>
+              </>
+            ) : addressMatchStep === 1 ? (
+              <>
+                <AlertDialogAction 
+                  onClick={() => {
+                    setShowAddressMatchAlert(false);
+                    setAddressMatchStep(0);
+                  }}
+                  className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                >
+                  Abbrechen
+                </AlertDialogAction>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setAddressMatchStep(2); // Move to next step
+                    }}
+                    className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  >
+                    Nein
+                  </Button>
+                  <Button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setAddressMatchStep(2); // Move to next step
+                    }}
+                  >
+                    Ja
+                  </Button>
+                </div>
+              </>
+            ) : addressMatchStep === 2 ? (
+              <>
+                <AlertDialogAction 
+                  onClick={() => {
+                    setShowAddressMatchAlert(false);
+                    setAddressMatchStep(0);
+                  }}
+                  className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                >
+                  Abbrechen
+                </AlertDialogAction>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      // Show check symbols in "Sendung erstellt" for all marked rows
+                      const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
+                      setChecklistMap(prev => {
+                        const newMap = new Map(prev);
+                        markedVisibleRows.forEach(row => {
+                          const rowNr = typeof row.nr === 'number' ? row.nr : parseInt(String(row.nr)) || 0;
+                          const existing = newMap.get(rowNr) || {
+                            nr: rowNr,
+                            rechnungVersendet: false,
+                            sendungErstellt: false,
+                            versandprofilHinzugefuegt: false,
+                            picklisteErstellt: false,
+                            packlisteErstellt: false,
+                            paketlisteGedruckt: false,
+                            versendet: false,
+                            fehler: false,
+                          };
+                          newMap.set(rowNr, {
+                            ...existing,
+                            sendungErstellt: true,
+                          });
+                        });
+                        return newMap;
+                      });
+                      setAddressMatchStep(3); // Move to next step
+                    }}
+                    className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  >
+                    Nein
+                  </Button>
+                  <Button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      // Show check symbols in "Sendung erstellt" for all marked rows
+                      const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
+                      setChecklistMap(prev => {
+                        const newMap = new Map(prev);
+                        markedVisibleRows.forEach(row => {
+                          const rowNr = typeof row.nr === 'number' ? row.nr : parseInt(String(row.nr)) || 0;
+                          const existing = newMap.get(rowNr) || {
+                            nr: rowNr,
+                            rechnungVersendet: false,
+                            sendungErstellt: false,
+                            versandprofilHinzugefuegt: false,
+                            picklisteErstellt: false,
+                            packlisteErstellt: false,
+                            paketlisteGedruckt: false,
+                            versendet: false,
+                            fehler: false,
+                          };
+                          newMap.set(rowNr, {
+                            ...existing,
+                            sendungErstellt: true,
+                          });
+                        });
+                        return newMap;
+                      });
+                      setAddressMatchStep(3); // Move to next step
+                    }}
+                  >
+                    Ja
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                {addressMatchStep !== 3 && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setAddressMatchStep(2)}
+                    className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  >
+                    Zurück
+                  </Button>
+                )}
+                <div className={`flex gap-3 ${addressMatchStep === 3 ? 'ml-auto' : ''}`}>
+                  <AlertDialogAction 
+                    onClick={() => {
+                      setShowAddressMatchAlert(false);
+                      setAddressMatchStep(0);
+                      // Handle: Don't show sendungen
+                      // TODO: Implement actual logic
+                    }}
+                    className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  >
+                    Nein
+                  </AlertDialogAction>
+                  <AlertDialogAction 
+                    onClick={() => {
+                      // Get the currently selected rows from Bestellungen
+                      const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
+                      
+                      if (markedVisibleRows.length > 0) {
+                        // Collect all unique kundeAdresse values from selected rows
+                        const kundeAdressen = new Set(markedVisibleRows.map(row => row.kundeAdresse || ""));
+                        
+                        // Find matching rows in Sendungen table by kundeAdresse (use ordersState2 for all data, not just visible)
+                        const matchingRows = ordersState2.filter(row => kundeAdressen.has(row.kundeAdresse || ""));
+                        
+                        // Mark matching rows in Sendungen table
+                        if (matchingRows.length > 0) {
+                          const newMarkedRows = new Set<string | number>();
+                          matchingRows.forEach(row => {
+                            newMarkedRows.add(row.nr);
+                          });
+                          setMarkedRows2(newMarkedRows);
+                        }
+                        
+                        // Switch to Sendungen tab
+                        setActiveTab("versand");
+                        
+                        // Show check symbols in "Sendung erstellt" for selected Bestellungen rows
+                        setChecklistMap(prev => {
+                          const newMap = new Map(prev);
+                          // Update Bestellungen rows
+                          markedVisibleRows.forEach(row => {
+                            const rowNr = typeof row.nr === 'number' ? row.nr : parseInt(String(row.nr)) || 0;
+                            const existing = newMap.get(rowNr) || {
+                              nr: rowNr,
+                              rechnungVersendet: false,
+                              sendungErstellt: false,
+                              versandprofilHinzugefuegt: false,
+                              picklisteErstellt: false,
+                              packlisteErstellt: false,
+                              paketlisteGedruckt: false,
+                              versendet: false,
+                              fehler: false,
+                            };
+                            newMap.set(rowNr, {
+                              ...existing,
+                              sendungErstellt: true,
+                            });
+                          });
+                          // Also update matching Sendungen rows - show "Versandprofil hinzugefügt" for rows with DE in Versandland
+                          matchingRows.forEach(row => {
+                            const rowNr = typeof row.nr === 'number' ? row.nr : parseInt(String(row.nr)) || 0;
+                            const existing = newMap.get(rowNr) || {
+                              nr: rowNr,
+                              rechnungVersendet: false,
+                              sendungErstellt: false,
+                              versandprofilHinzugefuegt: false,
+                              picklisteErstellt: false,
+                              packlisteErstellt: false,
+                              paketlisteGedruckt: false,
+                              versendet: false,
+                              fehler: false,
+                            };
+                            const hasDE = row.versandland?.toUpperCase().includes('DE');
+                            newMap.set(rowNr, {
+                              ...existing,
+                              versandprofilHinzugefuegt: hasDE ? true : existing.versandprofilHinzugefuegt,
+                            });
+                          });
+                          return newMap;
+                        });
+                        
+                        // Update Versandprofil, Versanddienstleister, Versandverpackung for matching rows in Sendungen table with DE in Versandland
+                        setOrdersState2(prev => prev.map(order => {
+                          if (kundeAdressen.has(order.kundeAdresse || "") && order.versandland?.toUpperCase().includes('DE')) {
+                            return {
+                              ...order,
+                              versandprofil: 'DHL National',
+                              versanddienstleister: 'DHL',
+                              versandverpackung: 'Karton L',
+                            };
+                          }
+                          return order;
+                        }));
+                      }
+                      
+                      setShowAddressMatchAlert(false);
+                      setAddressMatchStep(0);
+                    }}
+                  >
+                    Ja
+                  </AlertDialogAction>
+                </div>
+              </>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Alert Dialog for single row sendung creation */}
+      <AlertDialog 
+        open={showSingleRowSendungModal} 
+        onOpenChange={(open) => {
+          setShowSingleRowSendungModal(open);
+          if (!open) {
+            setSingleRowSendungStep(0);
+          }
+        }}
+      >
+        <AlertDialogContent className="max-w-[512px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xs font-normal text-muted-foreground font-sans">Sendung erstellen</AlertDialogTitle>
+          </AlertDialogHeader>
+          {/* Carousel Container */}
+          <div className="relative overflow-hidden">
+            <div 
+              className="flex transition-transform duration-300 ease-in-out"
+              style={{ transform: `translateX(-${singleRowSendungStep * 100}%)` }}
+            >
+              {/* Step 1: Initial */}
+              <div className="min-w-full">
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Möchten Sie eine Sendung für diese Bestellung erstellen?</h3>
+                </div>
+              </div>
+              
+              {/* Step 2: Versandprofil */}
+              <div className="min-w-full">
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Kein passendes Versandprofil gefunden</h3>
+                  <p className="text-sm">
+                    Sendung wird ohne Versandprofil gespeichert. Sie können im Anschluss ein Versandprofil erstellen.
+                  </p>
+                </div>
+              </div>
+              
+              {/* Step 3: Success */}
+              <div className="min-w-full">
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Sendung wurde erstellt</h3>
+                  <p className="text-sm">
+                    Möchten Sie sie jetzt anzeigen?
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <AlertDialogFooter className="!flex-row !justify-between sm:!justify-between items-center mt-6">
+            {singleRowSendungStep === 0 ? (
+              <>
+                <AlertDialogAction 
+                  onClick={() => {
+                    setShowSingleRowSendungModal(false);
+                    setSingleRowSendungStep(0);
+                  }}
+                  className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                >
+                  Abbrechen
+                </AlertDialogAction>
+                <Button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setSingleRowSendungStep(1); // Move to versandprofil step
+                    
+                    // Show check symbols in "Sendung erstellt" for selected rows
+                    const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
+                    setChecklistMap(prev => {
+                      const newMap = new Map(prev);
+                      markedVisibleRows.forEach(row => {
+                        const rowNr = typeof row.nr === 'number' ? row.nr : parseInt(String(row.nr)) || 0;
+                        const existing = newMap.get(rowNr) || {
+                          nr: rowNr,
+                          rechnungVersendet: false,
+                          sendungErstellt: false,
+                          versandprofilHinzugefuegt: false,
+                          picklisteErstellt: false,
+                          packlisteErstellt: false,
+                          paketlisteGedruckt: false,
+                          versendet: false,
+                          fehler: false,
+                        };
+                        newMap.set(rowNr, {
+                          ...existing,
+                          sendungErstellt: true,
+                        });
+                      });
+                      return newMap;
+                    });
+                  }}
+                >
+                  Ja
+                </Button>
+              </>
+            ) : singleRowSendungStep === 1 ? (
+              <>
+                <AlertDialogAction 
+                  onClick={() => {
+                    setShowSingleRowSendungModal(false);
+                    setSingleRowSendungStep(0);
+                  }}
+                  className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                >
+                  Abbrechen
+                </AlertDialogAction>
+                <Button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setSingleRowSendungStep(2); // Move to success step
+                    // TODO: Implement logic
+                  }}
+                >
+                  OK, weiter
+                </Button>
+              </>
+            ) : (
+              <>
+                <AlertDialogAction 
+                  onClick={() => {
+                    setShowSingleRowSendungModal(false);
+                    setSingleRowSendungStep(0);
+                  }}
+                  className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                >
+                  Schließen
+                </AlertDialogAction>
+                <div className="flex gap-2 ml-auto">
+                  <AlertDialogAction 
+                    onClick={() => {
+                      setShowSingleRowSendungModal(false);
+                      setSingleRowSendungStep(0);
+                      // Handle: Don't show sendung
+                      // TODO: Implement actual logic
+                    }}
+                    className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  >
+                    Versandprofil erstellen
+                  </AlertDialogAction>
+                  <AlertDialogAction 
+                    onClick={() => {
+                      // Get the currently selected row from Bestellungen
+                      const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
+                      
+                      if (markedVisibleRows.length === 1) {
+                        const selectedRow = markedVisibleRows[0];
+                        const kundeAdresse = selectedRow.kundeAdresse || "";
+                        
+                        // Find matching rows in Sendungen table by kundeAdresse (use ordersState2 for all data, not just visible)
+                        const matchingRows = ordersState2.filter(row => row.kundeAdresse === kundeAdresse);
+                        
+                        // Mark matching rows in Sendungen table
+                        if (matchingRows.length > 0) {
+                          const newMarkedRows = new Set<string | number>();
+                          matchingRows.forEach(row => {
+                            newMarkedRows.add(row.nr);
+                          });
+                          setMarkedRows2(newMarkedRows);
+                        }
+                        
+                        // Switch to Sendungen tab
+                        setActiveTab("versand");
+                      }
+                      
+                      setShowSingleRowSendungModal(false);
+                      setSingleRowSendungStep(0);
+                    }}
+                  >
+                    Ja
+                  </AlertDialogAction>
+                </div>
+              </>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Alert Dialog for confirming resending invoices */}
+      <AlertDialog 
+        open={showRechnungErneutVersendenModal} 
+        onOpenChange={setShowRechnungErneutVersendenModal}
+      >
+        <AlertDialogContent className="max-w-[512px]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Rechnung erneut versenden?</AlertDialogTitle>
+            <AlertDialogDescription className="!text-foreground">
+              Für einige der markierten Bestellungen wurden bereits Rechnungen an Kunden versendet. Möchten Sie die Rechnungen trotzdem senden?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="!flex-row !justify-between sm:!justify-between items-center">
+            <AlertDialogAction 
+              onClick={() => {
+                setShowRechnungErneutVersendenModal(false);
+              }}
+              className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+            >
+              Nein, abbrechen
+            </AlertDialogAction>
+            <AlertDialogAction 
+              onClick={() => {
+                // Send invoices to all selected rows
+                const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
+                const count = markedVisibleRows.length;
+                
+                // Update checklistMap to show "Rechnung versendet" check symbols permanently
+                setChecklistMap(prev => {
+                  const newMap = new Map(prev);
+                  markedVisibleRows.forEach(row => {
+                    const rowNr = typeof row.nr === 'number' ? row.nr : parseInt(String(row.nr)) || 0;
+                    const existing = newMap.get(rowNr) || {
+                      nr: rowNr,
+                      rechnungVersendet: false,
+                      sendungErstellt: false,
+                      versandprofilHinzugefuegt: false,
+                      picklisteErstellt: false,
+                      packlisteErstellt: false,
+                      paketlisteGedruckt: false,
+                      versendet: false,
+                      fehler: false,
+                    };
+                    newMap.set(rowNr, {
+                      ...existing,
+                      rechnungVersendet: true,
+                    });
+                  });
+                  return newMap;
+                });
+                
+                toast.success(
+                  `${count} Rechnungen wurden erfolgreich versendet`,
+                  { duration: 3000 }
+                );
+                
+                setShowRechnungErneutVersendenModal(false);
+              }}
+            >
+              Ja, an alle senden
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
