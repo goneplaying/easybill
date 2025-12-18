@@ -2177,7 +2177,7 @@ const columnLabels1: Record<string, string> = {
   "floating-col-2-rechnung": "Fehler",
   "floating-col-3-rechnung": "Versendet",
   "floating-col-4-rechnung": "Packliste erstellt",
-  "floating-col-5-rechnung": "Paketlabel erstellt",
+  "floating-col-5-rechnung": "Versandlabel erstellt",
   "floating-col-6-rechnung": "Pickliste erstellt",
   "floating-col-7-rechnung": "Sendung erstellt",
   "floating-col-8-rechnung": "Versandprofil hinzugefügt",
@@ -2214,7 +2214,7 @@ const columnLabels2: Record<string, string> = {
   "floating-col-2-versand": "Fehler",
   "floating-col-3-versand": "Versendet",
   "floating-col-4-versand": "Packliste erstellt",
-  "floating-col-5-versand": "Paketlabel erstellt",
+  "floating-col-5-versand": "Versandlabel erstellt",
   "floating-col-6-versand": "Pickliste erstellt",
   "floating-col-7-versand": "Sendung erstellt",
   "floating-col-8-versand": "Versandprofil hinzugefügt",
@@ -3449,45 +3449,30 @@ function ShippingPage() {
     }
   }, [activeTab, handleToggleMarkAll1, handleToggleMarkAll2]);
 
-  // Toggle selection of just the current active row (selectedOrder)
-  const handleToggleCurrentRow = React.useCallback(() => {
+
+  // Toggle mark state of the current active row (selectedOrder)
+  const handleToggleCurrentRowMark = React.useCallback(() => {
     if (!selectedOrder) return;
     
-    // Determine which table's data to use based on activeTab
-    const currentFilteredData = activeTab === "versand" ? filteredData2 : filteredData1;
-    const currentRowSelection = activeTab === "versand" ? rowSelection2 : rowSelection1;
-    const setCurrentRowSelection = activeTab === "versand" ? setRowSelection2 : setRowSelection1;
+    const rowNr = selectedOrder.nr;
+    const currentMarkedRows = activeTab === "versand" ? markedRows2 : markedRows1;
+    const setCurrentMarkedRows = activeTab === "versand" ? setMarkedRows2 : setMarkedRows1;
     
-    // Find the index of selectedOrder in currentFilteredData
-    const currentIndex = currentFilteredData.findIndex((o) => o.nr === selectedOrder.nr);
-    if (currentIndex === -1) return;
-    
-    const rowIndex = currentIndex.toString();
-    const isCurrentlySelected = currentRowSelection[rowIndex] === true;
-    
-    if (isCurrentlySelected) {
-      // Deselect current row
-      const newSelection = { ...currentRowSelection };
-      delete newSelection[rowIndex];
-      setCurrentRowSelection(newSelection);
+    const newMarked = new Set(currentMarkedRows);
+    if (newMarked.has(rowNr)) {
+      newMarked.delete(rowNr);
     } else {
-      // Select current row
-      setCurrentRowSelection({
-        ...currentRowSelection,
-        [rowIndex]: true,
-      });
+      newMarked.add(rowNr);
     }
-  }, [selectedOrder, activeTab, filteredData1, filteredData2, rowSelection1, rowSelection2]);
+    setCurrentMarkedRows(newMarked);
+  }, [selectedOrder, activeTab, markedRows1, markedRows2]);
 
-  // Check if the current row is selected
-  const isCurrentRowSelected = React.useMemo(() => {
+  // Check if the current row is marked
+  const isCurrentRowMarked = React.useMemo(() => {
     if (!selectedOrder) return false;
-    const currentFilteredData = activeTab === "versand" ? filteredData2 : filteredData1;
-    const currentRowSelection = activeTab === "versand" ? rowSelection2 : rowSelection1;
-    const currentIndex = currentFilteredData.findIndex((o) => o.nr === selectedOrder.nr);
-    if (currentIndex === -1) return false;
-    return currentRowSelection[currentIndex.toString()] === true;
-  }, [selectedOrder, activeTab, filteredData1, filteredData2, rowSelection1, rowSelection2]);
+    const currentMarkedRows = activeTab === "versand" ? markedRows2 : markedRows1;
+    return currentMarkedRows.has(selectedOrder.nr);
+  }, [selectedOrder, activeTab, markedRows1, markedRows2]);
 
   // Check if any rows are marked
   const hasMarkedRows = React.useMemo(() => {
@@ -4258,8 +4243,8 @@ function ShippingPage() {
           onNextClick={showArrows ? handleNextClick : undefined}
           isPrevDisabled={currentIndex <= 0}
           isNextDisabled={currentIndex >= filteredOrders.length - 1}
-          onToggleSelectAll={handleToggleCurrentRow}
-          allRowsSelected={isCurrentRowSelected}
+          onToggleSelectAll={handleToggleCurrentRowMark}
+          allRowsSelected={isCurrentRowMarked}
           aria-label="bestellung"
         >
           {/* Resize handle */}
@@ -5024,20 +5009,64 @@ function ShippingPage() {
           <Button 
             variant="outline" 
             className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !pl-2 !pr-3 !py-2"
-            onClick={() => setShowFunktionenBestellungenCommand(true)}
+            onClick={() => {
+              checkSelectionBeforeAction(() => {
+                // Get marked rows (this button is only shown when activeTab === "rechnung")
+                const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
+                
+                // Show different modal based on number of selected rows
+                if (markedVisibleRows.length === 1) {
+                  // Single row - show single row modal
+                  setShowSingleRowSendungModal(true);
+                  setSingleRowSendungStep(0);
+                } else {
+                  // Multiple rows - show address matching modal
+                  setShowAddressMatchAlert(true);
+                  setAddressMatchStep(0);
+                }
+              });
+            }}
           >
-            Funktion ausführen
+            <Package className="size-4" />
+            {markedRowsCount > 1 ? "Sendungen erstellen" : "Sendung erstellen"}
           </Button>
         )}
-        {activeTab === "versand" && (
-          <Button 
-            variant="outline" 
-            className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !pl-2 !pr-3 !py-2"
-            onClick={() => setShowFunktionenSendungenCommand(true)}
-          >
-            Funktion ausführen
-          </Button>
-        )}
+        <div className="ml-auto flex gap-1">
+          {activeTab === "rechnung" && (
+            <Button 
+              variant="outline" 
+              className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !pl-2 !pr-3 !py-2"
+              onClick={() => setShowFunktionenBestellungenCommand(true)}
+            >
+              <MoreHorizontal className="size-4" />
+              <span className="hidden sm:inline">Weitere Funktionen</span>
+            </Button>
+          )}
+          {activeTab === "versand" && (
+            <>
+              <Button 
+                variant="outline" 
+                className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !pl-2 !pr-3 !py-2"
+                onClick={() => {
+                  checkSelectionBeforeAction(() => {
+                    // Handle Versandlabel erstellen
+                  });
+                }}
+              >
+                <QrCode className="size-4" />
+                Versandlabel erstellen
+              </Button>
+              <Button 
+                variant="outline" 
+                className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !pl-2 !pr-3 !py-2"
+                onClick={() => setShowFunktionenSendungenCommand(true)}
+              >
+                <MoreHorizontal className="size-4" />
+                <span className="hidden sm:inline">Weitere Funktionen</span>
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Alert Dialog for no selection */}
@@ -5049,7 +5078,7 @@ function ShippingPage() {
                 ? "Es wurden keine Bestellungen ausgewählt" 
                 : "Es wurden keine Sendungen ausgewählt"}
             </AlertDialogTitle>
-            <AlertDialogDescription className="!text-foreground">
+            <AlertDialogDescription className="!text-foreground text-[13px] font-light leading-[130%]">
               Die Aktionen können nur auf markierte Zeilen angewendet werden.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -5754,29 +5783,6 @@ function ShippingPage() {
               onSelect={() => {
                 setShowFunktionenBestellungenCommand(false);
                 checkSelectionBeforeAction(() => {
-                  // Get marked rows (this button is only shown when activeTab === "rechnung")
-                  const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
-                  
-                  // Show different modal based on number of selected rows
-                  if (markedVisibleRows.length === 1) {
-                    // Single row - show single row modal
-                    setShowSingleRowSendungModal(true);
-                    setSingleRowSendungStep(0);
-                  } else {
-                    // Multiple rows - show address matching modal
-                    setShowAddressMatchAlert(true);
-                    setAddressMatchStep(0);
-                  }
-                });
-              }}
-            >
-              <Package className="size-4" />
-              {markedRowsCount > 1 ? "Sendungen erstellen" : "Sendung erstellen"}
-            </CommandItem>
-            <CommandItem
-              onSelect={() => {
-                setShowFunktionenBestellungenCommand(false);
-                checkSelectionBeforeAction(() => {
                   // Handle löschen
                 });
               }}
@@ -5800,17 +5806,6 @@ function ShippingPage() {
         <CommandList>
           <CommandEmpty>Keine Funktion gefunden.</CommandEmpty>
           <CommandGroup heading="Versanddokumente">
-            <CommandItem
-              onSelect={() => {
-                setShowFunktionenSendungenCommand(false);
-                checkSelectionBeforeAction(() => {
-                  // Handle Paketlabel erstellen
-                });
-              }}
-            >
-              <QrCode className="size-4" />
-              Paketlabel erstellen
-            </CommandItem>
             <CommandItem
               onSelect={() => {
                 setShowFunktionenSendungenCommand(false);
