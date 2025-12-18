@@ -20,7 +20,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Search, X, Plus, Truck, CreditCard, Package, PackageOpen, MoreHorizontal, Check, Circle, RotateCcw, RefreshCw, CalendarIcon, Filter, Settings2, ChevronDown, File, ToyBrick, Settings, HelpCircle, Merge, Menu, LayoutDashboard, ClipboardList, QrCode, Mail, ListChecks, AlertTriangle, CloudDownload, Printer } from "lucide-react";
+import { Search, X, Plus, Truck, CreditCard, Package, PackageOpen, MoreHorizontal, Check, Circle, RotateCcw, RefreshCw, CalendarIcon, Filter, Settings2, ChevronDown, File, ToyBrick, Settings, HelpCircle, Merge, Menu, LayoutDashboard, ClipboardList, QrCode, Mail, ListChecks, AlertTriangle, CloudDownload, Printer, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import {
@@ -48,6 +48,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  CommandDialog,
+  CommandInput,
+  CommandList,
+  CommandEmpty,
+  CommandGroup,
+  CommandItem,
+} from "@/components/ui/command";
 import {
   Table,
   TableBody,
@@ -2294,6 +2302,8 @@ function ShippingPage() {
   const [showSingleRowSendungModal, setShowSingleRowSendungModal] = React.useState(false);
   const [singleRowSendungStep, setSingleRowSendungStep] = React.useState(0); // 0 = initial, 1 = versandprofil, 2 = success
   const [showRechnungErneutVersendenModal, setShowRechnungErneutVersendenModal] = React.useState(false);
+  const [showFunktionenBestellungenCommand, setShowFunktionenBestellungenCommand] = React.useState(false);
+  const [showFunktionenSendungenCommand, setShowFunktionenSendungenCommand] = React.useState(false);
 
   // Get unique versandland values from orders data
   const versandlandOptions = React.useMemo(() => {
@@ -4860,206 +4870,23 @@ function ShippingPage() {
           {allRowsSelected ? "Abwählen" : "Auswählen"}
         </Button>
         {activeTab === "rechnung" && (
-          <>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-            <Button variant="outline" className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !px-2 !py-2 flex-shrink-0 transition-all duration-300">
-                  <File className="size-4" />
-                  <span className="max-[1180px]:hidden">{markedRowsCount > 1 ? "Rechnungen" : "Rechnung"}</span>
-                  <ChevronDown className="size-4 opacity-50 hidden sm:inline-block" />
-            </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-actionbar text-actionbar-foreground border-actionbar-foreground/10 -translate-y-1">
-                <DropdownMenuItem 
-                  className="text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground focus:bg-actionbar-hover focus:text-actionbar-foreground text-sm font-medium w-full pr-3"
-                  onClick={() => checkSelectionBeforeAction(() => {
-                    // Count marked rows that are also visible (we're in rechnung tab)
-                    // Filter to only count marked rows that are visible
-                    const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
-                    
-                    // Check if any selected rows already have "Rechnung versendet" visible
-                    const rowsWithRechnungVersendet = markedVisibleRows.filter(row => {
-                      const rowNr = typeof row.nr === 'number' ? row.nr : parseInt(String(row.nr)) || null;
-                      if (rowNr === null) return false;
-                      const checklistData = checklistMap.get(rowNr);
-                      return checklistData?.rechnungVersendet === true;
-                    });
-                    
-                    // If there are rows with already sent invoices, show confirmation modal
-                    if (rowsWithRechnungVersendet.length > 0) {
-                      setShowRechnungErneutVersendenModal(true);
-                      return;
-                    }
-                    
-                    const count = markedVisibleRows.length;
-                    
-                    // Show "Rechnung versendet" icons temporarily for all visible rows except the last one
-                    // Show "Fehler" icon temporarily for the last row (only in Bestellungen table)
-                    if (markedVisibleRows.length > 0 && activeTab === "rechnung") {
-                      // Show "Rechnung versendet" icons for all rows except the last one
-                      const rowsExceptLast = markedVisibleRows.slice(0, -1);
-                      rowsExceptLast.forEach(row => {
-                        const rowNr = typeof row.nr === 'number' ? row.nr : parseInt(String(row.nr)) || null;
-                        if (rowNr !== null) {
-                          // Set to expire in 1 year (effectively until browser reload)
-                          showIconTemporarily(`rechnung-versendet-${rowNr}`, 365 * 24 * 60 * 60 * 1000);
-                        }
-                      });
-                      
-                      // Show "Fehler" icon for the last row in Bestellungen table
-                      const lastRow = markedVisibleRows[markedVisibleRows.length - 1];
-                      const lastRowNr = typeof lastRow.nr === 'number' ? lastRow.nr : parseInt(String(lastRow.nr)) || null;
-                      if (lastRowNr !== null) {
-                        // Set to expire in 1 year (effectively until browser reload)
-                        showIconTemporarily(`fehler-${lastRowNr}`, 365 * 24 * 60 * 60 * 1000);
-                      }
-                    }
-                    toast.success(
-                      `${count} Rechnungen wurden erfolgreich versendet`,
-                      {
-                        duration: 3000,
-                      }
-                    );
-                    // Show error toast after success toast only if more than 3 rows were selected
-                    if (count > 3) {
-                      setTimeout(() => {
-                        toast.error(
-                          <div>
-                            <div className="font-medium">1 Versandfehler</div>
-                            <div className="text-xs mt-1 font-normal">Prüfen Sie die E-Mail Adresse.</div>
-                          </div>,
-                          {
-                            duration: Infinity,
-                            icon: <AlertTriangle className="size-4 text-destructive" />,
-                            action: {
-                              label: "Anzeigen",
-                              onClick: () => {
-                                // Switch to rechnung tab if not already
-                                if (activeTab !== "rechnung") {
-                                  setActiveTab("rechnung");
-                                }
-                                // Activate Fehler filter to show only rows where Fehler icon is visible
-                                // The filter logic already checks both permanent (fehlerRowNr) and temporary visibility
-                                setIsChecked4(true);
-                                // Close the toast
-                                toast.dismiss();
-                                // Scroll to the first row with Fehler icon after filter is applied
-                                setTimeout(() => {
-                                  const tableElement = document.querySelector('[data-name="BestellungenTable"]');
-                                  if (tableElement) {
-                                    const rows = tableElement.querySelectorAll('tbody tr');
-                                    if (rows.length > 0) {
-                                      const firstRow = rows[0] as HTMLElement;
-                                      firstRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                    }
-                                  }
-                                }, 200);
-                              },
-                            },
-                          }
-                        );
-                      }, 3000);
-                    }
-                  })}
-                >
-                  <Mail className="size-4 text-white" />
-                  {markedRowsCount > 1 ? "Rechnungen per E-Mail versenden" : "Rechnung per E-Mail versenden"}
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  className="text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground focus:bg-actionbar-hover focus:text-actionbar-foreground text-sm font-medium w-full"
-                  onClick={() => checkSelectionBeforeAction(() => {
-                    // Handle Rechnung downloaden
-                  })}
-                >
-                  <CloudDownload className="size-4 text-white" />
-                  {markedRowsCount > 1 ? "Rechnungen downloaden" : "Rechnung downloaden"}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </>
+          <Button 
+            variant="outline" 
+            className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !pl-2 !pr-3 !py-2"
+            onClick={() => setShowFunktionenBestellungenCommand(true)}
+          >
+            Funktion ausführen
+          </Button>
         )}
         {activeTab === "versand" && (
           <Button 
             variant="outline" 
             className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !pl-2 !pr-3 !py-2"
-            onClick={() => checkSelectionBeforeAction(() => {
-              // Handle Sendungen verbinden
-            })}
+            onClick={() => setShowFunktionenSendungenCommand(true)}
           >
-            <Merge className="size-4 rotate-90" />
-            <span className="max-[1180px]:hidden">Sendungen verbinden</span>
+            Funktion ausführen
           </Button>
         )}
-        {activeTab === "versand" && (
-          <>
-            <Button 
-              variant="outline" 
-              className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !pl-2 !pr-3 !py-2"
-              onClick={() => checkSelectionBeforeAction(() => {
-                // Handle Versandprofil hinzufügen
-              })}
-            >
-              <Settings2 className="size-4" />
-              <span className="max-[1180px]:hidden">Versandprofil hinzufügen</span>
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !px-2 !py-2 flex-shrink-0">
-                  <File className="size-4" />
-                  <span className="max-[1180px]:hidden">Versanddokumente</span>
-                  <ChevronDown className="size-4 opacity-50 hidden sm:inline-block" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-actionbar text-actionbar-foreground border-actionbar-foreground/10 -translate-y-1">
-                <DropdownMenuItem 
-                  className="text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground focus:bg-actionbar-hover focus:text-actionbar-foreground text-sm font-medium"
-                  onClick={() => checkSelectionBeforeAction(() => {
-                    // Handle Versanddokumente downloaden
-                  })}
-                >
-                  <CloudDownload className="size-4 text-white" />
-                  Versanddokumente downloaden
-                </DropdownMenuItem>
-                <DropdownMenuItem 
-                  className="text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground focus:bg-actionbar-hover focus:text-actionbar-foreground text-sm font-medium"
-                  onClick={() => checkSelectionBeforeAction(() => {
-                    // Handle Versanddokumente drucken
-                  })}
-                >
-                  <Printer className="size-4 text-white" />
-                  Versanddokumente drucken
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </>
-        )}
-        {activeTab === "rechnung" && (
-          <Button 
-            variant="outline" 
-            className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !pl-2 !pr-3 !py-2 mr-0 flex-shrink-0 transition-all duration-300"
-            onClick={() => checkSelectionBeforeAction(() => {
-              // Get marked rows (this button is only shown when activeTab === "rechnung")
-              const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
-              
-              // Show different modal based on number of selected rows
-              if (markedVisibleRows.length === 1) {
-                // Single row - show single row modal
-                setShowSingleRowSendungModal(true);
-                setSingleRowSendungStep(0);
-              } else {
-                // Multiple rows - show address matching modal
-                setShowAddressMatchAlert(true);
-                setAddressMatchStep(0);
-              }
-            })}
-          >
-            <Package className="size-4" />
-            <span className="max-[1180px]:hidden">{markedRowsCount > 1 ? "Sendungen erstellen" : "Sendung erstellen"}</span>
-          </Button>
-        )}
-        <Button variant="outline" className="h-9 w-9 p-0 bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 shadow-sm">
-          <MoreHorizontal className="size-4" />
-        </Button>
       </div>
 
       {/* Alert Dialog for no selection */}
@@ -5652,6 +5479,260 @@ function ShippingPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Funktionen Bestellungen Command Dialog */}
+      <CommandDialog
+        open={showFunktionenBestellungenCommand}
+        onOpenChange={setShowFunktionenBestellungenCommand}
+        title="Funktionen Bestellungen"
+        description="Wählen Sie eine Funktion aus"
+      >
+        <CommandInput placeholder="Funktion suchen..." />
+        <CommandList>
+          <CommandEmpty>Keine Funktion gefunden.</CommandEmpty>
+          <CommandGroup heading="Rechnung">
+            <CommandItem
+              onSelect={() => {
+                setShowFunktionenBestellungenCommand(false);
+                checkSelectionBeforeAction(() => {
+                  // Count marked rows that are also visible (we're in rechnung tab)
+                  const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
+                  
+                  // Check if any selected rows already have "Rechnung versendet" visible
+                  const rowsWithRechnungVersendet = markedVisibleRows.filter(row => {
+                    const rowNr = typeof row.nr === 'number' ? row.nr : parseInt(String(row.nr)) || null;
+                    if (rowNr === null) return false;
+                    const checklistData = checklistMap.get(rowNr);
+                    return checklistData?.rechnungVersendet === true;
+                  });
+                  
+                  // If there are rows with already sent invoices, show confirmation modal
+                  if (rowsWithRechnungVersendet.length > 0) {
+                    setShowRechnungErneutVersendenModal(true);
+                    return;
+                  }
+                  
+                  const count = markedVisibleRows.length;
+                  
+                  // Show "Rechnung versendet" icons temporarily for all visible rows except the last one
+                  // Show "Fehler" icon temporarily for the last row (only in Bestellungen table)
+                  if (markedVisibleRows.length > 0 && activeTab === "rechnung") {
+                    // Show "Rechnung versendet" icons for all rows except the last one
+                    const rowsExceptLast = markedVisibleRows.slice(0, -1);
+                    rowsExceptLast.forEach(row => {
+                      const rowNr = typeof row.nr === 'number' ? row.nr : parseInt(String(row.nr)) || null;
+                      if (rowNr !== null) {
+                        // Set to expire in 1 year (effectively until browser reload)
+                        showIconTemporarily(`rechnung-versendet-${rowNr}`, 365 * 24 * 60 * 60 * 1000);
+                      }
+                    });
+                    
+                    // Show "Fehler" icon for the last row in Bestellungen table
+                    const lastRow = markedVisibleRows[markedVisibleRows.length - 1];
+                    const lastRowNr = typeof lastRow.nr === 'number' ? lastRow.nr : parseInt(String(lastRow.nr)) || null;
+                    if (lastRowNr !== null) {
+                      // Set to expire in 1 year (effectively until browser reload)
+                      showIconTemporarily(`fehler-${lastRowNr}`, 365 * 24 * 60 * 60 * 1000);
+                    }
+                  }
+                  toast.success(
+                    `${count} Rechnungen wurden erfolgreich versendet`,
+                    {
+                      duration: 3000,
+                    }
+                  );
+                  // Show error toast after success toast only if more than 3 rows were selected
+                  if (count > 3) {
+                    setTimeout(() => {
+                      toast.error(
+                        <div>
+                          <div className="font-medium">1 Versandfehler</div>
+                          <div className="text-xs mt-1 font-normal">Prüfen Sie die E-Mail Adresse.</div>
+                        </div>,
+                        {
+                          duration: Infinity,
+                          icon: <AlertTriangle className="size-4 text-destructive" />,
+                          action: {
+                            label: "Anzeigen",
+                            onClick: () => {
+                              // Switch to rechnung tab if not already
+                              if (activeTab !== "rechnung") {
+                                setActiveTab("rechnung");
+                              }
+                              // Activate Fehler filter to show only rows where Fehler icon is visible
+                              setIsChecked4(true);
+                              // Close the toast
+                              toast.dismiss();
+                              // Scroll to the first row with Fehler icon after filter is applied
+                              setTimeout(() => {
+                                const tableElement = document.querySelector('[data-name="BestellungenTable"]');
+                                if (tableElement) {
+                                  const rows = tableElement.querySelectorAll('tbody tr');
+                                  if (rows.length > 0) {
+                                    const firstRow = rows[0] as HTMLElement;
+                                    firstRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                  }
+                                }
+                              }, 200);
+                            },
+                          },
+                        }
+                      );
+                    }, 3000);
+                  }
+                });
+              }}
+            >
+              <Mail className="size-4" />
+              {markedRowsCount > 1 ? "Rechnungen per E-Mail versenden" : "Rechnung per E-Mail versenden"}
+            </CommandItem>
+            <CommandItem
+              onSelect={() => {
+                setShowFunktionenBestellungenCommand(false);
+                checkSelectionBeforeAction(() => {
+                  // Handle Rechnung downloaden
+                });
+              }}
+            >
+              <CloudDownload className="size-4" />
+              {markedRowsCount > 1 ? "Rechnungen downloaden" : "Rechnung downloaden"}
+            </CommandItem>
+          </CommandGroup>
+          <CommandGroup heading="Bestellungen">
+            <CommandItem
+              onSelect={() => {
+                setShowFunktionenBestellungenCommand(false);
+                checkSelectionBeforeAction(() => {
+                  // Get marked rows (this button is only shown when activeTab === "rechnung")
+                  const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
+                  
+                  // Show different modal based on number of selected rows
+                  if (markedVisibleRows.length === 1) {
+                    // Single row - show single row modal
+                    setShowSingleRowSendungModal(true);
+                    setSingleRowSendungStep(0);
+                  } else {
+                    // Multiple rows - show address matching modal
+                    setShowAddressMatchAlert(true);
+                    setAddressMatchStep(0);
+                  }
+                });
+              }}
+            >
+              <Package className="size-4" />
+              {markedRowsCount > 1 ? "Sendungen erstellen" : "Sendung erstellen"}
+            </CommandItem>
+            <CommandItem
+              onSelect={() => {
+                setShowFunktionenBestellungenCommand(false);
+                checkSelectionBeforeAction(() => {
+                  // Handle löschen
+                });
+              }}
+              className="text-destructive data-[selected=true]:bg-destructive/10 data-[selected=true]:text-destructive"
+            >
+              <Trash2 className="size-4 text-destructive" />
+              Löschen
+            </CommandItem>
+          </CommandGroup>
+        </CommandList>
+      </CommandDialog>
+
+      {/* Funktionen Sendungen Command Dialog */}
+      <CommandDialog
+        open={showFunktionenSendungenCommand}
+        onOpenChange={setShowFunktionenSendungenCommand}
+        title="Funktionen Sendungen"
+        description="Wählen Sie eine Funktion aus"
+      >
+        <CommandInput placeholder="Funktion suchen..." />
+        <CommandList>
+          <CommandEmpty>Keine Funktion gefunden.</CommandEmpty>
+          <CommandGroup heading="Versanddokumente">
+            <CommandItem
+              onSelect={() => {
+                setShowFunktionenSendungenCommand(false);
+                checkSelectionBeforeAction(() => {
+                  // Handle Paketlabel erstellen
+                });
+              }}
+            >
+              <QrCode className="size-4" />
+              Paketlabel erstellen
+            </CommandItem>
+            <CommandItem
+              onSelect={() => {
+                setShowFunktionenSendungenCommand(false);
+                checkSelectionBeforeAction(() => {
+                  // Handle Pickliste erstellen
+                });
+              }}
+            >
+              <ClipboardList className="size-4" />
+              Pickliste erstellen
+            </CommandItem>
+            <CommandItem
+              onSelect={() => {
+                setShowFunktionenSendungenCommand(false);
+                checkSelectionBeforeAction(() => {
+                  // Handle Versanddokumente downloaden
+                });
+              }}
+            >
+              <CloudDownload className="size-4" />
+              Versanddokumente downloaden
+            </CommandItem>
+            <CommandItem
+              onSelect={() => {
+                setShowFunktionenSendungenCommand(false);
+                checkSelectionBeforeAction(() => {
+                  // Handle Versanddokumente drucken
+                });
+              }}
+            >
+              <Printer className="size-4" />
+              Versanddokumente drucken
+            </CommandItem>
+          </CommandGroup>
+          <CommandGroup heading="Sendungen">
+            <CommandItem
+              onSelect={() => {
+                setShowFunktionenSendungenCommand(false);
+                checkSelectionBeforeAction(() => {
+                  // Handle Versandprofil hinzufügen
+                });
+              }}
+            >
+              <Settings2 className="size-4" />
+              Versandprofil hinzufügen
+            </CommandItem>
+            <CommandItem
+              onSelect={() => {
+                setShowFunktionenSendungenCommand(false);
+                checkSelectionBeforeAction(() => {
+                  // Handle Sendungen verbinden
+                });
+              }}
+            >
+              <Merge className="size-4 rotate-90" />
+              Sendungen verbinden
+            </CommandItem>
+            <CommandItem
+              onSelect={() => {
+                setShowFunktionenSendungenCommand(false);
+                checkSelectionBeforeAction(() => {
+                  // Handle löschen
+                });
+              }}
+              className="text-destructive data-[selected=true]:bg-destructive/10 data-[selected=true]:text-destructive"
+            >
+              <Trash2 className="size-4 text-destructive" />
+              Löschen
+            </CommandItem>
+          </CommandGroup>
+        </CommandList>
+      </CommandDialog>
+
       <Toaster />
     </div>
   );
