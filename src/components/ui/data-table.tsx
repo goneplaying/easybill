@@ -569,6 +569,7 @@ function DataTable<TData, TValue>({
                     <ContextMenuTrigger asChild>
                   <TableRow
                     data-state={row.getIsSelected() && "selected"}
+                    data-sheet-open={isSelected ? "true" : "false"}
                     draggable={enableRowDrag}
                     onDragStart={(e) => handleDragStart(e, rowIndex)}
                     onDragOver={(e) => handleDragOver(e, rowIndex)}
@@ -581,8 +582,8 @@ function DataTable<TData, TValue>({
                       (onRowClick || onRowMark) && "cursor-pointer hover:bg-muted/50",
                       // Marked rows (only if not selected)
                       !isSelected && isRowMarked?.(row.original) && "!bg-primary/5 hover:!bg-primary/10",
-                      // Selected rows (takes priority over marked)
-                      isSelected && "!bg-primary/5 hover:!bg-primary/10",
+                      // Selected rows (takes priority over marked) - rows with details sheet open
+                      isSelected && "!bg-primary/10 hover:!bg-primary/15",
                       draggedRowIndex === rowIndex && "opacity-50",
                       dragOverRowIndex === rowIndex && draggedRowIndex !== rowIndex && "border-t-2 border-t-primary"
                     )}
