@@ -78,6 +78,9 @@ import type { DateRange } from "react-day-picker";
 import { Link } from "react-router-dom";
 import logo from "@/assets/easybill-logo.svg";
 import logoPlus from "@/assets/easybill-logo+.svg";
+import logoDHL from "@/assets/logos/logo-dhl.svg";
+import logoDPD from "@/assets/logos/logo-dpd.svg";
+import logoUPS from "@/assets/logos/logo-ups.svg";
 import bestellungenCSV from "@/assets/tables/bestellungen.csv?raw";
 import sendungenCSV from "@/assets/tables/sendungen.csv?raw";
 import checklistenCSV from "@/assets/tables/checklisten.csv?raw";
@@ -2276,6 +2279,7 @@ function ShippingPage() {
   const [isChecked9, setIsChecked9] = React.useState(false); // Ohne Versandprofil
   const [isChecked5, setIsChecked5] = React.useState(false);
   const [isChecked6, setIsChecked6] = React.useState(false);
+  const [isChecked11, setIsChecked11] = React.useState(false); // UPS USA
   const [globalFilter, setGlobalFilter] = React.useState("");
   const [globalFilter1, setGlobalFilter1] = React.useState(""); // Separate filter for table 1
   const [globalFilter2, setGlobalFilter2] = React.useState(""); // Separate filter for table 2
@@ -2308,15 +2312,14 @@ function ShippingPage() {
 
   // Get unique versandprofil values from orders data
   const versandprofilOptions = React.useMemo(() => {
-    const uniqueProfile = Array.from(new Set(ordersState.map(order => order.versandprofil).filter((p): p is string => Boolean(p)))).sort();
-    return uniqueProfile;
-  }, [ordersState]);
+    // Use Versandprofile names: DHL National, DPD Europa, UPS USA
+    return ["DHL National", "DPD Europa", "UPS USA"];
+  }, []);
 
-  // Get unique versanddienstleister values from orders data
+  // Versanddienstleister options: DHL, DPD, UPS
   const versanddienstleisterOptions = React.useMemo(() => {
-    const uniqueDienstleister = Array.from(new Set(ordersState.map(order => order.versanddienstleister))).sort();
-    return uniqueDienstleister;
-  }, [ordersState]);
+    return ["DHL", "DPD", "UPS"];
+  }, []);
 
   // Get unique versandverpackung values from orders data
   const versandverpackungOptions = React.useMemo(() => {
@@ -2474,6 +2477,10 @@ function ShippingPage() {
         ...prev,
         "floating-col-2-rechnung": true,
       }));
+      setVersandColumnVisibility((prev) => ({
+        ...prev,
+        "floating-col-2-versand": true,
+      }));
     }
   }, [isChecked4]);
 
@@ -2508,38 +2515,36 @@ function ShippingPage() {
     }).length;
   }, [ordersState1, checklistMap]);
 
-  // Count rows where "Fehler" icon is visible (permanently or temporarily)
+  // Count rows where "Fehler" icon is visible (based on checklistData.fehler)
   const fehlerCount = React.useMemo(() => {
-    const visibleRows = new Set<number>();
+    let count = 0;
     
-    // Add rows with permanent visibility (fehlerRowNr matches)
-    if (fehlerRowNr !== null && fehlerRowNr !== undefined) {
-      ordersState1.forEach((order) => {
-        const orderNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
-        if (orderNr !== null && orderNr === fehlerRowNr) {
-          visibleRows.add(orderNr);
+    // Count rows in table 1 (Bestellungen) where Fehler icon is visible
+    ordersState1.forEach((order) => {
+      const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+      if (rowNr !== null) {
+        const checklistData = checklistMap.get(rowNr);
+        const hasError = checklistData?.fehler ?? false;
+        if (hasError) {
+          count++;
         }
-      });
-    }
+      }
+    });
     
-    // Add rows with temporary visibility
-    if (temporaryVisibleIcons !== undefined && temporaryVisibleIcons.size > 0) {
-      ordersState1.forEach((order) => {
-        const orderNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
-        if (orderNr === null) return;
-        
-        const iconId = `fehler-${orderNr}`;
-        if (temporaryVisibleIcons.has(iconId)) {
-          const expirationTime = temporaryVisibleIcons.get(iconId)!;
-          if (expirationTime > Date.now()) {
-            visibleRows.add(orderNr);
-          }
+    // Count rows in table 2 (Sendungen) where Fehler icon is visible
+    ordersState2.forEach((order) => {
+      const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+      if (rowNr !== null) {
+        const checklistData = checklistMap.get(rowNr);
+        const hasError = checklistData?.fehler ?? false;
+        if (hasError) {
+          count++;
         }
-      });
-    }
+      }
+    });
     
-    return visibleRows.size;
-  }, [ordersState1, fehlerRowNr, temporaryVisibleIcons]);
+    return count;
+  }, [ordersState1, ordersState2, checklistMap]);
 
   // Count rows in Sendungen table where "Versendet" icon is hidden (importdatum = "2025-12-09" or "09.12.2025")
   const nichtVersendetCount = React.useMemo(() => {
@@ -2589,10 +2594,17 @@ function ShippingPage() {
     return currentVisibleRows.filter(row => currentMarkedRows.has(row.nr)).length;
   }, [activeTab, markedRows1, markedRows2, visibleRows1, visibleRows2]);
 
-  // Count rows in Bestellungen table where Versandprofil is "DPD International"
+  // Count rows in Bestellungen table where Versandprofil is "DPD Europa" (formerly "DPD International")
   const dpdInternationalCount = React.useMemo(() => {
     return ordersState1.filter(
-      (order) => order.type === "Bestellung" && order.versandprofil === "DPD International"
+      (order) => order.type === "Bestellung" && (order.versandprofil === "DPD International" || order.versandprofil === "DPD Europa")
+    ).length;
+  }, [ordersState1]);
+
+  // Count rows in Bestellungen table where Versandprofil is "UPS USA"
+  const upsUSACount = React.useMemo(() => {
+    return ordersState1.filter(
+      (order) => order.type === "Bestellung" && order.versandprofil === "UPS USA"
     ).length;
   }, [ordersState1]);
 
@@ -2697,21 +2709,6 @@ function ShippingPage() {
   const filterItems2 = React.useMemo(
     () => [
       {
-        id: "versandprofile-checkbox-0",
-        count: ohneVersandprofilCount,
-        label: "Ohne Versandprofil",
-        checked: isChecked9,
-        onCheckedChange: (checked: boolean) => {
-          // Deselect all rows first
-          setMarkedRows1(new Set());
-          setMarkedRows2(new Set());
-          setRowSelection1({});
-          setRowSelection2({});
-          // Then change checkbox state
-          setIsChecked9(checked);
-        },
-      },
-      {
         id: "versandprofile-checkbox-1",
         count: dhlNationalCount,
         label: "DHL National",
@@ -2729,7 +2726,7 @@ function ShippingPage() {
       {
         id: "versandprofile-checkbox-2",
         count: dpdInternationalCount,
-        label: "DPD International",
+        label: "DPD Europa",
         checked: isChecked6,
         onCheckedChange: (checked: boolean) => {
           // Deselect all rows first
@@ -2741,8 +2738,23 @@ function ShippingPage() {
           setIsChecked6(checked);
         },
       },
+      {
+        id: "versandprofile-checkbox-3",
+        count: upsUSACount,
+        label: "UPS USA",
+        checked: isChecked11,
+        onCheckedChange: (checked: boolean) => {
+          // Deselect all rows first
+          setMarkedRows1(new Set());
+          setMarkedRows2(new Set());
+          setRowSelection1({});
+          setRowSelection2({});
+          // Then change checkbox state
+          setIsChecked11(checked);
+        },
+      },
     ],
-    [ohneVersandprofilCount, dhlNationalCount, dpdInternationalCount, isChecked9, isChecked5, isChecked6]
+    [dhlNationalCount, dpdInternationalCount, upsUSACount, isChecked5, isChecked6, isChecked11]
   );
 
   // Filter data for table 1 (includes additional rows)
@@ -2805,24 +2817,15 @@ function ShippingPage() {
       });
     }
 
-    // Apply filter for "Fehler" checkbox (rows where "Fehler" icon is visible - either permanently or temporarily)
+    // Apply filter for "Fehler" checkbox (rows where "Fehler" icon is visible based on checklistData.fehler)
     if (isChecked4) {
       result = result.filter((order) => {
-        const orderNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
-        if (orderNr === null) return false;
+        const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+        if (rowNr === null) return false;
         
-        // Check permanent visibility
-        const isPermanentlyVisible = fehlerRowNr !== null && fehlerRowNr !== undefined && orderNr === fehlerRowNr;
-        
-        // Check temporary visibility
-        const iconId = `fehler-${orderNr}`;
-        const isTemporarilyVisible = temporaryVisibleIcons !== undefined && temporaryVisibleIcons.has(iconId) && temporaryVisibleIcons.get(iconId)! > Date.now();
-        
-        // Check if it's the last row (should be excluded from permanent visibility)
-        const isLastRow = result.indexOf(order) === result.length - 1;
-        const permanentCheck = isPermanentlyVisible && !isLastRow;
-        
-        return permanentCheck || isTemporarilyVisible;
+        const checklistData = checklistMap.get(rowNr);
+        const hasError = checklistData?.fehler ?? false;
+        return hasError;
       });
     }
 
@@ -2843,10 +2846,17 @@ function ShippingPage() {
       );
     }
 
-    // Apply filter for "DPD International" checkbox (versandprofil is "DPD International")
+    // Apply filter for "DPD Europa" checkbox (versandprofil is "DPD Europa" or "DPD International")
     if (isChecked6) {
       result = result.filter(
-        (order) => order.versandprofil === "DPD International"
+        (order) => order.versandprofil === "DPD Europa" || order.versandprofil === "DPD International"
+      );
+    }
+
+    // Apply filter for "UPS USA" checkbox (versandprofil is "UPS USA")
+    if (isChecked11) {
+      result = result.filter(
+        (order) => order.versandprofil === "UPS USA"
       );
     }
 
@@ -2855,7 +2865,7 @@ function ShippingPage() {
 
     // Return a new array reference to ensure React detects changes
     return result;
-  }, [ordersState1, importquelle, kaufdatum, importdatum, isChecked, isChecked2, isChecked3, isChecked4, isChecked5, isChecked9, isChecked6, fehlerRowNr, checklistMap, temporaryVisibleIcons]);
+  }, [ordersState1, importquelle, kaufdatum, importdatum, isChecked, isChecked2, isChecked3, isChecked4, isChecked5, isChecked9, isChecked6, isChecked11, checklistMap]);
 
   // Filter data for table 2 (only base orders)
   const filteredData2 = React.useMemo(() => {
@@ -2920,7 +2930,19 @@ function ShippingPage() {
       );
     }
 
-    // Note: Filters for "Rechnungen nicht versendet", "Bestellungen bezahlt, nicht gesendet", and "Fehler"
+    // Apply filter for "Fehler" checkbox (rows where "Fehler" icon is visible based on checklistData.fehler)
+    if (isChecked4) {
+      result = result.filter((order) => {
+        const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+        if (rowNr === null) return false;
+        
+        const checklistData = checklistMap.get(rowNr);
+        const hasError = checklistData?.fehler ?? false;
+        return hasError;
+      });
+    }
+
+    // Note: Filters for "Rechnungen nicht versendet" and "Bestellungen bezahlt, nicht gesendet"
     // are intentionally NOT applied to the Sendungen table - they only apply to Bestellungen table
 
     // Filter IN Versandvorgang rows (this is for the Sendungen table)
@@ -2935,7 +2957,7 @@ function ShippingPage() {
 
     // Return a new array reference to ensure React detects changes
     return result;
-  }, [ordersState2, importquelle, kaufdatum, importdatum, isChecked, isChecked7, isChecked8, isChecked10]);
+  }, [ordersState2, importquelle, kaufdatum, importdatum, isChecked, isChecked4, isChecked7, isChecked8, isChecked10, checklistMap]);
 
   // filteredOrders for sheet navigation - uses active table's data
   // Must be declared here after filteredData1 and filteredData2 are defined
@@ -3413,14 +3435,6 @@ function ShippingPage() {
     return currentRowSelection[currentIndex.toString()] === true;
   }, [selectedOrder, activeTab, filteredData1, filteredData2, rowSelection1, rowSelection2]);
 
-  // Check if all visible rows are marked (changed from selected to marked)
-  const allRowsSelected = React.useMemo(() => {
-    const currentMarkedRows = activeTab === "versand" ? markedRows2 : markedRows1;
-    const currentVisibleRows = activeTab === "versand" ? visibleRows2 : visibleRows1;
-    if (currentVisibleRows.length === 0) return false;
-    return currentVisibleRows.every(row => currentMarkedRows.has(row.nr));
-  }, [activeTab, markedRows1, markedRows2, visibleRows1, visibleRows2]);
-
   // Check if any rows are marked
   const hasMarkedRows = React.useMemo(() => {
     const currentMarkedRows = activeTab === "versand" ? markedRows2 : markedRows1;
@@ -3609,7 +3623,7 @@ function ShippingPage() {
                 <AccordionTrigger 
                   className="py-6 text-[20px] font-bold text-foreground hover:no-underline"
                   indicator={
-                    (isChecked9 || isChecked5 || isChecked6) ? (
+                    (isChecked9 || isChecked5 || isChecked6 || isChecked11) ? (
                       <Circle className="h-2 w-2 shrink-0 text-primary fill-primary" />
                     ) : undefined
                   }
@@ -3630,9 +3644,29 @@ function ShippingPage() {
                       >
                       <div className="flex flex-col justify-between flex-1 h-full">
                         <div className="flex items-start justify-between">
-                          <div className="text-[20px] font-medium leading-[1.1] text-foreground group-hover:text-accent-foreground" style={{ fontFamily: "'Ryker', sans-serif" }}>
-                            {item.count}
-                          </div>
+                          {item.label === "DHL National" ? (
+                            <img 
+                              src={logoDHL} 
+                              alt="DHL" 
+                              className="h-8 w-auto"
+                            />
+                          ) : item.label === "DPD Europa" ? (
+                            <img 
+                              src={logoDPD} 
+                              alt="DPD" 
+                              className="h-8 w-auto"
+                            />
+                          ) : item.label === "UPS USA" ? (
+                            <img 
+                              src={logoUPS} 
+                              alt="UPS" 
+                              className="h-8 w-auto"
+                            />
+                          ) : (
+                            <div className="text-[20px] font-medium leading-[1.1] text-foreground group-hover:text-accent-foreground" style={{ fontFamily: "'Ryker', sans-serif" }}>
+                              {item.count}
+                            </div>
+                          )}
                           <Checkbox
                             id={item.id}
                             checked={item.checked}
@@ -4056,7 +4090,7 @@ function ShippingPage() {
                           />
                         </Button>
                         <Label className="text-sm font-medium flex-col items-start sm:flex-row sm:items-center gap-0 sm:gap-0.5">
-                          <span>Bestellungen</span>
+                          <span>Daten</span>
                           <span className="sm:ml-0.5">aktualisieren</span>
                         </Label>
                       </>
@@ -4135,7 +4169,7 @@ function ShippingPage() {
                           />
                         </Button>
                         <Label className="text-sm font-medium flex-col items-start sm:flex-row sm:items-center gap-0 sm:gap-0.5">
-                          <span>Bestellungen</span>
+                          <span>Daten</span>
                           <span className="sm:ml-0.5">aktualisieren</span>
                         </Label>
                       </>

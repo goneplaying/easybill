@@ -1,4 +1,3 @@
-import * as React from "react";
 import { Link } from "react-router-dom";
 import { Truck, ToyBrick, Settings, HelpCircle, Menu, LayoutDashboard } from "lucide-react";
 import logo from "@/assets/easybill-logo.svg";
