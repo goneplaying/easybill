@@ -1437,16 +1437,16 @@ function DashboardPage() {
             </button>
             {/* Original buttons for large screens */}
             <div className="hidden lg:flex flex-col gap-0.5 w-full mt-4">
-              <Link to="/1.1/dashboard" className="flex items-center justify-center w-full aspect-square rounded-md bg-white transition-colors">
+              <Link to="/1.2/dashboard" className="flex items-center justify-center w-full aspect-square rounded-md bg-white transition-colors">
                 <LayoutDashboard className="size-5 text-foreground" />
               </Link>
-              <Link to="/1.1/shipping" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
+              <Link to="/1.2/shipping" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
                 <Truck className="size-5 text-white" />
               </Link>
-              <Link to="/1.1/tools" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
+              <Link to="/1.2/tools" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
                 <ToyBrick className="size-5 text-white" />
               </Link>
-              <Link to="/1.1/settings" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
+              <Link to="/1.2/settings" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
                 <Settings className="size-5 text-white" />
               </Link>
               <div className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
