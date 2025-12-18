@@ -1389,22 +1389,7 @@ const getColumns = (
       const isSelected = row.getIsSelected();
       const isMarked = isRowMarked ? isRowMarked(row.original) : false;
       
-      // If checked or marked, show checkbox
-      if (isSelected || isMarked) {
-        return (
-          <div onClick={(e) => e.stopPropagation()} className="flex items-center justify-center">
-            <Checkbox
-              checked={isSelected || isMarked}
-              onCheckedChange={(value) => {
-                row.toggleSelected(!!value);
-              }}
-              aria-label="Select row"
-            />
-          </div>
-        );
-      }
-      
-      // If unchecked, show icon (Package or CreditCard based on tab and type)
+      // Determine icon to show (Package or CreditCard based on tab and type)
       const type = row.original.type;
       let icon = null;
       if (activeTab === "versand") {
@@ -1414,6 +1399,16 @@ const getColumns = (
         icon = type === "Bestellung" ? <CreditCard className="size-4" /> : null;
       }
       
+      // If checked or marked, show icon (no checkbox, no click handler)
+      if (isSelected || isMarked) {
+        return (
+          <div className="flex items-center justify-center">
+            {icon}
+          </div>
+        );
+      }
+      
+      // If unchecked, show icon with click handler
       return (
         <div 
           onClick={(e) => {

@@ -372,7 +372,7 @@ function DataTable<TData, TValue>({
                 const hiddenLabels = [
                   "Fehler",
                   "Versendet",
-                  "Paketlabel gedruckt",
+                  "Paketlabel erstellt",
                   "Packliste erstellt",
                   "Pickliste erstellt",
                   "Versandvorgang erstellt",

@@ -20,7 +20,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Search, X, Plus, Truck, CreditCard, Package, MoreHorizontal, Check, Circle, RotateCcw, RefreshCw, CalendarIcon, Filter, Settings2, ChevronDown, File, ToyBrick, Settings, HelpCircle, Merge, Menu, LayoutDashboard, ClipboardList, QrCode, Mail, ListChecks, AlertTriangle, CloudDownload, Printer } from "lucide-react";
+import { Search, X, Plus, Truck, CreditCard, Package, PackageOpen, MoreHorizontal, Check, Circle, RotateCcw, RefreshCw, CalendarIcon, Filter, Settings2, ChevronDown, File, ToyBrick, Settings, HelpCircle, Merge, Menu, LayoutDashboard, ClipboardList, QrCode, Mail, ListChecks, AlertTriangle, CloudDownload, Printer } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import {
@@ -1287,7 +1287,7 @@ function StatusBadge({ status }: { status: string }) {
   const styles: Record<string, string> = {
     versendet: "bg-lime-600 text-background",
     erstellt: "bg-sidebar-accent-foreground text-background",
-    ausstehend: "border border-border text-foreground bg-transparent",
+    ausstehend: "!border !border-border text-foreground bg-transparent",
     fehler: "bg-destructive text-background",
   };
 
@@ -1370,7 +1370,8 @@ const getColumns = (
   _fehlerRowNr?: number | null,
   _totalRowCount?: number,
   _temporaryVisibleIcons?: Map<string, number>,
-  checklistMap: Map<number, import("@/lib/csvParser").ChecklistData> = new Map()
+  checklistMap: Map<number, import("@/lib/csvParser").ChecklistData> = new Map(),
+  onChecklistChange?: (rowNr: number, field: keyof import("@/lib/csvParser").ChecklistData, value: boolean) => void
 ): ColumnDef<Order>[] => {
   // Custom select column that shows icons when unchecked
   const customSelectColumn: ColumnDef<Order> = {
@@ -1396,31 +1397,30 @@ const getColumns = (
       const isSelected = row.getIsSelected();
       const isMarked = isRowMarked ? isRowMarked(row.original) : false;
       
-      // If checked or marked, show checkbox
-      if (isSelected || isMarked) {
-        return (
-          <div onClick={(e) => e.stopPropagation()} className="flex items-center justify-center">
-            <Checkbox
-              checked={isSelected || isMarked}
-              onCheckedChange={(value) => {
-                row.toggleSelected(!!value);
-              }}
-              aria-label="Select row"
-            />
-          </div>
-        );
-      }
-      
-      // If unchecked, show icon (Package or CreditCard based on tab and type)
+      // Determine icon to show (Package or CreditCard based on tab and type)
       const type = row.original.type;
       let icon = null;
       if (activeTab === "versand") {
-        // In Sendungen table, show package icon for all rows (they are all Versandvorgang)
-        icon = <Package className="size-4" />;
+        // In Sendungen table, check "Paketlabel erstellt" status
+        const rowNr = typeof row.original.nr === 'number' ? row.original.nr : parseInt(String(row.original.nr)) || null;
+        const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
+        const paketlabelErstellt = checklistData?.paketlisteErstellt ?? false;
+        // Show PackageOpen when unchecked/false, Package when checked/true
+        icon = paketlabelErstellt ? <Package className="size-4" /> : <PackageOpen className="size-4" />;
       } else {
         icon = type === "Bestellung" ? <CreditCard className="size-4" /> : null;
       }
       
+      // If checked or marked, show icon (no checkbox, no click handler)
+      if (isSelected || isMarked) {
+        return (
+          <div className="flex items-center justify-center">
+            {icon}
+          </div>
+        );
+      }
+      
+      // If unchecked, show icon with click handler
       return (
         <div 
           onClick={(e) => {
@@ -1863,10 +1863,17 @@ const getColumns = (
     cell: ({ row }) => {
       const rowNr = typeof row.original.nr === 'number' ? row.original.nr : parseInt(String(row.original.nr)) || null;
       const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
-      const showIcon = checklistData?.rechnungVersendet ?? false;
+      const isChecked = checklistData?.rechnungVersendet ?? false;
       return (
         <div className="flex items-center justify-center h-full">
-          {showIcon && <Check className="size-4" />}
+          <Checkbox 
+            checked={isChecked} 
+            onCheckedChange={(checked) => {
+              if (rowNr !== null && onChecklistChange) {
+                onChecklistChange(rowNr, 'rechnungVersendet', checked === true);
+              }
+            }}
+          />
         </div>
       );
     },
@@ -1874,7 +1881,7 @@ const getColumns = (
     minSize: 50,
     maxSize: 50,
     meta: {
-      className: "sticky right-[300px] z-[11] border-l border-r border-border !p-0 !w-[50px] min-w-[50px] max-w-[50px] bg-background",
+      className: "sticky right-[300px] z-[11] !border !border-border !p-0 !w-[50px] min-w-[50px] max-w-[50px] bg-background",
     },
     enableHiding: true,
   },
@@ -1888,10 +1895,17 @@ const getColumns = (
     cell: ({ row }) => {
       const rowNr = typeof row.original.nr === 'number' ? row.original.nr : parseInt(String(row.original.nr)) || null;
       const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
-      const showIcon = checklistData?.sendungErstellt ?? false;
+      const isChecked = checklistData?.sendungErstellt ?? false;
       return (
         <div className="flex items-center justify-center h-full">
-          {showIcon && <Check className="size-4" />}
+          <Checkbox 
+            checked={isChecked} 
+            onCheckedChange={(checked) => {
+              if (rowNr !== null && onChecklistChange) {
+                onChecklistChange(rowNr, 'sendungErstellt', checked === true);
+              }
+            }}
+          />
         </div>
       );
     },
@@ -1899,7 +1913,7 @@ const getColumns = (
     minSize: 50,
     maxSize: 50,
     meta: {
-      className: "sticky right-[250px] z-[12] border-l border-r border-border !p-0 !w-[50px] min-w-[50px] max-w-[50px] bg-background",
+      className: "sticky right-[250px] z-[12] !border !border-border !p-0 !w-[50px] min-w-[50px] max-w-[50px] bg-background",
     },
     enableHiding: true,
   },
@@ -1913,10 +1927,17 @@ const getColumns = (
     cell: ({ row }) => {
       const rowNr = typeof row.original.nr === 'number' ? row.original.nr : parseInt(String(row.original.nr)) || null;
       const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
-      const showIcon = checklistData?.versandprofilHinzugefuegt ?? false;
+      const isChecked = checklistData?.versandprofilHinzugefuegt ?? false;
       return (
         <div className="flex items-center justify-center h-full">
-          {showIcon && <Check className="size-4" />}
+          <Checkbox 
+            checked={isChecked} 
+            onCheckedChange={(checked) => {
+              if (rowNr !== null && onChecklistChange) {
+                onChecklistChange(rowNr, 'versandprofilHinzugefuegt', checked === true);
+              }
+            }}
+          />
         </div>
       );
     },
@@ -1924,7 +1945,7 @@ const getColumns = (
     minSize: 50,
     maxSize: 50,
     meta: {
-      className: "sticky right-[200px] z-[13] border-l border-r border-border !p-0 !w-[50px] min-w-[50px] max-w-[50px] bg-background",
+      className: "sticky right-[200px] z-[13] !border !border-border !p-0 !w-[50px] min-w-[50px] max-w-[50px] bg-background",
     },
     enableHiding: true,
   },
@@ -1938,10 +1959,17 @@ const getColumns = (
     cell: ({ row }) => {
       const rowNr = typeof row.original.nr === 'number' ? row.original.nr : parseInt(String(row.original.nr)) || null;
       const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
-      const showIcon = checklistData?.picklisteErstellt ?? false;
+      const isChecked = checklistData?.picklisteErstellt ?? false;
       return (
         <div className="flex items-center justify-center h-full">
-          {showIcon && <Check className="size-4" />}
+          <Checkbox 
+            checked={isChecked} 
+            onCheckedChange={(checked) => {
+              if (rowNr !== null && onChecklistChange) {
+                onChecklistChange(rowNr, 'picklisteErstellt', checked === true);
+              }
+            }}
+          />
         </div>
       );
     },
@@ -1949,7 +1977,7 @@ const getColumns = (
     minSize: 50,
     maxSize: 50,
     meta: {
-      className: "sticky right-[150px] z-[14] border-l border-r border-border !p-0 !w-[50px] min-w-[50px] max-w-[50px] bg-background",
+      className: "sticky right-[150px] z-[14] !border !border-border !p-0 !w-[50px] min-w-[50px] max-w-[50px] bg-background",
     },
     enableHiding: true,
   },
@@ -1963,10 +1991,17 @@ const getColumns = (
     cell: ({ row }) => {
       const rowNr = typeof row.original.nr === 'number' ? row.original.nr : parseInt(String(row.original.nr)) || null;
       const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
-      const showIcon = checklistData?.packlisteErstellt ?? false;
+      const isChecked = checklistData?.packlisteErstellt ?? false;
       return (
         <div className="flex items-center justify-center h-full">
-          {showIcon && <Check className="size-4" />}
+          <Checkbox 
+            checked={isChecked} 
+            onCheckedChange={(checked) => {
+              if (rowNr !== null && onChecklistChange) {
+                onChecklistChange(rowNr, 'packlisteErstellt', checked === true);
+              }
+            }}
+          />
         </div>
       );
     },
@@ -1974,7 +2009,7 @@ const getColumns = (
     minSize: 50,
     maxSize: 50,
     meta: {
-      className: "sticky right-[100px] z-[15] border-l border-r border-border !p-0 !w-[50px] min-w-[50px] max-w-[50px] bg-background",
+      className: "sticky right-[100px] z-[15] !border !border-border !p-0 !w-[50px] min-w-[50px] max-w-[50px] bg-background",
     },
     enableHiding: true,
   },
@@ -1988,10 +2023,17 @@ const getColumns = (
     cell: ({ row }) => {
       const rowNr = typeof row.original.nr === 'number' ? row.original.nr : parseInt(String(row.original.nr)) || null;
       const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
-      const showIcon = checklistData?.paketlisteGedruckt ?? false;
+      const isChecked = checklistData?.paketlisteErstellt ?? false;
       return (
         <div className="flex items-center justify-center h-full">
-          {showIcon && <Check className="size-4" />}
+          <Checkbox 
+            checked={isChecked} 
+            onCheckedChange={(checked) => {
+              if (rowNr !== null && onChecklistChange) {
+                onChecklistChange(rowNr, 'paketlisteErstellt', checked === true);
+              }
+            }}
+          />
         </div>
       );
     },
@@ -1999,7 +2041,7 @@ const getColumns = (
     minSize: 50,
     maxSize: 50,
     meta: {
-      className: "sticky right-[50px] z-[16] border-l border-r border-border !p-0 !w-[50px] min-w-[50px] max-w-[50px] bg-background",
+      className: "sticky right-[50px] z-[16] !border !border-border !p-0 !w-[50px] min-w-[50px] max-w-[50px] bg-background",
     },
     enableHiding: true,
   },
@@ -2013,10 +2055,17 @@ const getColumns = (
     cell: ({ row }) => {
       const rowNr = typeof row.original.nr === 'number' ? row.original.nr : parseInt(String(row.original.nr)) || null;
       const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
-      const showIcon = checklistData?.versendet ?? false;
+      const isChecked = checklistData?.versendet ?? false;
       return (
         <div className="flex items-center justify-center h-full">
-          {showIcon && <Check className="size-4" />}
+          <Checkbox 
+            checked={isChecked} 
+            onCheckedChange={(checked) => {
+              if (rowNr !== null && onChecklistChange) {
+                onChecklistChange(rowNr, 'versendet', checked === true);
+              }
+            }}
+          />
         </div>
       );
     },
@@ -2024,7 +2073,7 @@ const getColumns = (
     minSize: 50,
     maxSize: 50,
     meta: {
-      className: "sticky right-[50px] z-[16] border-l border-r border-border !p-0 !w-[50px] min-w-[50px] max-w-[50px] bg-background",
+      className: "sticky right-[50px] z-[16] !border !border-border !p-0 !w-[50px] min-w-[50px] max-w-[50px] bg-background",
     },
     enableHiding: true,
   },
@@ -2038,10 +2087,17 @@ const getColumns = (
     cell: ({ row }) => {
       const rowNr = typeof row.original.nr === 'number' ? row.original.nr : parseInt(String(row.original.nr)) || null;
       const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
-      const showIcon = checklistData?.fehler ?? false;
+      const isChecked = checklistData?.fehler ?? false;
       return (
         <div className="flex items-center justify-center h-full">
-          {showIcon && <AlertTriangle className="size-4 text-destructive" />}
+          <Checkbox 
+            checked={isChecked} 
+            onCheckedChange={(checked) => {
+              if (rowNr !== null && onChecklistChange) {
+                onChecklistChange(rowNr, 'fehler', checked === true);
+              }
+            }}
+          />
         </div>
       );
     },
@@ -2049,7 +2105,7 @@ const getColumns = (
     minSize: 50,
     maxSize: 50,
     meta: {
-      className: "sticky right-0 z-[17] border-l border-r border-border !p-0 !w-[50px] min-w-[50px] max-w-[50px] bg-background will-change-[transform]",
+      className: "sticky right-0 z-[17] !border !border-border !p-0 !w-[50px] min-w-[50px] max-w-[50px] bg-background will-change-[transform]",
     },
     enableHiding: true,
   },
@@ -2092,7 +2148,7 @@ const columnLabels1: Record<string, string> = {
   "floating-col-2-rechnung": "Fehler",
   "floating-col-3-rechnung": "Versendet",
   "floating-col-4-rechnung": "Packliste erstellt",
-  "floating-col-5-rechnung": "Paketlabel gedruckt",
+  "floating-col-5-rechnung": "Paketlabel erstellt",
   "floating-col-6-rechnung": "Pickliste erstellt",
   "floating-col-7-rechnung": "Sendung erstellt",
   "floating-col-8-rechnung": "Versandprofil hinzugefügt",
@@ -2128,7 +2184,7 @@ const columnLabels2: Record<string, string> = {
   "floating-col-2-versand": "Fehler",
   "floating-col-3-versand": "Versendet",
   "floating-col-4-versand": "Packliste erstellt",
-  "floating-col-5-versand": "Paketlabel gedruckt",
+  "floating-col-5-versand": "Paketlabel erstellt",
   "floating-col-6-versand": "Pickliste erstellt",
   "floating-col-7-versand": "Sendung erstellt",
   "floating-col-8-versand": "Versandprofil hinzugefügt",
@@ -2372,8 +2428,8 @@ function ShippingPage() {
     bestellnummer: true,
     importdatum: false,
     importquelle: false,
-    // Floating columns: show 4, 5, 3, 8 (right-[100px], right-[50px], right-[50px], right-[150px])
-    "floating-col-4-versand": true,
+    // Floating columns: show 5, 3, 8 (right-[50px], right-[50px], right-[150px])
+    "floating-col-4-versand": false,
     "floating-col-5-versand": true,
     "floating-col-3-versand": true,
     "floating-col-6-versand": false,
@@ -3430,7 +3486,7 @@ function ShippingPage() {
                       <div
                         key={item.id}
                           className={cn(
-                            "group relative flex cursor-pointer items-center justify-between rounded-md border border-border px-3 py-2.5 text-sm outline-none transition-colors h-[116px]",
+                            "group relative flex cursor-pointer items-center justify-between rounded-md !border !border-border px-3 py-2.5 text-sm outline-none transition-colors h-[116px]",
                             "hover:bg-accent hover:text-accent-foreground",
                             "focus-visible:bg-accent focus-visible:text-accent-foreground"
                           )}
@@ -3452,7 +3508,7 @@ function ShippingPage() {
                         </div>
                         <Label
                           htmlFor={item.id}
-                          className="text-sm font-light leading-[1.2] text-muted-foreground group-hover:text-accent-foreground cursor-pointer break-words"
+                          className="text-[13px] font-light leading-[130%] text-muted-foreground group-hover:text-accent-foreground cursor-pointer break-words"
                         >
                           {item.label === "Kein Versandvorgang" ? (
                             <>
@@ -3493,7 +3549,7 @@ function ShippingPage() {
                       <div
                         key={item.id}
                           className={cn(
-                            "group relative flex cursor-pointer items-center justify-between rounded-md border border-border px-3 py-2.5 text-sm outline-none transition-colors h-[116px]",
+                            "group relative flex cursor-pointer items-center justify-between rounded-md !border !border-border px-3 py-2.5 text-sm outline-none transition-colors h-[116px]",
                             "hover:bg-accent hover:text-accent-foreground",
                             "focus-visible:bg-accent focus-visible:text-accent-foreground"
                           )}
@@ -3515,7 +3571,7 @@ function ShippingPage() {
                         </div>
                         <Label
                           htmlFor={item.id}
-                          className="text-sm font-light leading-[1.2] text-muted-foreground group-hover:text-accent-foreground cursor-pointer break-words"
+                          className="text-[13px] font-light leading-[130%] text-muted-foreground group-hover:text-accent-foreground cursor-pointer break-words"
                         >
                           {item.label === "Kein Versandvorgang" ? (
                             <>
@@ -3870,7 +3926,24 @@ function ShippingPage() {
                 <TabsContent value="rechnung">
                 <div ref={dataTableRef1}>
                   <DataTable
-                    columns={getColumns(activeTab, versandverpackungOptions, handleVerpackungChange, versandprofilOptions, handleProfilChange, versanddienstleisterOptions, handleDienstleisterChange, "rechnung", (row) => markedRows1.has(row.nr), fehlerRowNr, filteredData1.length, temporaryVisibleIcons, checklistMap)}
+                    columns={getColumns(activeTab, versandverpackungOptions, handleVerpackungChange, versandprofilOptions, handleProfilChange, versanddienstleisterOptions, handleDienstleisterChange, "rechnung", (row) => markedRows1.has(row.nr), fehlerRowNr, filteredData1.length, temporaryVisibleIcons, checklistMap, (rowNr, field, value) => {
+                      setChecklistMap(prev => {
+                        const newMap = new Map(prev);
+                        const existing = newMap.get(rowNr) || {
+                          nr: rowNr,
+                          rechnungVersendet: false,
+                          sendungErstellt: false,
+                          versandprofilHinzugefuegt: false,
+                          picklisteErstellt: false,
+                          packlisteErstellt: false,
+                          paketlisteErstellt: false,
+                          versendet: false,
+                          fehler: false,
+                        };
+                        newMap.set(rowNr, { ...existing, [field]: value });
+                        return newMap;
+                      });
+                    })}
                     data={filteredData1}
                     enableGlobalFilter={true}
                     globalFilter={globalFilter1}
@@ -3932,7 +4005,24 @@ function ShippingPage() {
                 <TabsContent value="versand">
                   <div ref={dataTableRef2}>
                     <DataTable
-                      columns={getColumns(activeTab, versandverpackungOptions, handleVerpackungChange, versandprofilOptions, handleProfilChange, versanddienstleisterOptions, handleDienstleisterChange, "versand", (row) => markedRows2.has(row.nr), fehlerRowNr, filteredData2.length, temporaryVisibleIcons, checklistMap)}
+                      columns={getColumns(activeTab, versandverpackungOptions, handleVerpackungChange, versandprofilOptions, handleProfilChange, versanddienstleisterOptions, handleDienstleisterChange, "versand", (row) => markedRows2.has(row.nr), fehlerRowNr, filteredData2.length, temporaryVisibleIcons, checklistMap, (rowNr, field, value) => {
+                        setChecklistMap(prev => {
+                          const newMap = new Map(prev);
+                          const existing = newMap.get(rowNr) || {
+                            nr: rowNr,
+                            rechnungVersendet: false,
+                            sendungErstellt: false,
+                            versandprofilHinzugefuegt: false,
+                            picklisteErstellt: false,
+                            packlisteErstellt: false,
+                            paketlisteErstellt: false,
+                            versendet: false,
+                            fehler: false,
+                          };
+                          newMap.set(rowNr, { ...existing, [field]: value });
+                          return newMap;
+                        });
+                      })}
                       data={filteredData2}
                     enableGlobalFilter={true}
                     globalFilter={globalFilter2}
@@ -4419,7 +4509,7 @@ function ShippingPage() {
                         {(() => {
                           const articles = generateArticles(selectedOrder);
                           return (
-                            <div className="border border-border rounded-[12px] overflow-hidden">
+                            <div className="!border !border-border rounded-[12px] overflow-hidden">
                               <Table>
                             <TableHeader>
                               <TableRow>
@@ -4523,7 +4613,7 @@ function ShippingPage() {
                     <div
                       key={item.id}
                         className={cn(
-                          "group relative flex cursor-pointer items-center justify-between rounded-md border border-border px-3 py-2.5 text-sm outline-none transition-colors h-[116px]",
+                          "group relative flex cursor-pointer items-center justify-between rounded-md !border !border-border px-3 py-2.5 text-sm outline-none transition-colors h-[116px]",
                           "hover:bg-accent hover:text-accent-foreground",
                           "focus-visible:bg-accent focus-visible:text-accent-foreground"
                         )}
@@ -4545,7 +4635,7 @@ function ShippingPage() {
                         </div>
                         <Label
                           htmlFor={item.id}
-                          className="text-sm font-light leading-[1.2] text-muted-foreground group-hover:text-accent-foreground cursor-pointer break-words"
+                          className="text-[13px] font-light leading-[130%] text-muted-foreground group-hover:text-accent-foreground cursor-pointer break-words"
                         >
                           {item.label === "Kein Versandvorgang" ? (
                             <>
@@ -4586,7 +4676,7 @@ function ShippingPage() {
                     <div
                       key={item.id}
                         className={cn(
-                          "group relative flex cursor-pointer items-center justify-between rounded-md border border-border px-3 py-2.5 text-sm outline-none transition-colors h-[116px]",
+                          "group relative flex cursor-pointer items-center justify-between rounded-md !border !border-border px-3 py-2.5 text-sm outline-none transition-colors h-[116px]",
                           "hover:bg-accent hover:text-accent-foreground",
                           "focus-visible:bg-accent focus-visible:text-accent-foreground"
                         )}
@@ -4608,7 +4698,7 @@ function ShippingPage() {
                         </div>
                         <Label
                           htmlFor={item.id}
-                          className="text-sm font-light leading-[1.2] text-muted-foreground group-hover:text-accent-foreground cursor-pointer break-words"
+                          className="text-[13px] font-light leading-[130%] text-muted-foreground group-hover:text-accent-foreground cursor-pointer break-words"
                         >
                           {item.label === "Kein Versandvorgang" ? (
                             <>
@@ -5151,7 +5241,7 @@ function ShippingPage() {
                             versandprofilHinzugefuegt: false,
                             picklisteErstellt: false,
                             packlisteErstellt: false,
-                            paketlisteGedruckt: false,
+                            paketlisteErstellt: false,
                             versendet: false,
                             fehler: false,
                           };
@@ -5184,7 +5274,7 @@ function ShippingPage() {
                             versandprofilHinzugefuegt: false,
                             picklisteErstellt: false,
                             packlisteErstellt: false,
-                            paketlisteGedruckt: false,
+                            paketlisteErstellt: false,
                             versendet: false,
                             fehler: false,
                           };
@@ -5262,7 +5352,7 @@ function ShippingPage() {
                               versandprofilHinzugefuegt: false,
                               picklisteErstellt: false,
                               packlisteErstellt: false,
-                              paketlisteGedruckt: false,
+                              paketlisteErstellt: false,
                               versendet: false,
                               fehler: false,
                             };
@@ -5281,7 +5371,7 @@ function ShippingPage() {
                               versandprofilHinzugefuegt: false,
                               picklisteErstellt: false,
                               packlisteErstellt: false,
-                              paketlisteGedruckt: false,
+                              paketlisteErstellt: false,
                               versendet: false,
                               fehler: false,
                             };
@@ -5400,7 +5490,7 @@ function ShippingPage() {
                           versandprofilHinzugefuegt: false,
                           picklisteErstellt: false,
                           packlisteErstellt: false,
-                          paketlisteGedruckt: false,
+                          paketlisteErstellt: false,
                           versendet: false,
                           fehler: false,
                         };
@@ -5537,7 +5627,7 @@ function ShippingPage() {
                       versandprofilHinzugefuegt: false,
                       picklisteErstellt: false,
                       packlisteErstellt: false,
-                      paketlisteGedruckt: false,
+                      paketlisteErstellt: false,
                       versendet: false,
                       fehler: false,
                     };

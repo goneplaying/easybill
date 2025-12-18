@@ -1,4 +1,4 @@
-Nr,Rechnung versendet,Sendung erstellt,Versandprofil hinzugefuegt,Pickliste erstellt,Packliste erstellt,Paketliste gedruckt,Versendet,Fehler
+Nr,Rechnung versendet,Sendung erstellt,Versandprofil hinzugefuegt,Pickliste erstellt,Packliste erstellt,Paketlabel erstellt,Versendet,Fehler
 1,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,FALSE
 2,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,FALSE
 3,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,TRUE,FALSE

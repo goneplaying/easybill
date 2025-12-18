@@ -247,7 +247,7 @@ export type ChecklistData = {
   versandprofilHinzugefuegt: boolean;
   picklisteErstellt: boolean;
   packlisteErstellt: boolean;
-  paketlisteGedruckt: boolean;
+  paketlisteErstellt: boolean;
   versendet: boolean;
   fehler: boolean;
 };
@@ -283,7 +283,8 @@ export function parseChecklistCSV(csvText: string): Map<number, ChecklistData> {
     if (normalized.includes('versandprofil') && (normalized.includes('hinzu') || normalized.includes('gef'))) return 'versandprofilHinzugefuegt';
     if (normalized.includes('pickliste') && normalized.includes('erstellt')) return 'picklisteErstellt';
     if (normalized.includes('packliste') && normalized.includes('erstellt')) return 'packlisteErstellt';
-    if (normalized.includes('paketliste') && normalized.includes('gedruckt')) return 'paketlisteGedruckt';
+    // Check for "Paketlabel erstellt" or "Paketliste erstellt" - check paketlabel/paketliste before packliste to avoid false matches
+    if ((normalized.includes('paketlabel') || normalized.includes('paketliste')) && normalized.includes('erstellt')) return 'paketlisteErstellt';
     if (normalized === 'versendet') return 'versendet';
     if (normalized === 'fehler') return 'fehler';
     return null;
@@ -310,6 +311,10 @@ export function parseChecklistCSV(csvText: string): Map<number, ChecklistData> {
           // Convert TRUE/FALSE to boolean
           (checklist as any)[propertyName] = value === 'TRUE';
         }
+        // Debug: log mapped headers for first few rows
+        if (i <= 3 && propertyName === 'paketlisteErstellt') {
+          console.log(`Mapped header "${header}" to ${propertyName} with value: ${value === 'TRUE'}`);
+        }
       } else if (!propertyName && header.trim() !== '') {
         // Debug: log unmapped headers
         console.warn(`Unmapped header: "${header}" (trimmed: "${header.trim()}")`);
@@ -324,7 +329,7 @@ export function parseChecklistCSV(csvText: string): Map<number, ChecklistData> {
         versandprofilHinzugefuegt: checklist.versandprofilHinzugefuegt ?? false,
         picklisteErstellt: checklist.picklisteErstellt ?? false,
         packlisteErstellt: checklist.packlisteErstellt ?? false,
-        paketlisteGedruckt: checklist.paketlisteGedruckt ?? false,
+        paketlisteErstellt: checklist.paketlisteErstellt ?? false,
         versendet: checklist.versendet ?? false,
         fehler: checklist.fehler ?? false,
       };
