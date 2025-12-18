@@ -22,6 +22,7 @@ type Order = {
   versandtGemeldet: string | null;
   statusVersanddokumente: "erstellt" | "ausstehend" | "fehler";
   versanddatum: string | null;
+  trackingnummer?: string;
   versandBrutto: number;
   versandNetto: number;
   importdatum: string;
@@ -72,6 +73,7 @@ export function parseCSV(csvText: string): Order[] {
     'Versandt Gemeldet': 'versandtGemeldet',
     'Status Versanddokumente': 'statusVersanddokumente',
     'Versanddatum': 'versanddatum',
+    'Trackingnummer': 'trackingnummer',
     'Versand Brutto': 'versandBrutto',
     'Versand Netto': 'versandNetto',
     'Importdatum': 'importdatum',
@@ -134,6 +136,9 @@ export function parseCSV(csvText: string): Order[] {
             case 'versandprofil':
               (order as any)[propertyName] = value || undefined;
               break;
+            case 'trackingnummer':
+              (order as any)[propertyName] = value || undefined;
+              break;
             case 'type':
               // Set default type if not present
               (order as any)[propertyName] = value || 'Bestellung';
@@ -168,6 +173,7 @@ export function parseCSV(csvText: string): Order[] {
       versandtGemeldet: order.versandtGemeldet ?? null,
       statusVersanddokumente: order.statusVersanddokumente ?? 'ausstehend',
       versanddatum: order.versanddatum ?? null,
+      trackingnummer: order.trackingnummer,
       versandBrutto: order.versandBrutto ?? 0,
       versandNetto: order.versandNetto ?? 0,
       importdatum: order.importdatum ?? '',

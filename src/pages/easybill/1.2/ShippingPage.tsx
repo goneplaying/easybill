@@ -20,7 +20,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Search, X, Plus, Truck, CreditCard, Package, PackageOpen, MoreHorizontal, Check, Circle, RotateCcw, RefreshCw, CalendarIcon, Filter, Settings2, ChevronDown, File, ToyBrick, Settings, HelpCircle, Merge, Menu, LayoutDashboard, ClipboardList, QrCode, Mail, ListChecks, AlertTriangle, CloudDownload, Printer, Trash2 } from "lucide-react";
+import { Search, X, Plus, Truck, CreditCard, Package, PackageOpen, PackageCheck, MoreHorizontal, Check, Circle, RotateCcw, RefreshCw, CalendarIcon, Filter, Settings2, ChevronDown, File, ToyBrick, Settings, HelpCircle, Merge, Menu, LayoutDashboard, ClipboardList, QrCode, Mail, ListChecks, AlertTriangle, CloudDownload, Printer, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import {
@@ -108,6 +108,7 @@ type Order = {
   versandtGemeldet: string | null;
   statusVersanddokumente: "erstellt" | "ausstehend" | "fehler";
   versanddatum: string | null;
+  trackingnummer?: string;
   versandBrutto: number;
   versandNetto: number;
   importdatum: string;
@@ -1412,12 +1413,20 @@ const getColumns = (
       const type = row.original.type;
       let icon = null;
       if (activeTab === "versand") {
-        // In Sendungen table, check "Paketlabel erstellt" status
+        // In Sendungen table, check "Versendet" status first
         const rowNr = typeof row.original.nr === 'number' ? row.original.nr : parseInt(String(row.original.nr)) || null;
         const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
-        const paketlabelErstellt = checklistData?.paketlisteErstellt ?? false;
-        // Show PackageOpen when unchecked/false, Package when checked/true
-        icon = paketlabelErstellt ? <Package className="size-4" /> : <PackageOpen className="size-4" />;
+        const versendet = checklistData?.versendet ?? false;
+        
+        // If Versendet is TRUE, always show PackageCheck
+        if (versendet) {
+          icon = <PackageCheck className="size-4" />;
+        } else {
+          // Otherwise, check "Paketlabel erstellt" status
+          const paketlabelErstellt = checklistData?.paketlisteErstellt ?? false;
+          // Show PackageOpen when unchecked/false, Package when checked/true
+          icon = paketlabelErstellt ? <Package className="size-4" /> : <PackageOpen className="size-4" />;
+        }
       } else {
         icon = type === "Bestellung" ? <CreditCard className="size-4" /> : null;
       }
@@ -1859,6 +1868,20 @@ const getColumns = (
     ),
     cell: ({ row }) => formatDate(row.getValue("versanddatum")),
   },
+  ...(activeTab === "versand" ? [
+    {
+      accessorKey: "trackingnummer",
+      header: ({ column }: { column: any }) => (
+        <DataTableColumnHeader column={column} title="Tracking-\nnummer" />
+      ),
+      cell: ({ row }: { row: any }) => (
+        <span className="text-sm">{row.getValue("trackingnummer") || ""}</span>
+      ),
+      size: 150,
+      minSize: 150,
+      maxSize: 150,
+    },
+  ] : []),
   ];
 
   // Floating columns - ordered from leftmost to rightmost in DOM so they appear right to left visually
@@ -2182,6 +2205,7 @@ const columnLabels2: Record<string, string> = {
   versandtGemeldet: "Versandt gemeldet",
   statusVersanddokumente: "Versanddokumente",
   versanddatum: "Versanddatum",
+  trackingnummer: "Trackingnummer",
   versandBrutto: "Versand Brutto",
   versandNetto: "Versand Netto",
   importdatum: "Importdatum",
@@ -2432,6 +2456,7 @@ function ShippingPage() {
     versandtGemeldet: true,
     statusVersanddokumente: true,
     versanddatum: true,
+    trackingnummer: true,
     nr: false,
     bestellnummer: true,
     importdatum: false,
@@ -3298,7 +3323,22 @@ function ShippingPage() {
 
   // Handle versandprofil change
   const handleProfilChange = React.useCallback((row: Order, newValue: string) => {
-    const updatedOrder = { ...row, versandprofil: newValue };
+    // Determine versanddienstleister based on versandprofil
+    let versanddienstleister = row.versanddienstleister; // Keep existing value by default
+    
+    if (newValue === "DHL National") {
+      versanddienstleister = "DHL";
+    } else if (newValue === "DPD Europa") {
+      versanddienstleister = "DPD";
+    } else if (newValue === "UPS USA") {
+      versanddienstleister = "UPS";
+    }
+    
+    const updatedOrder = { 
+      ...row, 
+      versandprofil: newValue,
+      versanddienstleister: versanddienstleister
+    };
     
     // Update in ordersState1
     setOrdersState1((prev) =>
@@ -3313,6 +3353,27 @@ function ShippingPage() {
     // Update selectedOrder if it's the same row
     if (selectedOrder?.nr === row.nr) {
       setSelectedOrder(updatedOrder);
+    }
+    
+    // Update checklistMap: set versandprofilHinzugefuegt to TRUE
+    const rowNr = typeof row.nr === 'number' ? row.nr : parseInt(String(row.nr)) || null;
+    if (rowNr !== null && (newValue === "DHL National" || newValue === "DPD Europa" || newValue === "UPS USA")) {
+      setChecklistMap(prev => {
+        const newMap = new Map(prev);
+        const existing = newMap.get(rowNr) || {
+          nr: rowNr,
+          rechnungVersendet: false,
+          sendungErstellt: false,
+          versandprofilHinzugefuegt: false,
+          picklisteErstellt: false,
+          packlisteErstellt: false,
+          paketlisteErstellt: false,
+          versendet: false,
+          fehler: false,
+        };
+        newMap.set(rowNr, { ...existing, versandprofilHinzugefuegt: true });
+        return newMap;
+      });
     }
   }, [selectedOrder]);
 
