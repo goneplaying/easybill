@@ -2573,13 +2573,6 @@ function ShippingPage() {
     ).length;
   }, [ordersState2]);
 
-  // Count rows in Bestellungen table where Versandprofil is "-"
-  const ohneVersandprofilCount = React.useMemo(() => {
-    return ordersState1.filter(
-      (order) => order.type === "Bestellung" && (order.versandprofil === "–" || order.versandprofil === "-" || !order.versandprofil)
-    ).length;
-  }, [ordersState1]);
-
   // Count rows in Bestellungen table where Versandprofil is "DHL National"
   const dhlNationalCount = React.useMemo(() => {
     return ordersState1.filter(
