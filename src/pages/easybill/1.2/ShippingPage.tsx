@@ -2095,17 +2095,12 @@ const getColumns = (
     cell: ({ row }) => {
       const rowNr = typeof row.original.nr === 'number' ? row.original.nr : parseInt(String(row.original.nr)) || null;
       const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
-      const isChecked = checklistData?.fehler ?? false;
+      const hasError = checklistData?.fehler ?? false;
       return (
         <div className="flex items-center justify-center h-full">
-          <Checkbox 
-            checked={isChecked} 
-            onCheckedChange={(checked) => {
-              if (rowNr !== null && onChecklistChange) {
-                onChecklistChange(rowNr, 'fehler', checked === true);
-              }
-            }}
-          />
+          {hasError && (
+            <AlertTriangle className="size-4 text-destructive" />
+          )}
         </div>
       );
     },
@@ -2609,42 +2604,90 @@ function ShippingPage() {
         count: rechnungVersendetHiddenCount,
         label: "Rechnungen nicht versendet",
         checked: isChecked2,
-        onCheckedChange: (checked: boolean) => setIsChecked2(checked),
+        onCheckedChange: (checked: boolean) => {
+          // Deselect all rows first
+          setMarkedRows1(new Set());
+          setMarkedRows2(new Set());
+          setRowSelection1({});
+          setRowSelection2({});
+          // Then change checkbox state
+          setIsChecked2(checked);
+        },
       },
       {
         id: "new-orders-checkbox-3",
         count: versanddokumenteCount,
         label: "Bestellungen bezahlt, nicht gesendet",
         checked: isChecked3,
-        onCheckedChange: (checked: boolean) => setIsChecked3(checked),
+        onCheckedChange: (checked: boolean) => {
+          // Deselect all rows first
+          setMarkedRows1(new Set());
+          setMarkedRows2(new Set());
+          setRowSelection1({});
+          setRowSelection2({});
+          // Then change checkbox state
+          setIsChecked3(checked);
+        },
       },
       {
         id: "new-orders-checkbox-4",
         count: fehlerCount,
         label: "Fehler",
         checked: isChecked4,
-        onCheckedChange: (checked: boolean) => setIsChecked4(checked),
+        onCheckedChange: (checked: boolean) => {
+          // Deselect all rows first
+          setMarkedRows1(new Set());
+          setMarkedRows2(new Set());
+          setRowSelection1({});
+          setRowSelection2({});
+          // Then change checkbox state
+          setIsChecked4(checked);
+        },
       },
       {
         id: "new-orders-checkbox-6",
         count: keinePicklisteCount,
         label: "Keine Pickliste",
         checked: isChecked8,
-        onCheckedChange: (checked: boolean) => setIsChecked8(checked),
+        onCheckedChange: (checked: boolean) => {
+          // Deselect all rows first
+          setMarkedRows1(new Set());
+          setMarkedRows2(new Set());
+          setRowSelection1({});
+          setRowSelection2({});
+          // Then change checkbox state
+          setIsChecked8(checked);
+        },
       },
       {
         id: "new-orders-checkbox-7",
         count: keinePacklisteCount,
         label: "Keine Packliste",
         checked: isChecked10,
-        onCheckedChange: (checked: boolean) => setIsChecked10(checked),
+        onCheckedChange: (checked: boolean) => {
+          // Deselect all rows first
+          setMarkedRows1(new Set());
+          setMarkedRows2(new Set());
+          setRowSelection1({});
+          setRowSelection2({});
+          // Then change checkbox state
+          setIsChecked10(checked);
+        },
       },
       {
         id: "new-orders-checkbox-5",
         count: nichtVersendetCount,
         label: "Nicht versendet",
         checked: isChecked7,
-        onCheckedChange: (checked: boolean) => setIsChecked7(checked),
+        onCheckedChange: (checked: boolean) => {
+          // Deselect all rows first
+          setMarkedRows1(new Set());
+          setMarkedRows2(new Set());
+          setRowSelection1({});
+          setRowSelection2({});
+          // Then change checkbox state
+          setIsChecked7(checked);
+        },
       },
     ],
     [importdatumCount, rechnungVersendetHiddenCount, versanddokumenteCount, fehlerCount, nichtVersendetCount, keinePicklisteCount, keinePacklisteCount, isChecked, isChecked2, isChecked3, isChecked4, isChecked7, isChecked8, isChecked10]
@@ -2658,21 +2701,45 @@ function ShippingPage() {
         count: ohneVersandprofilCount,
         label: "Ohne Versandprofil",
         checked: isChecked9,
-        onCheckedChange: (checked: boolean) => setIsChecked9(checked),
+        onCheckedChange: (checked: boolean) => {
+          // Deselect all rows first
+          setMarkedRows1(new Set());
+          setMarkedRows2(new Set());
+          setRowSelection1({});
+          setRowSelection2({});
+          // Then change checkbox state
+          setIsChecked9(checked);
+        },
       },
       {
         id: "versandprofile-checkbox-1",
         count: dhlNationalCount,
         label: "DHL National",
         checked: isChecked5,
-        onCheckedChange: (checked: boolean) => setIsChecked5(checked),
+        onCheckedChange: (checked: boolean) => {
+          // Deselect all rows first
+          setMarkedRows1(new Set());
+          setMarkedRows2(new Set());
+          setRowSelection1({});
+          setRowSelection2({});
+          // Then change checkbox state
+          setIsChecked5(checked);
+        },
       },
       {
         id: "versandprofile-checkbox-2",
         count: dpdInternationalCount,
         label: "DPD International",
         checked: isChecked6,
-        onCheckedChange: (checked: boolean) => setIsChecked6(checked),
+        onCheckedChange: (checked: boolean) => {
+          // Deselect all rows first
+          setMarkedRows1(new Set());
+          setMarkedRows2(new Set());
+          setRowSelection1({});
+          setRowSelection2({});
+          // Then change checkbox state
+          setIsChecked6(checked);
+        },
       },
     ],
     [ohneVersandprofilCount, dhlNationalCount, dpdInternationalCount, isChecked9, isChecked5, isChecked6]
@@ -3257,47 +3324,43 @@ function ShippingPage() {
 
   // Toggle mark/unmark all visible rows for table 1
   const handleToggleMarkAll1 = React.useCallback(() => {
-    // Use actually visible rows (after global filter) instead of filteredData1
-    const visibleRowCount = visibleRows1.length;
-    const allMarked = visibleRowCount > 0 && visibleRows1.every(row => markedRows1.has(row.nr));
+    // Check if there are any marked rows
+    const hasAnyMarked = markedRows1.size > 0;
     
-    if (allMarked && visibleRowCount > 0) {
-      // Unmark all visible rows
-      const newMarked = new Set(markedRows1);
-      visibleRows1.forEach(row => {
-        newMarked.delete(row.nr);
-      });
-      setMarkedRows1(newMarked);
+    if (hasAnyMarked) {
+      // Unmark all marked rows (not just visible ones)
+      setMarkedRows1(new Set());
     } else {
       // Mark all visible rows
-      const newMarked = new Set(markedRows1);
-      visibleRows1.forEach(row => {
-        newMarked.add(row.nr);
-      });
-      setMarkedRows1(newMarked);
+      const visibleRowCount = visibleRows1.length;
+      if (visibleRowCount > 0) {
+        const newMarked = new Set(markedRows1);
+        visibleRows1.forEach(row => {
+          newMarked.add(row.nr);
+        });
+        setMarkedRows1(newMarked);
+      }
     }
   }, [visibleRows1, markedRows1]);
 
   // Toggle mark/unmark all visible rows for table 2
   const handleToggleMarkAll2 = React.useCallback(() => {
-    // Use actually visible rows (after global filter) instead of filteredData2
-    const visibleRowCount = visibleRows2.length;
-    const allMarked = visibleRowCount > 0 && visibleRows2.every(row => markedRows2.has(row.nr));
+    // Check if there are any marked rows
+    const hasAnyMarked = markedRows2.size > 0;
     
-    if (allMarked && visibleRowCount > 0) {
-      // Unmark all visible rows
-      const newMarked = new Set(markedRows2);
-      visibleRows2.forEach(row => {
-        newMarked.delete(row.nr);
-      });
-      setMarkedRows2(newMarked);
+    if (hasAnyMarked) {
+      // Unmark all marked rows (not just visible ones)
+      setMarkedRows2(new Set());
     } else {
       // Mark all visible rows
-      const newMarked = new Set(markedRows2);
-      visibleRows2.forEach(row => {
-        newMarked.add(row.nr);
-      });
-      setMarkedRows2(newMarked);
+      const visibleRowCount = visibleRows2.length;
+      if (visibleRowCount > 0) {
+        const newMarked = new Set(markedRows2);
+        visibleRows2.forEach(row => {
+          newMarked.add(row.nr);
+        });
+        setMarkedRows2(newMarked);
+      }
     }
   }, [visibleRows2, markedRows2]);
 
@@ -4867,7 +4930,7 @@ function ShippingPage() {
       {/* Floating buttons container */}
       <div className="fixed bottom-6 lg:bottom-10 left-1/2 -translate-x-1/2 z-50 flex gap-1 bg-actionbar p-1 rounded-[11px] shadow-lg transition-all duration-300">
         <Button onClick={handleToggleMarkAll} className="w-[98px]">
-          {allRowsSelected ? "Abwählen" : "Auswählen"}
+          {hasMarkedRows ? "Abwählen" : "Auswählen"}
         </Button>
         {activeTab === "rechnung" && (
           <Button 
