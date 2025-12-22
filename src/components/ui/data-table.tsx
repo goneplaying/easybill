@@ -102,6 +102,7 @@ interface DataTableProps<TData, TValue> {
   toolbarAfterChecklist?: React.ReactNode;
   enableRowDrag?: boolean;
   tableName?: string;
+  getRowId?: (row: TData, index: number) => string;
 }
 
 function DataTable<TData, TValue>({
@@ -133,6 +134,7 @@ function DataTable<TData, TValue>({
   onRowReorder,
   enableRowDrag = false,
   tableName,
+  getRowId,
 }: DataTableProps<TData, TValue>) {
   // Track last click to prevent marking on double-click
   const lastClickRef = React.useRef<{ row: TData | null; time: number }>({ row: null, time: 0 });
@@ -266,6 +268,7 @@ function DataTable<TData, TValue>({
   const table = useReactTable({
     data,
     columns,
+    getRowId,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
@@ -298,13 +301,14 @@ function DataTable<TData, TValue>({
     },
   });
 
-  // Notify parent of filtered data changes
+  // Notify parent of filtered and sorted data changes
   React.useEffect(() => {
     if (onFilteredDataChange) {
-      onFilteredDataChange(table.getFilteredRowModel().rows.map((row) => row.original));
+      // Use getRowModel() which includes both filtering and sorting
+      onFilteredDataChange(table.getRowModel().rows.map((row) => row.original));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [table.getFilteredRowModel().rows, onFilteredDataChange]);
+  }, [table.getRowModel().rows, onFilteredDataChange]);
 
 
   // Get active filters count
@@ -767,11 +771,11 @@ function DataTable<TData, TValue>({
                             setRowSelection((prev) => {
                               const newSelection = { ...prev };
                               rowsToToggle.forEach(tableRow => {
-                                const rowIndex = tableRow.index.toString();
+                                const rowId = tableRow.id;
                                 if (allSelected) {
-                                  delete newSelection[rowIndex];
+                                  delete newSelection[rowId];
                                 } else {
-                                  newSelection[rowIndex] = true;
+                                  newSelection[rowId] = true;
                                 }
                               });
                               return newSelection;

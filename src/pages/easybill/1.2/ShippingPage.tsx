@@ -2398,14 +2398,17 @@ function ShippingPage() {
   }, [ordersState]);
   const [rowSelection1, setRowSelection1] = React.useState<RowSelectionState>({}); // Separate row selection for table 1
   const [rowSelection2, setRowSelection2] = React.useState<RowSelectionState>({}); // Separate row selection for table 2
+  
+  // Stable getRowId function to ensure row IDs are consistent across renders and sorting
+  const getRowId = React.useCallback((row: Order) => String(row.nr), []);
   const [markedRows1, setMarkedRows1] = React.useState<Set<string | number>>(new Set()); // Mark state for table 1 (using order.nr as key)
   const [markedRows2, setMarkedRows2] = React.useState<Set<string | number>>(new Set()); // Mark state for table 2 (using order.nr as key)
   const [visibleRows1, setVisibleRows1] = React.useState<Order[]>([]); // Actually visible rows in table 1 (after global filter)
   const [visibleRows2, setVisibleRows2] = React.useState<Order[]>([]); // Actually visible rows in table 2 (after global filter)
   const [fehlerRowNr] = React.useState<number | null>(null); // Row number that should show Fehler icon (default: null - no icons visible, only temporary icons are used)
   const [temporaryVisibleIcons, setTemporaryVisibleIcons] = React.useState<Map<string, number>>(new Map()); // Map of icon IDs to expiration timestamps
-  const [lastMarkedIndex1, setLastMarkedIndex1] = React.useState<number | null>(null); // Last marked index for Shift+click range
-  const [lastMarkedIndex2, setLastMarkedIndex2] = React.useState<number | null>(null); // Last marked index for Shift+click range
+  const [lastMarkedRowId1, setLastMarkedRowId1] = React.useState<string | number | null>(null); // Last marked row ID (nr) for Shift+click range
+  const [lastMarkedRowId2, setLastMarkedRowId2] = React.useState<string | number | null>(null); // Last marked row ID (nr) for Shift+click range
 
   // Helper function to temporarily show an icon
   // Usage: showIconTemporarily('fehler-23', 5000) to show Fehler icon for row 23 for 5 seconds
@@ -3192,41 +3195,53 @@ function ShippingPage() {
   // Handle row marking for table 1
   const handleRowMark1 = React.useCallback((row: Order, event: React.MouseEvent, rowIndex: number) => {
     const rowNr = row.nr;
-    // Sort filteredData1 the same way the table does (by nr descending)
-    // Helper function to extract numeric value from nr (handles both number and string like "14-0")
-    const getNrValue = (nr: number | string): number => {
-      if (typeof nr === 'number') return nr;
-      const numPart = nr.split('-')[0];
-      return parseInt(numPart, 10) || 0;
-    };
-    const sortedData1 = [...filteredData1].sort((a, b) => {
-      const aNr = getNrValue(a.nr);
-      const bNr = getNrValue(b.nr);
-      return bNr - aNr; // Descending order
-    });
-    const currentIndex = rowIndex; // Use visual row index from sorted table
+    // rowIndex is already the correct index in the sorted table rows
+    const currentIndex = rowIndex;
     
-    if (event.shiftKey && lastMarkedIndex1 !== null) {
-      // Shift+click: mark or unmark all rows between lastMarkedIndex and currentIndex
-      const start = Math.min(lastMarkedIndex1, currentIndex);
-      const end = Math.max(lastMarkedIndex1, currentIndex);
-      const newMarked = new Set(markedRows1);
+    if (event.shiftKey && lastMarkedRowId1 !== null) {
+      // Shift+click: mark or unmark all rows between lastMarkedRowId and currentIndex
+      // Find the last marked row's index in the current sorted table
+      // Use visibleRows1 which contains the sorted and filtered rows
+      const sortedRows = visibleRows1.length > 0 ? visibleRows1 : filteredData1;
+      const lastMarkedIndex = sortedRows.findIndex(r => r.nr === lastMarkedRowId1);
       
-      // Check if the clicked row is marked - if so, unmark the range; otherwise mark it
-      const isCurrentRowMarked = markedRows1.has(rowNr);
-      
-      for (let i = start; i <= end; i++) {
-        if (isCurrentRowMarked) {
-          // Unmark all rows in the range
-          newMarked.delete(sortedData1[i].nr);
-        } else {
-          // Mark all rows in the range
-          newMarked.add(sortedData1[i].nr);
+      // If we found the last marked row, use range selection
+      if (lastMarkedIndex !== -1) {
+        const start = Math.min(lastMarkedIndex, currentIndex);
+        const end = Math.max(lastMarkedIndex, currentIndex);
+        const newMarked = new Set(markedRows1);
+        
+        // Check if the clicked row is marked - if so, unmark the range; otherwise mark it
+        const isCurrentRowMarked = markedRows1.has(rowNr);
+        
+        // Use the sorted/filtered data order (which matches table.getRowModel().rows)
+        // Use visibleRows1 which contains the sorted and filtered rows
+        const sortedRows = visibleRows1.length > 0 ? visibleRows1 : filteredData1;
+        for (let i = start; i <= end; i++) {
+          if (i >= 0 && i < sortedRows.length) {
+            if (isCurrentRowMarked) {
+              // Unmark all rows in the range
+              newMarked.delete(sortedRows[i].nr);
+            } else {
+              // Mark all rows in the range
+              newMarked.add(sortedRows[i].nr);
+            }
+          }
         }
+        
+        setMarkedRows1(newMarked);
+        setLastMarkedRowId1(rowNr);
+      } else {
+        // Last marked row not found in current data, just toggle current row
+        const newMarked = new Set(markedRows1);
+        if (newMarked.has(rowNr)) {
+          newMarked.delete(rowNr);
+        } else {
+          newMarked.add(rowNr);
+        }
+        setMarkedRows1(newMarked);
+        setLastMarkedRowId1(rowNr);
       }
-      
-      setMarkedRows1(newMarked);
-      setLastMarkedIndex1(currentIndex);
     } else {
       // Single click: toggle mark state
       const newMarked = new Set(markedRows1);
@@ -3236,48 +3251,60 @@ function ShippingPage() {
         newMarked.add(rowNr);
       }
       setMarkedRows1(newMarked);
-      setLastMarkedIndex1(currentIndex);
+      setLastMarkedRowId1(rowNr);
     }
-  }, [filteredData1, markedRows1, lastMarkedIndex1]);
+  }, [filteredData1, visibleRows1, markedRows1, lastMarkedRowId1]);
 
   // Handle row marking for table 2
   const handleRowMark2 = React.useCallback((row: Order, event: React.MouseEvent, rowIndex: number) => {
     const rowNr = row.nr;
-    // Sort filteredData2 the same way the table does (by nr descending)
-    // Helper function to extract numeric value from nr (handles both number and string like "14-0")
-    const getNrValue = (nr: number | string): number => {
-      if (typeof nr === 'number') return nr;
-      const numPart = nr.split('-')[0];
-      return parseInt(numPart, 10) || 0;
-    };
-    const sortedData2 = [...filteredData2].sort((a, b) => {
-      const aNr = getNrValue(a.nr);
-      const bNr = getNrValue(b.nr);
-      return bNr - aNr; // Descending order
-    });
-    const currentIndex = rowIndex; // Use visual row index from sorted table
+    // rowIndex is already the correct index in the sorted table rows
+    const currentIndex = rowIndex;
     
-    if (event.shiftKey && lastMarkedIndex2 !== null) {
-      // Shift+click: mark or unmark all rows between lastMarkedIndex and currentIndex
-      const start = Math.min(lastMarkedIndex2, currentIndex);
-      const end = Math.max(lastMarkedIndex2, currentIndex);
-      const newMarked = new Set(markedRows2);
+    if (event.shiftKey && lastMarkedRowId2 !== null) {
+      // Shift+click: mark or unmark all rows between lastMarkedRowId and currentIndex
+      // Find the last marked row's index in the current sorted table
+      // Use visibleRows2 which contains the sorted and filtered rows
+      const sortedRows = visibleRows2.length > 0 ? visibleRows2 : filteredData2;
+      const lastMarkedIndex = sortedRows.findIndex(r => r.nr === lastMarkedRowId2);
       
-      // Check if the clicked row is marked - if so, unmark the range; otherwise mark it
-      const isCurrentRowMarked = markedRows2.has(rowNr);
-      
-      for (let i = start; i <= end; i++) {
-        if (isCurrentRowMarked) {
-          // Unmark all rows in the range
-          newMarked.delete(sortedData2[i].nr);
-        } else {
-          // Mark all rows in the range
-          newMarked.add(sortedData2[i].nr);
+      // If we found the last marked row, use range selection
+      if (lastMarkedIndex !== -1) {
+        const start = Math.min(lastMarkedIndex, currentIndex);
+        const end = Math.max(lastMarkedIndex, currentIndex);
+        const newMarked = new Set(markedRows2);
+        
+        // Check if the clicked row is marked - if so, unmark the range; otherwise mark it
+        const isCurrentRowMarked = markedRows2.has(rowNr);
+        
+        // Use the sorted/filtered data order (which matches table.getRowModel().rows)
+        // Use visibleRows2 which contains the sorted and filtered rows
+        const sortedRows = visibleRows2.length > 0 ? visibleRows2 : filteredData2;
+        for (let i = start; i <= end; i++) {
+          if (i >= 0 && i < sortedRows.length) {
+            if (isCurrentRowMarked) {
+              // Unmark all rows in the range
+              newMarked.delete(sortedRows[i].nr);
+            } else {
+              // Mark all rows in the range
+              newMarked.add(sortedRows[i].nr);
+            }
+          }
         }
+        
+        setMarkedRows2(newMarked);
+        setLastMarkedRowId2(rowNr);
+      } else {
+        // Last marked row not found in current data, just toggle current row
+        const newMarked = new Set(markedRows2);
+        if (newMarked.has(rowNr)) {
+          newMarked.delete(rowNr);
+        } else {
+          newMarked.add(rowNr);
+        }
+        setMarkedRows2(newMarked);
+        setLastMarkedRowId2(rowNr);
       }
-      
-      setMarkedRows2(newMarked);
-      setLastMarkedIndex2(currentIndex);
     } else {
       // Single click: toggle mark state
       const newMarked = new Set(markedRows2);
@@ -3287,9 +3314,9 @@ function ShippingPage() {
         newMarked.add(rowNr);
       }
       setMarkedRows2(newMarked);
-      setLastMarkedIndex2(currentIndex);
+      setLastMarkedRowId2(rowNr);
     }
-  }, [filteredData2, markedRows2, lastMarkedIndex2]);
+  }, [filteredData2, visibleRows2, markedRows2, lastMarkedRowId2]);
 
   // Handle delete for table 1
   const handleDelete1 = React.useCallback((rows: Order[]) => {
@@ -3332,11 +3359,11 @@ function ShippingPage() {
       if (isOutsideTable1 && isOutsideTable2) {
         if (markedRows1.size > 0) {
           setMarkedRows1(new Set());
-          setLastMarkedIndex1(null);
+          setLastMarkedRowId1(null);
         }
         if (markedRows2.size > 0) {
           setMarkedRows2(new Set());
-          setLastMarkedIndex2(null);
+          setLastMarkedRowId2(null);
         }
       }
     };
@@ -4137,6 +4164,7 @@ function ShippingPage() {
                       });
                     })}
                     data={filteredData1}
+                    getRowId={(row) => String(row.nr)}
                     enableGlobalFilter={true}
                     globalFilter={globalFilter1}
                     onGlobalFilterChange={setGlobalFilter1}
@@ -4216,6 +4244,7 @@ function ShippingPage() {
                         });
                       })}
                       data={filteredData2}
+                      getRowId={getRowId}
                     enableGlobalFilter={true}
                     globalFilter={globalFilter2}
                     onGlobalFilterChange={setGlobalFilter2}
