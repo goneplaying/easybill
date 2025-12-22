@@ -2319,7 +2319,8 @@ function ShippingPage() {
   const [isChecked, setIsChecked] = React.useState(false);
   const [isChecked2, setIsChecked2] = React.useState(false);
   const [isChecked3, setIsChecked3] = React.useState(false);
-  const [isChecked4, setIsChecked4] = React.useState(false);
+  const [isChecked4, setIsChecked4] = React.useState(false); // Fehler (Bestellungen)
+  const [isChecked12, setIsChecked12] = React.useState(false); // Fehler (Sendungen)
   const [isChecked7, setIsChecked7] = React.useState(false);
   const [isChecked8, setIsChecked8] = React.useState(false); // Keine Pickliste
   const [isChecked10, setIsChecked10] = React.useState(false); // Keine Packliste
@@ -2551,12 +2552,14 @@ function ShippingPage() {
         ...prev,
         "floating-col-2-rechnung": true,
       }));
+    }
+    if (isChecked12) {
       setVersandColumnVisibility((prev) => ({
         ...prev,
         "floating-col-2-versand": true,
       }));
     }
-  }, [isChecked4]);
+  }, [isChecked4, isChecked12]);
 
   // Count rows with Importdatum 09.12.2025 (stored as "2025-12-09" or displayed as "09.12.2025")
   const importdatumCount = React.useMemo(() => {
@@ -2589,12 +2592,16 @@ function ShippingPage() {
     }).length;
   }, [ordersState1, checklistMap]);
 
-  // Count rows where "Fehler" icon is visible (based on checklistData.fehler)
-  const fehlerCount = React.useMemo(() => {
+  // Count rows where "Fehler" icon is visible for Bestellungen table
+  const fehlerCountBestellungen = React.useMemo(() => {
     let count = 0;
     
     // Count rows in table 1 (Bestellungen) where Fehler icon is visible
+    // Exclude Versandvorgang rows (as filteredData1 does)
     ordersState1.forEach((order) => {
+      // Skip Versandvorgang rows (they're filtered out in filteredData1)
+      if (order.type === "Versandvorgang") return;
+      
       const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
       if (rowNr !== null) {
         const checklistData = checklistMap.get(rowNr);
@@ -2605,7 +2612,15 @@ function ShippingPage() {
       }
     });
     
+    return count;
+  }, [ordersState1, checklistMap]);
+
+  // Count rows where "Fehler" icon is visible for Sendungen table
+  const fehlerCountSendungen = React.useMemo(() => {
+    let count = 0;
+    
     // Count rows in table 2 (Sendungen) where Fehler icon is visible
+    // Include Versandvorgang rows (as filteredData2 does)
     ordersState2.forEach((order) => {
       const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
       if (rowNr !== null) {
@@ -2618,7 +2633,7 @@ function ShippingPage() {
     });
     
     return count;
-  }, [ordersState1, ordersState2, checklistMap]);
+  }, [ordersState2, checklistMap]);
 
   // Count rows in Sendungen table where "Versendet" icon is hidden (importdatum = "2025-12-09" or "09.12.2025")
   const nichtVersendetCount = React.useMemo(() => {
@@ -2710,7 +2725,7 @@ function ShippingPage() {
       },
       {
         id: "new-orders-checkbox-4",
-        count: fehlerCount,
+        count: fehlerCountBestellungen,
         label: "Fehler",
         checked: isChecked4,
         onCheckedChange: (checked: boolean) => {
@@ -2768,8 +2783,23 @@ function ShippingPage() {
           setIsChecked7(checked);
         },
       },
+      {
+        id: "new-orders-checkbox-12",
+        count: fehlerCountSendungen,
+        label: "Fehler",
+        checked: isChecked12,
+        onCheckedChange: (checked: boolean) => {
+          // Deselect all rows first
+          setMarkedRows1(new Set());
+          setMarkedRows2(new Set());
+          setRowSelection1({});
+          setRowSelection2({});
+          // Then change checkbox state
+          setIsChecked12(checked);
+        },
+      },
     ],
-    [importdatumCount, rechnungVersendetHiddenCount, versanddokumenteCount, fehlerCount, nichtVersendetCount, keinePicklisteCount, keinePacklisteCount, isChecked, isChecked2, isChecked3, isChecked4, isChecked7, isChecked8, isChecked10]
+    [importdatumCount, rechnungVersendetHiddenCount, versanddokumenteCount, fehlerCountBestellungen, fehlerCountSendungen, nichtVersendetCount, keinePicklisteCount, keinePacklisteCount, isChecked, isChecked2, isChecked3, isChecked4, isChecked7, isChecked8, isChecked10, isChecked12]
   );
 
   // Separate filter items for Versandprofile accordion
@@ -2997,8 +3027,8 @@ function ShippingPage() {
       );
     }
 
-    // Apply filter for "Fehler" checkbox (rows where "Fehler" icon is visible based on checklistData.fehler)
-    if (isChecked4) {
+    // Apply filter for "Fehler" checkbox (Sendungen) - rows where "Fehler" icon is visible based on checklistData.fehler
+    if (isChecked12) {
       result = result.filter((order) => {
         const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
         if (rowNr === null) return false;
@@ -3024,7 +3054,7 @@ function ShippingPage() {
 
     // Return a new array reference to ensure React detects changes
     return result;
-  }, [ordersState2, importquelle, kaufdatum, importdatum, isChecked, isChecked4, isChecked7, isChecked8, isChecked10, checklistMap]);
+  }, [ordersState2, importquelle, kaufdatum, importdatum, isChecked, isChecked12, isChecked7, isChecked8, isChecked10, checklistMap]);
 
   // filteredOrders for sheet navigation - uses active table's data
   // Must be declared here after filteredData1 and filteredData2 are defined
@@ -3660,7 +3690,7 @@ function ShippingPage() {
                 <AccordionTrigger 
                   className="py-6 text-[20px] font-bold text-foreground hover:no-underline"
                   indicator={
-                    (isChecked || isChecked2 || isChecked3 || isChecked4) ? (
+                    (isChecked || isChecked2 || isChecked3 || isChecked4 || isChecked12) ? (
                       <Circle className="h-2 w-2 shrink-0 text-primary fill-primary" />
                     ) : undefined
                   }
@@ -3677,7 +3707,7 @@ function ShippingPage() {
                         }
                         // When Sendungen tab is active, show only these items
                         if (activeTab === "versand") {
-                          return ["new-orders-checkbox-5", "new-orders-checkbox-6", "new-orders-checkbox-7"].includes(item.id);
+                          return ["new-orders-checkbox-5", "new-orders-checkbox-6", "new-orders-checkbox-7", "new-orders-checkbox-12"].includes(item.id);
                         }
                         return true;
                       })
@@ -4809,7 +4839,7 @@ function ShippingPage() {
               <AccordionTrigger 
                 className="py-6 text-[20px] font-bold text-foreground hover:no-underline"
                 indicator={
-                  (isChecked || isChecked2 || isChecked3 || isChecked4) ? (
+                  (isChecked || isChecked2 || isChecked3 || isChecked4 || isChecked12) ? (
                     <Circle className="h-2 w-2 shrink-0 text-primary fill-primary" />
                   ) : undefined
                 }
@@ -4826,7 +4856,7 @@ function ShippingPage() {
                       }
                       // When Sendungen tab is active, show only these items
                       if (activeTab === "versand") {
-                        return ["new-orders-checkbox-5", "new-orders-checkbox-6", "new-orders-checkbox-7"].includes(item.id);
+                        return ["new-orders-checkbox-5", "new-orders-checkbox-6", "new-orders-checkbox-7", "new-orders-checkbox-12"].includes(item.id);
                       }
                       return true;
                     })
