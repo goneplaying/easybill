@@ -2347,6 +2347,26 @@ function ShippingPage() {
   const [showAddressMatchAlert, setShowAddressMatchAlert] = React.useState(false);
   const [showTipsModal, setShowTipsModal] = React.useState(false);
   const [dontShowTipsAgain, setDontShowTipsAgain] = React.useState(false);
+  const [currentTipIndex, setCurrentTipIndex] = React.useState(0);
+  
+  // Tips content array
+  const tips = [
+    {
+      topline: "Tagestipp",
+      headline: "Details per Doppelclick anzeigen",
+      bodyText: "Details lassen sich per Doppelklick oder mit der Eingabetaste öffnen und schließen."
+    },
+    {
+      topline: "Tagestipp",
+      headline: "Mehrfachauswahl",
+      bodyText: "Halten Sie die Shift-Taste (Umschalttaste) gedrückt, um einen zusammenhängenden Bereich von Zeilen zu markieren."
+    },
+    {
+      topline: "Tagestipp",
+      headline: "Pfeiltasten verwenden",
+      bodyText: "Verwenden Sie die linke und rechte Pfeiltaste, um zwischen den Detailansichten der sichtbaren Einträge zu wechseln."
+    }
+  ];
   const [addressMatchStep, setAddressMatchStep] = React.useState(0); // 0 = Initial, 1 = Adressdaten, 2 = Versandprofile, 3 = Sendungen erstellt
   const [showSingleRowSendungModal, setShowSingleRowSendungModal] = React.useState(false);
   const [singleRowSendungStep, setSingleRowSendungStep] = React.useState(0); // 0 = initial, 1 = versandprofil, 2 = success
@@ -5912,7 +5932,24 @@ function ShippingPage() {
           showCloseButton={false}
           transparentOverlay={true}
         >
-          <div className="flex flex-col">
+          <div className="flex flex-col relative">
+            {/* Close button */}
+            <Button
+              variant="secondary"
+              size="icon"
+              className="absolute top-6 right-6 w-8 h-8 p-0 z-10 bg-white hover:bg-white/80"
+              onClick={() => {
+                if (dontShowTipsAgain) {
+                  localStorage.setItem('hideTips', 'true');
+                }
+                setShowTipsModal(false);
+                setCurrentTipIndex(0);
+              }}
+            >
+              <X className="size-4" />
+              <span className="sr-only">Close</span>
+            </Button>
+            
             {/* Image placeholder */}
             <div className="w-full h-[200px] bg-muted rounded-t-lg flex items-center justify-center">
               <div className="text-muted-foreground text-sm">Image placeholder</div>
@@ -5921,18 +5958,18 @@ function ShippingPage() {
             {/* Content */}
             <div className="p-6">
               {/* Topline */}
-              <p className="text-sm text-muted-foreground mb-2">Tagestipp</p>
+              <p className="text-sm text-muted-foreground mb-2">{tips[currentTipIndex].topline}</p>
               
               {/* Headline */}
               <DialogHeader className="p-0 mb-3">
                 <DialogTitle className="text-xl font-bold text-left">
-                  Details per Doppelclick anzeigen
+                  {tips[currentTipIndex].headline}
                 </DialogTitle>
               </DialogHeader>
               
               {/* Body text */}
               <DialogDescription className="text-sm text-foreground text-left leading-[20px] mb-4">
-                Die Details lassen sich per Doppelklick oder mit der Eingabetaste anzeigen.
+                {tips[currentTipIndex].bodyText}
               </DialogDescription>
               
               {/* Checkbox with label */}
@@ -5953,27 +5990,34 @@ function ShippingPage() {
             
             {/* Footer with buttons */}
             <DialogFooter className="p-6 pt-0 !flex-row !justify-between gap-3">
+              {currentTipIndex > 0 ? (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    // Go back to previous tip
+                    setCurrentTipIndex(currentTipIndex - 1);
+                  }}
+                >
+                  Zurück
+                </Button>
+              ) : (
+                <div></div>
+              )}
               <Button
-                variant="outline"
                 onClick={() => {
                   if (dontShowTipsAgain) {
                     localStorage.setItem('hideTips', 'true');
                   }
-                  setShowTipsModal(false);
-                }}
-              >
-                Schließen
-              </Button>
-              <Button
-                onClick={() => {
-                  if (dontShowTipsAgain) {
-                    localStorage.setItem('hideTips', 'true');
+                  // Move to next tip, or close if it's the last tip
+                  if (currentTipIndex < tips.length - 1) {
+                    setCurrentTipIndex(currentTipIndex + 1);
+                  } else {
+                    setShowTipsModal(false);
+                    setCurrentTipIndex(0); // Reset to first tip
                   }
-                  setShowTipsModal(false);
-                  // TODO: Show next tip logic
                 }}
               >
-                Nächster Tipp
+                {currentTipIndex < tips.length - 1 ? "Nächster Tipp" : "Schließen"}
               </Button>
             </DialogFooter>
           </div>
