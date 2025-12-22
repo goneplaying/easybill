@@ -68,7 +68,7 @@ function AlertDialogHeader({
   return (
     <div
       data-slot="alert-dialog-header"
-      className={cn("flex flex-col gap-2 text-center sm:text-left", className)}
+      className={cn("flex flex-col gap-2 text-center sm:text-left p-4", className)}
       {...props}
     />
   )
@@ -97,7 +97,7 @@ function AlertDialogTitle({
   return (
     <AlertDialogPrimitive.Title
       data-slot="alert-dialog-title"
-      className={cn("text-lg font-bold", "font-['Ryker',sans-serif]", className)}
+      className={cn("text-[20px] font-bold", "font-['Ryker',sans-serif]", className)}
       {...props}
     />
   )

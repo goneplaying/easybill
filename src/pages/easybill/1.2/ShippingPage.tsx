@@ -32,6 +32,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import {
   Select,
@@ -2265,6 +2273,22 @@ function ShippingPage() {
   const [isUnderSm, setIsUnderSm] = React.useState(false);
   const [responsiveSheetWidth, setResponsiveSheetWidth] = React.useState(1255);
 
+  // Show tips modal shortly after page load
+  React.useEffect(() => {
+    // Check if user has chosen to not show tips
+    const hideTips = localStorage.getItem('hideTips');
+    if (hideTips === 'true') {
+      return;
+    }
+    
+    // Show modal after a short delay (e.g., 1 second)
+    const timer = setTimeout(() => {
+      setShowTipsModal(true);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, []);
+
   React.useEffect(() => {
     const checkScreenSize = () => {
       const isSmall = window.innerWidth < 1024; // lg breakpoint
@@ -2321,6 +2345,8 @@ function ShippingPage() {
   const [activeTab, setActiveTab] = React.useState<string>("rechnung"); // State for active tab
   const [showNoSelectionAlert, setShowNoSelectionAlert] = React.useState(false);
   const [showAddressMatchAlert, setShowAddressMatchAlert] = React.useState(false);
+  const [showTipsModal, setShowTipsModal] = React.useState(false);
+  const [dontShowTipsAgain, setDontShowTipsAgain] = React.useState(false);
   const [addressMatchStep, setAddressMatchStep] = React.useState(0); // 0 = Initial, 1 = Adressdaten, 2 = Versandprofile, 3 = Sendungen erstellt
   const [showSingleRowSendungModal, setShowSingleRowSendungModal] = React.useState(false);
   const [singleRowSendungStep, setSingleRowSendungStep] = React.useState(0); // 0 = initial, 1 = versandprofil, 2 = success
@@ -3546,7 +3572,7 @@ function ShippingPage() {
             </div>
             {/* Version number at bottom */}
             <div className="hidden lg:flex mt-auto text-xs text-white/60">
-              v1.6
+              v1.7
             </div>
           </div>
           {/* Left part - 300px width */}
@@ -5078,7 +5104,7 @@ function ShippingPage() {
                 ? "Es wurden keine Bestellungen ausgewählt" 
                 : "Es wurden keine Sendungen ausgewählt"}
             </AlertDialogTitle>
-            <AlertDialogDescription className="!text-foreground text-[13px] font-light leading-[130%]">
+            <AlertDialogDescription className="!text-foreground text-sm font-light leading-[130%]">
               Die Aktionen können nur auf markierte Zeilen angewendet werden.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -5878,6 +5904,81 @@ function ShippingPage() {
           </CommandGroup>
         </CommandList>
       </CommandDialog>
+
+      {/* Tips Modal */}
+      <Dialog open={showTipsModal} onOpenChange={setShowTipsModal}>
+        <DialogContent 
+          className="fixed top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2 bottom-auto right-auto w-[calc(100vw-32px)] max-w-[300px] p-0 gap-0 sm:bottom-[120px] sm:right-[80px] sm:top-auto sm:left-auto sm:translate-x-0 sm:translate-y-0 sm:w-[300px]"
+          showCloseButton={false}
+          transparentOverlay={true}
+        >
+          <div className="flex flex-col">
+            {/* Image placeholder */}
+            <div className="w-full h-[200px] bg-muted rounded-t-lg flex items-center justify-center">
+              <div className="text-muted-foreground text-sm">Image placeholder</div>
+            </div>
+            
+            {/* Content */}
+            <div className="p-6">
+              {/* Topline */}
+              <p className="text-sm text-muted-foreground mb-2">Tagestipp</p>
+              
+              {/* Headline */}
+              <DialogHeader className="p-0 mb-3">
+                <DialogTitle className="text-xl font-bold text-left">
+                  Details per Doppelclick anzeigen
+                </DialogTitle>
+              </DialogHeader>
+              
+              {/* Body text */}
+              <DialogDescription className="text-sm text-foreground text-left leading-[20px] mb-4">
+                Die Details lassen sich per Doppelklick oder mit der Eingabetaste anzeigen.
+              </DialogDescription>
+              
+              {/* Checkbox with label */}
+              <div className="flex items-center space-x-2 pt-2">
+                <Checkbox 
+                  id="dont-show-tips" 
+                  checked={dontShowTipsAgain}
+                  onCheckedChange={(checked) => setDontShowTipsAgain(checked === true)}
+                />
+                <Label 
+                  htmlFor="dont-show-tips" 
+                  className="text-sm font-normal cursor-pointer"
+                >
+                  Tipps nicht mehr anzeigen
+                </Label>
+              </div>
+            </div>
+            
+            {/* Footer with buttons */}
+            <DialogFooter className="p-6 pt-0 !flex-row !justify-between gap-3">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (dontShowTipsAgain) {
+                    localStorage.setItem('hideTips', 'true');
+                  }
+                  setShowTipsModal(false);
+                }}
+              >
+                Schließen
+              </Button>
+              <Button
+                onClick={() => {
+                  if (dontShowTipsAgain) {
+                    localStorage.setItem('hideTips', 'true');
+                  }
+                  setShowTipsModal(false);
+                  // TODO: Show next tip logic
+                }}
+              >
+                Nächster Tipp
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Toaster />
     </div>
