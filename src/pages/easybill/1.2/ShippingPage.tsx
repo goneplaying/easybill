@@ -5996,7 +5996,7 @@ function ShippingPage() {
             <Button
               variant="secondary"
               size="icon"
-              className="absolute top-6 right-6 w-8 h-8 p-0 z-10 bg-white hover:bg-white/80"
+              className="absolute top-6 right-6 w-8 h-8 p-0 z-10 bg-background hover:bg-background/80"
               onClick={() => {
                 if (dontShowTipsAgain) {
                   localStorage.setItem('hideTips', 'true');
