@@ -90,6 +90,13 @@ import logoPlus from "@/assets/easybill-logo+.svg";
 import logoDHL from "@/assets/logos/logo-dhl.svg";
 import logoDPD from "@/assets/logos/logo-dpd.svg";
 import logoUPS from "@/assets/logos/logo-ups.svg";
+import illuSendung1 from "@/assets/Illus/illu-sendung-erstellen-1.png";
+import illuSendung2 from "@/assets/Illus/illu-sendung-erstellen-2.png";
+import illuSendung3 from "@/assets/Illus/illu-sendung-erstellen-3.png";
+import illuSendung4 from "@/assets/Illus/illu-sendung-erstellen-4.png";
+import illuTipps1 from "@/assets/Illus/illu-tipps-1.png";
+import illuTipps2 from "@/assets/Illus/illu-tipps-2.png";
+import illuTipps3 from "@/assets/Illus/illu-tipps-3.png";
 import bestellungenCSV from "@/assets/tables/bestellungen.csv?raw";
 import sendungenCSV from "@/assets/tables/sendungen.csv?raw";
 import checklistenCSV from "@/assets/tables/checklisten.csv?raw";
@@ -2597,9 +2604,9 @@ function ShippingPage() {
     }
 
     if (addressMatchStep === -1) {
-      // Animate progress from 0 to 100 over 3.5 seconds
+      // Animate progress from 0 to 100 over 3 seconds
       const startTime = Date.now();
-      const duration = 3500; // 3.5 seconds
+      const duration = 3000; // 3 seconds
       
       const progressInterval = setInterval(() => {
         const elapsed = Date.now() - startTime;
@@ -5300,8 +5307,12 @@ function ShippingPage() {
                       Möchten Sie für alle Bestellungen eine neue Sendungen erstellen?
                     </p>
                   </div>
-                  <div className="w-[220px] h-[220px] bg-muted rounded-lg flex-shrink-0 flex items-center justify-center">
-                    <span className="text-xs text-muted-foreground">Image placeholder</span>
+                  <div className="w-[220px] h-[220px] rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden" style={{ backgroundColor: '#D6F270' }}>
+                    <img 
+                      src={illuSendung1} 
+                      alt="Sendungen erstellen Illustration 1" 
+                      className="w-full h-full object-contain"
+                    />
                   </div>
                 </div>
               </div>
@@ -5316,8 +5327,12 @@ function ShippingPage() {
                       Es wurden Bestellungen mit gleichen Kunden-/Lieferdaten gefunden. Sollen sie zu einer Sendung zusammengefasst werden?
                     </p>
                   </div>
-                  <div className="w-[220px] h-[220px] bg-muted rounded-lg flex-shrink-0 flex items-center justify-center">
-                    <span className="text-xs text-muted-foreground">Image placeholder</span>
+                  <div className="w-[220px] h-[220px] rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden" style={{ backgroundColor: '#D6F270' }}>
+                    <img 
+                      src={illuSendung2} 
+                      alt="Sendungen erstellen Illustration 2" 
+                      className="w-full h-full object-contain"
+                    />
                   </div>
                 </div>
               </div>
@@ -5337,8 +5352,12 @@ function ShippingPage() {
                           Für {availableCount} von {markedCount} Bestellungen sind passende Versandprofile verfügbar. Möchten Sie sie hinzufügen?
                         </p>
                       </div>
-                      <div className="w-[220px] h-[220px] bg-muted rounded-lg flex-shrink-0 flex items-center justify-center">
-                        <span className="text-xs text-muted-foreground">Image placeholder</span>
+                      <div className="w-[220px] h-[220px] rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden" style={{ backgroundColor: '#D6F270' }}>
+                        <img 
+                          src={illuSendung3} 
+                          alt="Sendungen erstellen Illustration 3" 
+                          className="w-full h-full object-contain"
+                        />
                       </div>
                     </div>
                   </div>
@@ -5355,8 +5374,12 @@ function ShippingPage() {
                       4 neue Sendungen wurden erstellt. Möchten Sie sie jetzt anzeigen?
                     </p>
                   </div>
-                  <div className="w-[220px] h-[220px] bg-muted rounded-lg flex-shrink-0 flex items-center justify-center">
-                    <span className="text-xs text-muted-foreground">Image placeholder</span>
+                  <div className="w-[220px] h-[220px] rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden" style={{ backgroundColor: '#D6F270' }}>
+                    <img 
+                      src={illuSendung4} 
+                      alt="Sendungen erstellen Illustration 4" 
+                      className="w-full h-full object-contain"
+                    />
                   </div>
                 </div>
               </div>
@@ -6099,8 +6122,8 @@ function ShippingPage() {
             {/* Close button */}
             <Button
               variant="secondary"
-              size="icon"
-              className="absolute top-6 right-6 w-8 h-8 p-0 z-10 bg-background hover:bg-background/80"
+              size="sm"
+              className="absolute top-4 right-4 w-8 h-8 p-0 z-10"
               onClick={() => {
                 if (dontShowTipsAgain) {
                   localStorage.setItem('hideTips', 'true');
@@ -6113,9 +6136,13 @@ function ShippingPage() {
               <span className="sr-only">Close</span>
             </Button>
             
-            {/* Image placeholder */}
-            <div className="w-full h-[200px] bg-muted rounded-t-lg flex items-center justify-center">
-              <div className="text-muted-foreground text-sm">Image placeholder</div>
+            {/* Image */}
+            <div className="w-[300px] h-[220px] rounded-t-lg flex items-center justify-center overflow-hidden mx-auto" style={{ backgroundColor: '#D6F270' }}>
+              <img 
+                src={currentTipIndex === 0 ? illuTipps1 : currentTipIndex === 1 ? illuTipps2 : illuTipps3}
+                alt={`Tagestipp ${currentTipIndex + 1}`}
+                className="w-full h-full object-contain"
+              />
             </div>
             
             {/* Content */}
