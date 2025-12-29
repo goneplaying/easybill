@@ -1417,7 +1417,23 @@ const getColumns = (
       
       const isSelected = row.getIsSelected();
       const isMarked = isRowMarked ? isRowMarked(row.original) : false;
+      const isChecked = isSelected || isMarked;
       
+      // If checked or marked, show checkbox
+      if (isChecked) {
+        return (
+          <div className="flex items-center justify-center">
+            <Checkbox 
+              checked={true} 
+              onCheckedChange={(checked) => {
+                row.toggleSelected(checked === true);
+              }}
+            />
+          </div>
+        );
+      }
+      
+      // If unchecked, show icon with click handler
       // Determine icon to show (Package or CreditCard based on tab and type)
       const type = row.original.type;
       let icon = null;
@@ -1440,16 +1456,6 @@ const getColumns = (
         icon = type === "Bestellung" ? <CreditCard className="size-4" /> : null;
       }
       
-      // If checked or marked, show icon (no checkbox, no click handler)
-      if (isSelected || isMarked) {
-        return (
-          <div className="flex items-center justify-center">
-            {icon}
-          </div>
-        );
-      }
-      
-      // If unchecked, show icon with click handler
       return (
         <div 
           onClick={(e) => {
@@ -1909,14 +1915,17 @@ const getColumns = (
       const isChecked = checklistData?.rechnungVersendet ?? false;
       return (
         <div className="flex items-center justify-center h-full">
-          <Checkbox 
-            checked={isChecked} 
-            onCheckedChange={(checked) => {
+          <Button
+            variant="link"
+            className="h-[40px] w-[40px] p-0"
+            onClick={() => {
               if (rowNr !== null && onChecklistChange) {
-                onChecklistChange(rowNr, 'rechnungVersendet', checked === true);
+                onChecklistChange(rowNr, 'rechnungVersendet', !isChecked);
               }
             }}
-          />
+          >
+            <Check className={`size-4 transition-colors ${isChecked ? 'text-foreground hover:text-muted-foreground/50' : 'opacity-0 hover:opacity-100 hover:text-muted-foreground/50'}`} />
+          </Button>
         </div>
       );
     },
@@ -1941,14 +1950,17 @@ const getColumns = (
       const isChecked = checklistData?.sendungErstellt ?? false;
       return (
         <div className="flex items-center justify-center h-full">
-          <Checkbox 
-            checked={isChecked} 
-            onCheckedChange={(checked) => {
+          <Button
+            variant="link"
+            className="h-[40px] w-[40px] p-0"
+            onClick={() => {
               if (rowNr !== null && onChecklistChange) {
-                onChecklistChange(rowNr, 'sendungErstellt', checked === true);
+                onChecklistChange(rowNr, 'sendungErstellt', !isChecked);
               }
             }}
-          />
+          >
+            <Check className={`size-4 transition-colors ${isChecked ? 'text-foreground hover:text-muted-foreground/50' : 'opacity-0 hover:opacity-100 hover:text-muted-foreground/50'}`} />
+          </Button>
         </div>
       );
     },
@@ -1973,14 +1985,17 @@ const getColumns = (
       const isChecked = checklistData?.versandprofilHinzugefuegt ?? false;
       return (
         <div className="flex items-center justify-center h-full">
-          <Checkbox 
-            checked={isChecked} 
-            onCheckedChange={(checked) => {
+          <Button
+            variant="link"
+            className="h-[40px] w-[40px] p-0"
+            onClick={() => {
               if (rowNr !== null && onChecklistChange) {
-                onChecklistChange(rowNr, 'versandprofilHinzugefuegt', checked === true);
+                onChecklistChange(rowNr, 'versandprofilHinzugefuegt', !isChecked);
               }
             }}
-          />
+          >
+            <Check className={`size-4 transition-colors ${isChecked ? 'text-foreground hover:text-muted-foreground/50' : 'opacity-0 hover:opacity-100 hover:text-muted-foreground/50'}`} />
+          </Button>
         </div>
       );
     },
@@ -2005,14 +2020,17 @@ const getColumns = (
       const isChecked = checklistData?.picklisteErstellt ?? false;
       return (
         <div className="flex items-center justify-center h-full">
-          <Checkbox 
-            checked={isChecked} 
-            onCheckedChange={(checked) => {
+          <Button
+            variant="link"
+            className="h-[40px] w-[40px] p-0"
+            onClick={() => {
               if (rowNr !== null && onChecklistChange) {
-                onChecklistChange(rowNr, 'picklisteErstellt', checked === true);
+                onChecklistChange(rowNr, 'picklisteErstellt', !isChecked);
               }
             }}
-          />
+          >
+            <Check className={`size-4 transition-colors ${isChecked ? 'text-foreground hover:text-muted-foreground/50' : 'opacity-0 hover:opacity-100 hover:text-muted-foreground/50'}`} />
+          </Button>
         </div>
       );
     },
@@ -2037,14 +2055,17 @@ const getColumns = (
       const isChecked = checklistData?.packlisteErstellt ?? false;
       return (
         <div className="flex items-center justify-center h-full">
-          <Checkbox 
-            checked={isChecked} 
-            onCheckedChange={(checked) => {
+          <Button
+            variant="link"
+            className="h-[40px] w-[40px] p-0"
+            onClick={() => {
               if (rowNr !== null && onChecklistChange) {
-                onChecklistChange(rowNr, 'packlisteErstellt', checked === true);
+                onChecklistChange(rowNr, 'packlisteErstellt', !isChecked);
               }
             }}
-          />
+          >
+            <Check className={`size-4 transition-colors ${isChecked ? 'text-foreground hover:text-muted-foreground/50' : 'opacity-0 hover:opacity-100 hover:text-muted-foreground/50'}`} />
+          </Button>
         </div>
       );
     },
@@ -2069,14 +2090,17 @@ const getColumns = (
       const isChecked = checklistData?.paketlisteErstellt ?? false;
       return (
         <div className="flex items-center justify-center h-full">
-          <Checkbox 
-            checked={isChecked} 
-            onCheckedChange={(checked) => {
+          <Button
+            variant="link"
+            className="h-[40px] w-[40px] p-0"
+            onClick={() => {
               if (rowNr !== null && onChecklistChange) {
-                onChecklistChange(rowNr, 'paketlisteErstellt', checked === true);
+                onChecklistChange(rowNr, 'paketlisteErstellt', !isChecked);
               }
             }}
-          />
+          >
+            <Check className={`size-4 transition-colors ${isChecked ? 'text-foreground hover:text-muted-foreground/50' : 'opacity-0 hover:opacity-100 hover:text-muted-foreground/50'}`} />
+          </Button>
         </div>
       );
     },
@@ -2101,14 +2125,17 @@ const getColumns = (
       const isChecked = checklistData?.versendet ?? false;
       return (
         <div className="flex items-center justify-center h-full">
-          <Checkbox 
-            checked={isChecked} 
-            onCheckedChange={(checked) => {
+          <Button
+            variant="link"
+            className="h-[40px] w-[40px] p-0"
+            onClick={() => {
               if (rowNr !== null && onChecklistChange) {
-                onChecklistChange(rowNr, 'versendet', checked === true);
+                onChecklistChange(rowNr, 'versendet', !isChecked);
               }
             }}
-          />
+          >
+            <Check className={`size-4 transition-colors ${isChecked ? 'text-foreground hover:text-muted-foreground/50' : 'opacity-0 hover:opacity-100 hover:text-muted-foreground/50'}`} />
+          </Button>
         </div>
       );
     },
