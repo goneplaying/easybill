@@ -23,6 +23,7 @@ import {
 import { Search, X, Plus, Truck, CreditCard, Package, PackageOpen, PackageCheck, MoreHorizontal, Check, Circle, RotateCcw, RefreshCw, CalendarIcon, Filter, Settings2, ChevronDown, File, ToyBrick, Settings, HelpCircle, Merge, Menu, LayoutDashboard, ClipboardList, QrCode, Mail, ListChecks, AlertTriangle, CloudDownload, Printer, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
+import { Progress } from "@/components/ui/progress";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -2368,7 +2369,8 @@ function ShippingPage() {
       bodyText: "Verwenden Sie die linke und rechte Pfeiltaste, um zwischen den Detailansichten der sichtbaren Einträge zu wechseln."
     }
   ];
-  const [addressMatchStep, setAddressMatchStep] = React.useState(0); // 0 = Initial, 1 = Adressdaten, 2 = Versandprofile, 3 = Sendungen erstellt
+  const [addressMatchStep, setAddressMatchStep] = React.useState(-1); // -1 = Progress, 0 = Initial, 1 = Adressdaten, 2 = Versandprofile, 3 = Sendungen erstellt
+  const [progressValue, setProgressValue] = React.useState(0);
   const [showSingleRowSendungModal, setShowSingleRowSendungModal] = React.useState(false);
   const [singleRowSendungStep, setSingleRowSendungStep] = React.useState(0); // 0 = initial, 1 = versandprofil, 2 = success
   const [showRechnungErneutVersendenModal, setShowRechnungErneutVersendenModal] = React.useState(false);
@@ -2560,6 +2562,37 @@ function ShippingPage() {
       }));
     }
   }, [isChecked4, isChecked12]);
+
+  // Handle progress animation and auto-advance for address match modal
+  React.useEffect(() => {
+    if (!showAddressMatchAlert) {
+      return;
+    }
+
+    if (addressMatchStep === -1) {
+      // Animate progress from 0 to 100 over 3.5 seconds
+      const startTime = Date.now();
+      const duration = 3500; // 3.5 seconds
+      
+      const progressInterval = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min((elapsed / duration) * 100, 100);
+        
+        setProgressValue(progress);
+        
+        if (progress >= 100) {
+          clearInterval(progressInterval);
+          // Auto-advance to next step after progress completes
+          setAddressMatchStep(0);
+          setProgressValue(0);
+        }
+      }, 16); // ~60fps
+
+      return () => {
+        clearInterval(progressInterval);
+      };
+    }
+  }, [showAddressMatchAlert, addressMatchStep]);
 
   // Count rows with Importdatum 09.12.2025 (stored as "2025-12-09" or displayed as "09.12.2025")
   const importdatumCount = React.useMemo(() => {
@@ -5127,7 +5160,8 @@ function ShippingPage() {
                 } else {
                   // Multiple rows - show address matching modal
                   setShowAddressMatchAlert(true);
-                  setAddressMatchStep(0);
+                  setAddressMatchStep(-1);
+                  setProgressValue(0);
                 }
               });
             }}
@@ -5201,7 +5235,12 @@ function ShippingPage() {
         onOpenChange={(open) => {
           setShowAddressMatchAlert(open);
           if (!open) {
-            setAddressMatchStep(0);
+            setAddressMatchStep(-1);
+            setProgressValue(0);
+          } else {
+            // Reset to progress step when opening
+            setAddressMatchStep(-1);
+            setProgressValue(0);
           }
         }}
       >
@@ -5210,8 +5249,18 @@ function ShippingPage() {
           <div className="relative overflow-hidden flex-1">
             <div 
               className="flex transition-transform duration-300 ease-in-out"
-              style={{ transform: `translateX(-${addressMatchStep * 100}%)` }}
+              style={{ transform: `translateX(-${(addressMatchStep + 1) * 100}%)` }}
             >
+              {/* Step -1: Progress */}
+              <div className="min-w-full">
+                <div className="p-4 flex flex-col items-center justify-center h-full gap-4 pt-[60px]">
+                  <p className="text-sm text-foreground text-center">Ihre Bestellungen werden analysiert</p>
+                  <div className="w-full max-w-[500px]">
+                    <Progress value={progressValue} className="h-2" />
+                  </div>
+                </div>
+              </div>
+              
               {/* Step 0: Initial */}
               <div className="min-w-full">
                 <div className="p-4 flex gap-8">
@@ -5288,7 +5337,10 @@ function ShippingPage() {
           </div>
 
           <AlertDialogFooter className="!flex-row !justify-between sm:!justify-between items-center !mt-auto !h-[36px] !p-0">
-            {addressMatchStep === 0 ? (
+            {addressMatchStep === -1 ? (
+              // Progress step - no buttons
+              <div />
+            ) : addressMatchStep === 0 ? (
               <>
                 <AlertDialogAction 
                   onClick={() => {
@@ -5304,10 +5356,7 @@ function ShippingPage() {
                     variant="secondary"
                     onClick={(e) => {
                       e.preventDefault();
-                      // Handle: Create sendungen only for orders without sendung
-                      // TODO: Implement actual logic
-                      setShowAddressMatchAlert(false);
-                      setAddressMatchStep(0);
+                      setAddressMatchStep(1); // Move to address matching step
                     }}
                   >
                     Nur für Bestellungen ohne Sendung
