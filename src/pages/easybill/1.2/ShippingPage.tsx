@@ -5205,75 +5205,89 @@ function ShippingPage() {
           }
         }}
       >
-        <AlertDialogContent className="max-w-[512px]">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-xs font-normal text-muted-foreground font-sans">Sendungen erstellen</AlertDialogTitle>
-          </AlertDialogHeader>
+        <AlertDialogContent className="!w-[640px] !h-[380px] !min-w-[640px] !min-h-[380px] !max-w-[640px] !max-h-[380px] !flex !flex-col">
           {/* Carousel Container */}
-          <div className="relative overflow-hidden">
+          <div className="relative overflow-hidden flex-1">
             <div 
               className="flex transition-transform duration-300 ease-in-out"
               style={{ transform: `translateX(-${addressMatchStep * 100}%)` }}
             >
               {/* Step 0: Initial */}
-              {React.useMemo(() => {
-                const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
-                const rowsWithoutSendung = markedVisibleRows.filter((order) => {
-                  const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
-                  if (rowNr === null) return false;
-                  const checklistData = checklistMap.get(rowNr);
-                  const showIcon = checklistData?.sendungErstellt ?? false;
-                  return !showIcon;
-                });
-                const count = rowsWithoutSendung.length;
-                
-                return (
-                  <div className="min-w-full">
-                    <div>
-                      <h3 className="text-lg font-semibold mb-3">
-                        In den ausgewählten Bestellungen wurden {count} ohne erstellte Sendung gefunden
-                      </h3>
-                      <p className="text-sm">
-                        Sollen Sendungen für diese Bestellungen erstellt werden?
-                      </p>
-                    </div>
+              <div className="min-w-full">
+                <div className="p-4 flex gap-8">
+                  <div className="flex-1">
+                    <p className="text-xs text-muted-foreground mb-2">Sendungen erstellen</p>
+                    <h3 className="text-xl font-bold mb-4">
+                      Für einige der ausgewählten Bestellungen wurde bereits eine Sendung erstellt.
+                    </h3>
+                    <p className="text-sm">
+                      Möchten Sie für alle Bestellungen eine neue Sendungen erstellen?
+                    </p>
                   </div>
-                );
-              }, [visibleRows1, markedRows1, checklistMap])}
+                  <div className="w-[220px] h-[220px] bg-muted rounded-lg flex-shrink-0 flex items-center justify-center">
+                    <span className="text-xs text-muted-foreground">Image placeholder</span>
+                  </div>
+                </div>
+              </div>
               
               {/* Step 1: Adressdaten */}
               <div className="min-w-full">
-                <div>
-                  <h3 className="text-lg font-semibold mb-3">Bestellungen verbinden</h3>
-                  <p className="text-sm">
-                    Es wurden Bestellungen mit gleichen Kunden-/Lieferdaten gefunden. Sollen sie zu einer Sendung zusammengefasst werden?
-                  </p>
+                <div className="p-4 flex gap-8">
+                  <div className="flex-1">
+                    <p className="text-xs text-muted-foreground mb-2">Sendungen erstellen</p>
+                    <h3 className="text-xl font-bold mb-4">Bestellungen verbinden</h3>
+                    <p className="text-sm">
+                      Es wurden Bestellungen mit gleichen Kunden-/Lieferdaten gefunden. Sollen sie zu einer Sendung zusammengefasst werden?
+                    </p>
+                  </div>
+                  <div className="w-[220px] h-[220px] bg-muted rounded-lg flex-shrink-0 flex items-center justify-center">
+                    <span className="text-xs text-muted-foreground">Image placeholder</span>
+                  </div>
                 </div>
               </div>
               
               {/* Step 2: Versandprofile */}
-              <div className="min-w-full">
-                <div>
-                  <h3 className="text-lg font-semibold mb-3">Versandprofil(e) hinzufügen</h3>
-                  <p className="text-sm">
-                    Für einige Bestellungen sind passende Versandprofile verfügbar. Möchten Sie sie hinzufügen?
-                  </p>
-                </div>
-              </div>
+              {React.useMemo(() => {
+                const markedCount = markedRows1.size;
+                const availableCount = markedCount > 0 ? Math.floor(Math.random() * (markedCount - 1)) + 1 : 0;
+                
+                return (
+                  <div className="min-w-full">
+                    <div className="p-4 flex gap-8">
+                      <div className="flex-1">
+                        <p className="text-xs text-muted-foreground mb-2">Sendungen erstellen</p>
+                        <h3 className="text-xl font-bold mb-4">Versandprofil(e) hinzufügen</h3>
+                        <p className="text-sm">
+                          Für {availableCount} von {markedCount} Bestellungen sind passende Versandprofile verfügbar. Möchten Sie sie hinzufügen?
+                        </p>
+                      </div>
+                      <div className="w-[220px] h-[220px] bg-muted rounded-lg flex-shrink-0 flex items-center justify-center">
+                        <span className="text-xs text-muted-foreground">Image placeholder</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }, [markedRows1])}
               
               {/* Step 3: Sendungen erstellt */}
               <div className="min-w-full">
-                <div>
-                  <h3 className="text-lg font-semibold mb-3">4 neue Sendungen wurden erstellt</h3>
-                  <p className="text-sm">
-                    Möchten Sie sie jetzt anzeigen?
-                  </p>
+                <div className="p-4 flex gap-8">
+                  <div className="flex-1">
+                    <p className="text-xs text-muted-foreground mb-2">Sendungen erstellen</p>
+                    <h3 className="text-xl font-bold mb-4">Fertig!</h3>
+                    <p className="text-sm">
+                      4 neue Sendungen wurden erstellt. Möchten Sie sie jetzt anzeigen?
+                    </p>
+                  </div>
+                  <div className="w-[220px] h-[220px] bg-muted rounded-lg flex-shrink-0 flex items-center justify-center">
+                    <span className="text-xs text-muted-foreground">Image placeholder</span>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <AlertDialogFooter className="!flex-row !justify-between sm:!justify-between items-center mt-6">
+          <AlertDialogFooter className="!flex-row !justify-between sm:!justify-between items-center !mt-auto !h-[36px] !p-0">
             {addressMatchStep === 0 ? (
               <>
                 <AlertDialogAction 
@@ -5285,14 +5299,28 @@ function ShippingPage() {
                 >
                   Abbrechen
                 </AlertDialogAction>
-                <Button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setAddressMatchStep(1); // Move to address matching step
-                  }}
-                >
-                  Ja
-                </Button>
+                <div className="flex gap-3">
+                  <Button
+                    variant="secondary"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      // Handle: Create sendungen only for orders without sendung
+                      // TODO: Implement actual logic
+                      setShowAddressMatchAlert(false);
+                      setAddressMatchStep(0);
+                    }}
+                  >
+                    Nur für Bestellungen ohne Sendung
+                  </Button>
+                  <Button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setAddressMatchStep(1); // Move to address matching step
+                    }}
+                  >
+                    Ja, für alle
+                  </Button>
+                </div>
               </>
             ) : addressMatchStep === 1 ? (
               <>
@@ -5313,7 +5341,7 @@ function ShippingPage() {
                     }}
                     className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
                   >
-                    Nein
+                    Nein, getrennte Sendungen
                   </Button>
                   <Button
                     onClick={(e) => {
@@ -5321,7 +5349,7 @@ function ShippingPage() {
                       setAddressMatchStep(2); // Move to next step
                     }}
                   >
-                    Ja
+                    Ja, verbinden
                   </Button>
                 </div>
               </>
@@ -5368,7 +5396,7 @@ function ShippingPage() {
                     }}
                     className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
                   >
-                    Nein
+                    Versandprofile später hinzufügen
                   </Button>
                   <Button
                     onClick={(e) => {
@@ -5400,7 +5428,7 @@ function ShippingPage() {
                       setAddressMatchStep(3); // Move to next step
                     }}
                   >
-                    Ja
+                    Ja, hinzufügen
                   </Button>
                 </div>
               </>
@@ -5425,7 +5453,7 @@ function ShippingPage() {
                     }}
                     className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
                   >
-                    Nein
+                    Nein, schließen
                   </AlertDialogAction>
                   <AlertDialogAction 
                     onClick={() => {
@@ -5514,7 +5542,7 @@ function ShippingPage() {
                       setAddressMatchStep(0);
                     }}
                   >
-                    Ja
+                    Ja, anzeigen
                   </AlertDialogAction>
                 </div>
               </>
@@ -5533,27 +5561,27 @@ function ShippingPage() {
           }
         }}
       >
-        <AlertDialogContent className="max-w-[512px]">
+        <AlertDialogContent className="max-w-[512px] !flex !flex-col">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-xs font-normal text-muted-foreground font-sans">Sendung erstellen</AlertDialogTitle>
           </AlertDialogHeader>
           {/* Carousel Container */}
-          <div className="relative overflow-hidden">
+          <div className="relative overflow-hidden flex-1">
             <div 
               className="flex transition-transform duration-300 ease-in-out"
               style={{ transform: `translateX(-${singleRowSendungStep * 100}%)` }}
             >
               {/* Step 1: Initial */}
               <div className="min-w-full">
-                <div>
-                  <h3 className="text-lg font-semibold mb-3">Möchten Sie eine Sendung für diese Bestellung erstellen?</h3>
+                <div className="p-4">
+                  <h3 className="text-xl font-bold mb-3">Möchten Sie eine Sendung für diese Bestellung erstellen?</h3>
                 </div>
               </div>
               
               {/* Step 2: Versandprofil */}
               <div className="min-w-full">
-                <div>
-                  <h3 className="text-lg font-semibold mb-3">Kein passendes Versandprofil gefunden</h3>
+                <div className="p-4">
+                  <h3 className="text-xl font-bold mb-3">Kein passendes Versandprofil gefunden</h3>
                   <p className="text-sm">
                     Sendung wird ohne Versandprofil gespeichert. Sie können im Anschluss ein Versandprofil erstellen.
                   </p>
@@ -5562,8 +5590,8 @@ function ShippingPage() {
               
               {/* Step 3: Success */}
               <div className="min-w-full">
-                <div>
-                  <h3 className="text-lg font-semibold mb-3">Sendung wurde erstellt</h3>
+                <div className="p-4">
+                  <h3 className="text-xl font-bold mb-3">Sendung wurde erstellt</h3>
                   <p className="text-sm">
                     Möchten Sie sie jetzt anzeigen?
                   </p>
@@ -5572,7 +5600,7 @@ function ShippingPage() {
             </div>
           </div>
 
-          <AlertDialogFooter className="!flex-row !justify-between sm:!justify-between items-center mt-6">
+          <AlertDialogFooter className="!flex-row !justify-between sm:!justify-between items-center !mt-auto !h-[36px] !p-0">
             {singleRowSendungStep === 0 ? (
               <>
                 <AlertDialogAction 
@@ -6017,7 +6045,7 @@ function ShippingPage() {
             {/* Content */}
             <div className="p-6">
               {/* Topline */}
-              <p className="text-sm text-muted-foreground mb-2">{tips[currentTipIndex].topline}</p>
+              <p className="text-xs text-muted-foreground mb-2">{tips[currentTipIndex].topline}</p>
               
               {/* Headline */}
               <DialogHeader className="p-0 mb-3">
