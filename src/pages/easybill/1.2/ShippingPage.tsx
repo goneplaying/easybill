@@ -1404,7 +1404,8 @@ const getColumns = (
   _totalRowCount?: number,
   _temporaryVisibleIcons?: Map<string, number>,
   checklistMap: Map<number, import("@/lib/csvParser").ChecklistData> = new Map(),
-  onChecklistChange?: (rowNr: number, field: keyof import("@/lib/csvParser").ChecklistData, value: boolean) => void
+  onChecklistChange?: (rowNr: number, field: keyof import("@/lib/csvParser").ChecklistData, value: boolean) => void,
+  animatedButton?: { rowNr: number; field: string; tableId: string; timestamp: number } | null
 ): ColumnDef<Order>[] => {
   // Custom select column that shows icons when unchecked
   const customSelectColumn: ColumnDef<Order> = {
@@ -1929,14 +1930,14 @@ const getColumns = (
         <div className="flex items-center justify-center h-full">
           <Button
             variant="link"
-            className="h-[40px] w-[40px] p-0"
+            className="h-9 w-9 p-0 hover:border hover:border-border rounded-md"
             onClick={() => {
               if (rowNr !== null && onChecklistChange) {
                 onChecklistChange(rowNr, 'rechnungVersendet', !isChecked);
               }
             }}
           >
-            <Check className={`size-4 transition-colors ${isChecked ? 'text-foreground hover:text-muted-foreground/50' : 'opacity-0 hover:opacity-100 hover:text-muted-foreground/50'}`} />
+            <Check key={`${rowNr}-rechnungVersendet-${isChecked}-${animatedButton?.rowNr === rowNr && animatedButton?.field === 'rechnungVersendet' && animatedButton?.tableId === tableId ? animatedButton.timestamp : ''}`} className={`size-4 transition-all duration-200 ${isChecked ? 'text-foreground hover:text-muted-foreground/50' : 'opacity-0 hover:opacity-100 hover:text-muted-foreground/50'} ${animatedButton?.rowNr === rowNr && animatedButton?.field === 'rechnungVersendet' && animatedButton?.tableId === tableId ? 'animate-scale-up' : ''}`} />
           </Button>
         </div>
       );
@@ -1964,14 +1965,14 @@ const getColumns = (
         <div className="flex items-center justify-center h-full">
           <Button
             variant="link"
-            className="h-[40px] w-[40px] p-0"
+            className="h-9 w-9 p-0 hover:border hover:border-border rounded-md"
             onClick={() => {
               if (rowNr !== null && onChecklistChange) {
                 onChecklistChange(rowNr, 'sendungErstellt', !isChecked);
               }
             }}
           >
-            <Check className={`size-4 transition-colors ${isChecked ? 'text-foreground hover:text-muted-foreground/50' : 'opacity-0 hover:opacity-100 hover:text-muted-foreground/50'}`} />
+            <Check key={`${rowNr}-sendungErstellt-${isChecked}-${animatedButton?.rowNr === rowNr && animatedButton?.field === 'sendungErstellt' && animatedButton?.tableId === tableId ? animatedButton.timestamp : ''}`} className={`size-4 transition-all duration-200 ${isChecked ? 'text-foreground hover:text-muted-foreground/50' : 'opacity-0 hover:opacity-100 hover:text-muted-foreground/50'} ${animatedButton?.rowNr === rowNr && animatedButton?.field === 'sendungErstellt' && animatedButton?.tableId === tableId ? 'animate-scale-up' : ''}`} />
           </Button>
         </div>
       );
@@ -1999,14 +2000,14 @@ const getColumns = (
         <div className="flex items-center justify-center h-full">
           <Button
             variant="link"
-            className="h-[40px] w-[40px] p-0"
+            className="h-9 w-9 p-0 hover:border hover:border-border rounded-md"
             onClick={() => {
               if (rowNr !== null && onChecklistChange) {
                 onChecklistChange(rowNr, 'versandprofilHinzugefuegt', !isChecked);
               }
             }}
           >
-            <Check className={`size-4 transition-colors ${isChecked ? 'text-foreground hover:text-muted-foreground/50' : 'opacity-0 hover:opacity-100 hover:text-muted-foreground/50'}`} />
+            <Check key={`${rowNr}-versandprofilHinzugefuegt-${isChecked}-${animatedButton?.rowNr === rowNr && animatedButton?.field === 'versandprofilHinzugefuegt' && animatedButton?.tableId === tableId ? animatedButton.timestamp : ''}`} className={`size-4 transition-all duration-200 ${isChecked ? 'text-foreground hover:text-muted-foreground/50' : 'opacity-0 hover:opacity-100 hover:text-muted-foreground/50'} ${animatedButton?.rowNr === rowNr && animatedButton?.field === 'versandprofilHinzugefuegt' && animatedButton?.tableId === tableId ? 'animate-scale-up' : ''}`} />
           </Button>
         </div>
       );
@@ -2034,14 +2035,14 @@ const getColumns = (
         <div className="flex items-center justify-center h-full">
           <Button
             variant="link"
-            className="h-[40px] w-[40px] p-0"
+            className="h-9 w-9 p-0 hover:border hover:border-border rounded-md"
             onClick={() => {
               if (rowNr !== null && onChecklistChange) {
                 onChecklistChange(rowNr, 'paketlisteErstellt', !isChecked);
               }
             }}
           >
-            <Check className={`size-4 transition-colors ${isChecked ? 'text-foreground hover:text-muted-foreground/50' : 'opacity-0 hover:opacity-100 hover:text-muted-foreground/50'}`} />
+            <Check key={`${rowNr}-paketlisteErstellt-${isChecked}-${animatedButton?.rowNr === rowNr && animatedButton?.field === 'paketlisteErstellt' && animatedButton?.tableId === tableId ? animatedButton.timestamp : ''}`} className={`size-4 transition-all duration-200 ${isChecked ? 'text-foreground hover:text-muted-foreground/50' : 'opacity-0 hover:opacity-100 hover:text-muted-foreground/50'} ${animatedButton?.rowNr === rowNr && animatedButton?.field === 'paketlisteErstellt' && animatedButton?.tableId === tableId ? 'animate-scale-up' : ''}`} />
           </Button>
         </div>
       );
@@ -2069,14 +2070,14 @@ const getColumns = (
         <div className="flex items-center justify-center h-full">
           <Button
             variant="link"
-            className="h-[40px] w-[40px] p-0"
+            className="h-9 w-9 p-0 hover:border hover:border-border rounded-md"
             onClick={() => {
               if (rowNr !== null && onChecklistChange) {
                 onChecklistChange(rowNr, 'picklisteErstellt', !isChecked);
               }
             }}
           >
-            <Check className={`size-4 transition-colors ${isChecked ? 'text-foreground hover:text-muted-foreground/50' : 'opacity-0 hover:opacity-100 hover:text-muted-foreground/50'}`} />
+            <Check key={`${rowNr}-picklisteErstellt-${isChecked}-${animatedButton?.rowNr === rowNr && animatedButton?.field === 'picklisteErstellt' && animatedButton?.tableId === tableId ? animatedButton.timestamp : ''}`} className={`size-4 transition-all duration-200 ${isChecked ? 'text-foreground hover:text-muted-foreground/50' : 'opacity-0 hover:opacity-100 hover:text-muted-foreground/50'} ${animatedButton?.rowNr === rowNr && animatedButton?.field === 'picklisteErstellt' && animatedButton?.tableId === tableId ? 'animate-scale-up' : ''}`} />
           </Button>
         </div>
       );
@@ -2104,14 +2105,14 @@ const getColumns = (
         <div className="flex items-center justify-center h-full">
           <Button
             variant="link"
-            className="h-[40px] w-[40px] p-0"
+            className="h-9 w-9 p-0 hover:border hover:border-border rounded-md"
             onClick={() => {
               if (rowNr !== null && onChecklistChange) {
                 onChecklistChange(rowNr, 'packlisteErstellt', !isChecked);
               }
             }}
           >
-            <Check className={`size-4 transition-colors ${isChecked ? 'text-foreground hover:text-muted-foreground/50' : 'opacity-0 hover:opacity-100 hover:text-muted-foreground/50'}`} />
+            <Check key={`${rowNr}-packlisteErstellt-${isChecked}-${animatedButton?.rowNr === rowNr && animatedButton?.field === 'packlisteErstellt' && animatedButton?.tableId === tableId ? animatedButton.timestamp : ''}`} className={`size-4 transition-all duration-200 ${isChecked ? 'text-foreground hover:text-muted-foreground/50' : 'opacity-0 hover:opacity-100 hover:text-muted-foreground/50'} ${animatedButton?.rowNr === rowNr && animatedButton?.field === 'packlisteErstellt' && animatedButton?.tableId === tableId ? 'animate-scale-up' : ''}`} />
           </Button>
         </div>
       );
@@ -2139,14 +2140,14 @@ const getColumns = (
         <div className="flex items-center justify-center h-full">
           <Button
             variant="link"
-            className="h-[40px] w-[40px] p-0"
+            className="h-9 w-9 p-0 hover:border hover:border-border rounded-md"
             onClick={() => {
               if (rowNr !== null && onChecklistChange) {
                 onChecklistChange(rowNr, 'versendet', !isChecked);
               }
             }}
           >
-            <Check className={`size-4 transition-colors ${isChecked ? 'text-foreground hover:text-muted-foreground/50' : 'opacity-0 hover:opacity-100 hover:text-muted-foreground/50'}`} />
+            <Check key={`${rowNr}-versendet-${isChecked}-${animatedButton?.rowNr === rowNr && animatedButton?.field === 'versendet' && animatedButton?.tableId === tableId ? animatedButton.timestamp : ''}`} className={`size-4 transition-all duration-200 ${isChecked ? 'text-foreground hover:text-muted-foreground/50' : 'opacity-0 hover:opacity-100 hover:text-muted-foreground/50'} ${animatedButton?.rowNr === rowNr && animatedButton?.field === 'versendet' && animatedButton?.tableId === tableId ? 'animate-scale-up' : ''}`} />
           </Button>
         </div>
       );
@@ -2304,6 +2305,7 @@ function ShippingPage() {
   const [ordersState2, setOrdersState2] = React.useState<Order[]>(initialData.sendungenData);
   const [ordersState] = React.useState<Order[]>(initialData.bestellungenData); // Keep for compatibility with filters
   const [checklistMap, setChecklistMap] = React.useState<Map<number, import("@/lib/csvParser").ChecklistData>>(initialData.checklistMap);
+  const [animatedButton, setAnimatedButton] = React.useState<{ rowNr: number; field: string; tableId: string; timestamp: number } | null>(null);
   const [refreshIconRotation, setRefreshIconRotation] = React.useState(0);
   const [selectedOrder, setSelectedOrder] = React.useState<Order | null>(null);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
@@ -4441,6 +4443,8 @@ function ShippingPage() {
                 <div ref={dataTableRef1}>
                   <DataTable
                     columns={getColumns(activeTab, versandverpackungOptions, handleVerpackungChange, versandprofilOptions, handleProfilChange, versanddienstleisterOptions, handleDienstleisterChange, "rechnung", (row) => markedRows1.has(row.nr), fehlerRowNr, filteredData1.length, temporaryVisibleIcons, checklistMap, (rowNr, field, value) => {
+                      setAnimatedButton({ rowNr, field: String(field), tableId: "rechnung", timestamp: Date.now() });
+                      setTimeout(() => setAnimatedButton(null), 300);
                       setChecklistMap(prev => {
                         const newMap = new Map(prev);
                         const existing = newMap.get(rowNr) || {
@@ -4457,7 +4461,7 @@ function ShippingPage() {
                         newMap.set(rowNr, { ...existing, [field]: value });
                         return newMap;
                       });
-                    })}
+                    }, animatedButton)}
                     data={filteredData1}
                     getRowId={(row) => String(row.nr)}
                     enableGlobalFilter={true}
@@ -4521,6 +4525,8 @@ function ShippingPage() {
                   <div ref={dataTableRef2}>
                     <DataTable
                       columns={getColumns(activeTab, versandverpackungOptions, handleVerpackungChange, versandprofilOptions, handleProfilChange, versanddienstleisterOptions, handleDienstleisterChange, "versand", (row) => markedRows2.has(row.nr), fehlerRowNr, filteredData2.length, temporaryVisibleIcons, checklistMap, (rowNr, field, value) => {
+                        setAnimatedButton({ rowNr, field: String(field), tableId: "versand", timestamp: Date.now() });
+                        setTimeout(() => setAnimatedButton(null), 300);
                         setChecklistMap(prev => {
                           const newMap = new Map(prev);
                           const existing = newMap.get(rowNr) || {
@@ -4537,7 +4543,7 @@ function ShippingPage() {
                           newMap.set(rowNr, { ...existing, [field]: value });
                           return newMap;
                         });
-                      })}
+                      }, animatedButton)}
                       data={filteredData2}
                       getRowId={getRowId}
                     enableGlobalFilter={true}

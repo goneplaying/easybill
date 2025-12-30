@@ -758,35 +758,6 @@ function DataTable<TData, TValue>({
                       }}>
                         Öffnen
                       </ContextMenuItem>
-                      <ContextMenuItem onClick={() => {
-                        const markedRows = getMarkedRows?.() || [];
-                        if (markedRows.length > 1) {
-                          // Get all table rows that match marked rows
-                          const rowsToToggle = table.getRowModel().rows.filter(r => markedRows.includes(r.original));
-                          if (rowsToToggle.length > 0) {
-                            // Check if all are selected - if so, deselect all; otherwise select all
-                            const allSelected = rowsToToggle.every(r => r.getIsSelected());
-                            
-                            // Update rowSelection state directly
-                            setRowSelection((prev) => {
-                              const newSelection = { ...prev };
-                              rowsToToggle.forEach(tableRow => {
-                                const rowId = tableRow.id;
-                                if (allSelected) {
-                                  delete newSelection[rowId];
-                                } else {
-                                  newSelection[rowId] = true;
-                                }
-                              });
-                              return newSelection;
-                            });
-                          }
-                        } else {
-                          row.toggleSelected();
-                        }
-                      }}>
-                        {row.getIsSelected() ? "Abwählen" : "Auswählen"}{getMarkedRows?.() && getMarkedRows().length > 1 ? ` (${getMarkedRows().length})` : ''}
-                      </ContextMenuItem>
                       <ContextMenuSeparator />
                       <ContextMenuItem 
                         className="text-destructive"
