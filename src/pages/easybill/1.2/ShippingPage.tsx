@@ -5794,12 +5794,29 @@ function ShippingPage() {
                       <Button
                         onClick={(e) => {
                           e.preventDefault();
-                          // Show check symbols in "Sendung erstellt" for all marked rows
-                          const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
-                          setChecklistMap(prev => {
-                            const newMap = new Map(prev);
-                            markedVisibleRows.forEach(row => {
-                              const rowNr = typeof row.nr === 'number' ? row.nr : parseInt(String(row.nr)) || 0;
+                          // Find all rows in Sendungen where versandland is "DE" to update both ordersState2 and checklistMap
+                          const rowsToUpdate = ordersState2.filter(order => 
+                            order.type === "Versandvorgang" && order.versandland === "DE"
+                          );
+                          
+                          // Update versandprofil to "DHL National" for all rows in Sendungen where versandland is "DE"
+                          setOrdersState2((prevOrders) => {
+                            return prevOrders.map((order) => {
+                              if (order.type === "Versandvorgang" && order.versandland === "DE") {
+                                return {
+                                  ...order,
+                                  versandprofil: "DHL National",
+                                };
+                              }
+                              return order;
+                            });
+                          });
+                          
+                          // Also update checklistMap to set versandprofilHinzugefuegt to true for affected rows
+                          setChecklistMap(prevChecklistMap => {
+                            const newMap = new Map(prevChecklistMap);
+                            rowsToUpdate.forEach(order => {
+                              const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || 0;
                               const existing = newMap.get(rowNr) || {
                                 nr: rowNr,
                                 rechnungVersendet: false,
@@ -5813,11 +5830,12 @@ function ShippingPage() {
                               };
                               newMap.set(rowNr, {
                                 ...existing,
-                                sendungErstellt: true,
+                                versandprofilHinzugefuegt: true,
                               });
                             });
                             return newMap;
                           });
+                          
                           setAddressMatchStep(3); // Move to next step
                         }}
                       >
@@ -6411,6 +6429,18 @@ function ShippingPage() {
           className="fixed top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2 bottom-auto right-auto w-[calc(100vw-32px)] max-w-[300px] p-0 gap-0 sm:bottom-[120px] sm:right-[80px] sm:top-auto sm:left-auto sm:translate-x-0 sm:translate-y-0 sm:w-[300px]"
           showCloseButton={false}
           transparentOverlay={true}
+          onInteractOutside={(e) => {
+            // Prevent closing when clicking outside
+            e.preventDefault();
+          }}
+          onPointerDownOutside={(e) => {
+            // Prevent closing when clicking outside (pointer events)
+            e.preventDefault();
+          }}
+          onEscapeKeyDown={(e) => {
+            // Prevent closing when pressing Escape
+            e.preventDefault();
+          }}
         >
           <div className="flex flex-col relative">
             {/* Close button */}
