@@ -4785,7 +4785,23 @@ function ShippingPage() {
               </DropdownMenuContent>
             </DropdownMenu>
             )}
-            <Button variant="outline" className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !pl-2 !pr-3 !py-2">
+            <Button 
+              variant="outline" 
+              className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !pl-2 !pr-3 !py-2"
+              onClick={() => {
+                if (!selectedOrder) return;
+                // Mark the selected order if not already marked
+                if (activeTab === "rechnung" && !markedRows1.has(selectedOrder.nr)) {
+                  setMarkedRows1(prev => new Set(prev).add(selectedOrder.nr));
+                } else if (activeTab === "versand" && !markedRows2.has(selectedOrder.nr)) {
+                  setMarkedRows2(prev => new Set(prev).add(selectedOrder.nr));
+                }
+                // Trigger single-row sendung modal
+                setShowSingleRowSendungModal(true);
+                setSingleRowSendungStep(-1);
+                setSingleRowProgressValue(0);
+              }}
+            >
               <Package className="size-4" />
               {((sheetWidth ?? 1255) >= 640 && !isUnderSm) && <span>Sendung erstellen</span>}
             </Button>
@@ -6219,6 +6235,9 @@ function ShippingPage() {
                               return newMap;
                             });
                           }
+                          
+                          // Close the sheet
+                          setIsSheetOpen(false);
                           
                           setShowSingleRowSendungModal(false);
                           setSingleRowSendungStep(-1);
