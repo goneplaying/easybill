@@ -97,6 +97,8 @@ import illuSendung4 from "@/assets/Illus/illu-sendung-erstellen-4.png";
 import illuTipps1 from "@/assets/Illus/illu-tipps-1.png";
 import illuTipps2 from "@/assets/Illus/illu-tipps-2.png";
 import illuTipps3 from "@/assets/Illus/illu-tipps-3.png";
+import statusTrue from "@/assets/svgs/status-true.svg";
+import statusFalse from "@/assets/svgs/status-false.svg";
 import bestellungenCSV from "@/assets/tables/bestellungen.csv?raw";
 import sendungenCSV from "@/assets/tables/sendungen.csv?raw";
 import checklistenCSV from "@/assets/tables/checklisten.csv?raw";
@@ -129,6 +131,9 @@ type Order = {
   versandNetto: number;
   importdatum: string;
   importquelle: string;
+  rechnungVersendetDatum?: string | null;
+  sendungErstelltDatum?: string | null;
+  versandprofilHinzugefuegtDatum?: string | null;
   type: string;
 };
 
@@ -2617,7 +2622,27 @@ function ShippingPage() {
         if (progress >= 100) {
           clearInterval(progressInterval);
           // Auto-advance to next step after progress completes
-          setAddressMatchStep(0);
+          // Check if any marked rows have "Sendung erstellt" -> true
+          const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
+          const hasSendungErstellt = markedVisibleRows.some(row => {
+            const rowNr = typeof row.nr === 'number' ? row.nr : parseInt(String(row.nr)) || null;
+            const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
+            return checklistData?.sendungErstellt === true;
+          });
+          
+          // Check if there are duplicate kundeAdresse values
+          const kundeAdressen = markedVisibleRows.map(row => row.kundeAdresse || "").filter(addr => addr !== "");
+          const kundeAdressenSet = new Set(kundeAdressen);
+          const hasDuplicateAddresses = kundeAdressen.length > kundeAdressenSet.size;
+          
+          // Determine next step: skip step 0 if no sendungErstellt, skip step 1 if no duplicate addresses
+          if (hasSendungErstellt) {
+            setAddressMatchStep(0); // Go to step 0
+          } else if (hasDuplicateAddresses) {
+            setAddressMatchStep(1); // Skip step 0, go to step 1
+          } else {
+            setAddressMatchStep(2); // Skip step 0 and 1, go to step 2
+          }
           setProgressValue(0);
         }
       }, 16); // ~60fps
@@ -2626,7 +2651,7 @@ function ShippingPage() {
         clearInterval(progressInterval);
       };
     }
-  }, [showAddressMatchAlert, addressMatchStep]);
+  }, [showAddressMatchAlert, addressMatchStep, visibleRows1, markedRows1, checklistMap]);
 
   // Count rows with Importdatum 09.12.2025 (stored as "2025-12-09" or displayed as "09.12.2025")
   const importdatumCount = React.useMemo(() => {
@@ -4447,6 +4472,69 @@ function ShippingPage() {
                     setOrdersState2(prev => prev.map((o, idx) => idx === orderIndex2 ? selectedOrder : o));
                   }
                   
+                  // If email is set, hide the Fehler icon for this row
+                  const rowNr = typeof selectedOrder.nr === 'number' ? selectedOrder.nr : parseInt(String(selectedOrder.nr)) || null;
+                  if (rowNr !== null && selectedOrder.email && selectedOrder.email.trim() !== '') {
+                    // Count current errors before updating
+                    const dataToCheck = activeTab === "rechnung" ? ordersState1 : ordersState2;
+                    let currentFehlerCount = 0;
+                    let currentRowHasFehler = false;
+                    
+                    dataToCheck.forEach((order) => {
+                      if (activeTab === "rechnung" && order.type === "Versandvorgang") return;
+                      const checkRowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+                      if (checkRowNr !== null) {
+                        const checklistData = checklistMap.get(checkRowNr);
+                        if (checklistData?.fehler === true) {
+                          currentFehlerCount++;
+                          if (checkRowNr === rowNr) {
+                            currentRowHasFehler = true;
+                          }
+                        }
+                      }
+                    });
+                    
+                    // Update checklistMap to hide Fehler icon for this row
+                    if (currentRowHasFehler) {
+                      setChecklistMap(prev => {
+                        const newMap = new Map(prev);
+                        const existing = newMap.get(rowNr) || {
+                          nr: rowNr,
+                          rechnungVersendet: false,
+                          sendungErstellt: false,
+                          versandprofilHinzugefuegt: false,
+                          picklisteErstellt: false,
+                          packlisteErstellt: false,
+                          paketlisteErstellt: false,
+                          versendet: false,
+                          fehler: false,
+                        };
+                        newMap.set(rowNr, {
+                          ...existing,
+                          fehler: false,
+                        });
+                        return newMap;
+                      });
+                      
+                      // Hide Fehler column if this was the last error
+                      if (currentFehlerCount === 1) {
+                        if (activeTab === "rechnung") {
+                          setRechnungColumnVisibility((prev) => ({
+                            ...prev,
+                            "floating-col-2-rechnung": false,
+                          }));
+                          setIsChecked4(false);
+                        } else {
+                          setVersandColumnVisibility((prev) => ({
+                            ...prev,
+                            "floating-col-2-versand": false,
+                          }));
+                          setIsChecked12(false);
+                        }
+                      }
+                    }
+                  }
+                  
                   // Close the sheet
                   setIsSheetOpen(false);
                   
@@ -4540,63 +4628,68 @@ function ShippingPage() {
                   </AccordionTrigger>
                   <AccordionContent className="mb-4 min-h-[120px]">
                     {selectedOrder && (() => {
-                      const width = sheetWidth ?? 1255;
-                      const isTwoCols = !useWideLayout || (width >= 1024 && width < 1280);
-                      return (
-                      <div className={`grid ${isTwoCols ? 'grid-cols-2' : 'grid-cols-3'} gap-x-6 gap-y-5`}>
-                        <div className="flex flex-col h-full">
-                          <label className="text-sm font-medium text-foreground">Kaufdatum</label>
-                          <p className="mt-1 text-sm min-h-[20px] flex items-center">{formatDate(selectedOrder.kaufdatum)}</p>
-                        </div>
-                        <div className="flex flex-col h-full">
-                          <label className="text-sm font-medium text-foreground">Bezahlt am</label>
-                          <p className="mt-1 text-sm min-h-[20px] flex items-center">{formatDate(selectedOrder.bezahltAm)}</p>
-                        </div>
-                        <div className="flex flex-col h-full">
-                              <label className="text-sm font-medium text-foreground">Rechnung</label>
-                          <p className="mt-1 text-sm min-h-[20px] flex items-center">
-                                {selectedOrder.statusRechnungsversand === "versendet" ? (
-                                  <span className="inline-flex items-center gap-2">
-                                <Check className="size-4" />
-                                    <span className="font-normal text-sm">Versendet</span>
-                                  </span>
-                                ) : selectedOrder.statusRechnungsversand === "ausstehend" ? <span className="font-normal">-</span> : 
-                                 selectedOrder.statusRechnungsversand === "fehler" ? (
-                                  <span className="inline-flex items-center gap-2">
-                                    <AlertTriangle className="size-4 text-destructive" />
-                                    <span className="font-normal text-sm">Fehler</span>
-                                  </span>
-                                ) : 
-                                 selectedOrder.statusRechnungsversand}
-                              </p>
-                            </div>
-                        <div className="flex flex-col h-full">
-                          <label className="text-sm font-medium text-foreground">Versand gemeldet</label>
-                          <p className="mt-1 text-sm min-h-[20px] flex items-center">{formatDate(selectedOrder.versandtGemeldet)}</p>
-                        </div>
-                        <div className="flex flex-col h-full">
-                          <label className="text-sm font-medium text-foreground">Versanddatum</label>
-                          <p className="mt-1 text-sm min-h-[20px] flex items-center">{formatDate(selectedOrder.versanddatum)}</p>
-                        </div>
-                        <div className="flex flex-col h-full">
-                              <label className="text-sm font-medium text-foreground">Versanddokumente</label>
-                          <p className="mt-1 text-sm min-h-[20px] flex items-center">
-                                {selectedOrder.statusVersanddokumente === "erstellt" ? (
-                                  <span className="inline-flex items-center gap-2">
-                                <Check className="size-4" />
-                                    <span className="font-normal text-sm">Erstellt</span>
-                                  </span>
-                                ) : selectedOrder.statusVersanddokumente === "ausstehend" ? <span className="font-normal">-</span> : 
-                                 selectedOrder.statusVersanddokumente === "fehler" ? (
-                                  <span className="inline-flex items-center gap-2">
-                                    <AlertTriangle className="size-4 text-destructive" />
-                                    <span className="font-normal text-sm">Fehler</span>
-                                  </span>
-                                ) : 
-                                 selectedOrder.statusVersanddokumente}
-                              </p>
-                            </div>
+                      const rowNr = typeof selectedOrder.nr === 'number' ? selectedOrder.nr : parseInt(String(selectedOrder.nr)) || null;
+                      const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
+                      
+                      // Get today's date in YYYY-MM-DD format (only for temporary/created data)
+                      const getTodayDate = () => {
+                        const today = new Date();
+                        const year = today.getFullYear();
+                        const month = String(today.getMonth() + 1).padStart(2, '0');
+                        const day = String(today.getDate()).padStart(2, '0');
+                        return `${year}-${month}-${day}`;
+                      };
+                      
+                      // Helper function to get date value: CSV data has priority, use today's date only if checklist is true but no CSV date exists
+                      const getFloatingColDate = (checklistValue: boolean | undefined, csvDate: string | null | undefined) => {
+                        if (!checklistValue) return null;
+                        // If CSV has a date, use it (has priority)
+                        if (csvDate && csvDate.trim() !== '') return csvDate;
+                        // Otherwise, use today's date (temporary/created data)
+                        return getTodayDate();
+                      };
+                      
+                      // Helper component for status items
+                      const StatusItem = ({ value, label }: { value: string | null | undefined, label: string }) => {
+                        const hasValue = value && value.trim() !== '';
+                        return (
+                          <div className="flex items-center gap-[12px] h-[32px]">
+                            <span className="text-sm text-foreground w-[72px]">{value ? formatDate(value) : ''}</span>
+                            <img 
+                              src={hasValue ? statusTrue : statusFalse} 
+                              alt={hasValue ? "Status true" : "Status false"}
+                              className="w-auto h-auto flex-shrink-0"
+                            />
+                            <span className="text-sm text-foreground">{label}</span>
                           </div>
+                        );
+                      };
+                      
+                      return (
+                        <div className="flex flex-col gap-0">
+                          <StatusItem value={selectedOrder.kaufdatum} label="Gekauft" />
+                          <StatusItem value={selectedOrder.bezahltAm} label="Bezahlt" />
+                          <StatusItem 
+                            value={getFloatingColDate(checklistData?.rechnungVersendet, selectedOrder.rechnungVersendetDatum)} 
+                            label="Rechnung versendet" 
+                          />
+                          <StatusItem 
+                            value={getFloatingColDate(checklistData?.sendungErstellt, selectedOrder.sendungErstelltDatum)} 
+                            label="Sendung erstellt" 
+                          />
+                          <StatusItem 
+                            value={getFloatingColDate(checklistData?.versandprofilHinzugefuegt, selectedOrder.versandprofilHinzugefuegtDatum)} 
+                            label="Versandprofil hinzugefügt" 
+                          />
+                          <StatusItem 
+                            value={getFloatingColDate(checklistData?.paketlisteErstellt, selectedOrder.versandtGemeldet)} 
+                            label="Versandlabel erstellt" 
+                          />
+                          <StatusItem 
+                            value={getFloatingColDate(checklistData?.versendet, selectedOrder.versanddatum)} 
+                            label="Versendet" 
+                          />
+                        </div>
                       );
                     })()}
                   </AccordionContent>
@@ -5279,63 +5372,111 @@ function ShippingPage() {
         }}
       >
         <AlertDialogContent className="!w-[640px] !h-[380px] !min-w-[640px] !min-h-[380px] !max-w-[640px] !max-h-[380px] !flex !flex-col">
-          {/* Carousel Container */}
-          <div className="relative overflow-hidden flex-1">
-            <div 
-              className="flex transition-transform duration-300 ease-in-out"
-              style={{ transform: `translateX(-${(addressMatchStep + 1) * 100}%)` }}
-            >
-              {/* Step -1: Progress */}
-              <div className="min-w-full">
-                <div className="p-4 flex flex-col items-center justify-center h-full gap-4 pt-[60px]">
-                  <p className="text-sm text-foreground text-center">Ihre Bestellungen werden analysiert</p>
-                  <div className="w-full max-w-[500px]">
-                    <Progress value={progressValue} className="h-2" />
-                  </div>
-                </div>
-              </div>
+          {(() => {
+            // Check if any marked rows have "Sendung erstellt" -> true
+            const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
+            const hasSendungErstellt = markedVisibleRows.some(row => {
+              const rowNr = typeof row.nr === 'number' ? row.nr : parseInt(String(row.nr)) || null;
+              const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
+              return checklistData?.sendungErstellt === true;
+            });
+            
+            // Check if there are duplicate kundeAdresse values in marked rows
+            const kundeAdressen = markedVisibleRows.map(row => row.kundeAdresse || "").filter(addr => addr !== "");
+            const kundeAdressenSet = new Set(kundeAdressen);
+            const hasDuplicateAddresses = kundeAdressen.length > kundeAdressenSet.size;
+            
+            // Calculate transform offset - account for Steps 0 and 1 being conditionally rendered
+            // Returns the DOM position index (0 = Progress, 1+ = actual steps)
+            const getStepOffset = (step: number) => {
+              if (step === -1) return 0; // Progress always at offset 0
               
-              {/* Step 0: Initial */}
-              <div className="min-w-full">
-                <div className="p-4 flex gap-8">
-                  <div className="flex-1">
-                    <p className="text-xs text-muted-foreground mb-2">Sendungen erstellen</p>
-                    <h3 className="text-xl font-bold mb-4">
-                      Für einige der ausgewählten Bestellungen wurde bereits eine Sendung erstellt.
-                    </h3>
-                    <p className="text-sm">
-                      Möchten Sie für alle Bestellungen eine neue Sendungen erstellen?
-                    </p>
-                  </div>
-                  <div className="w-[220px] h-[220px] rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden" style={{ backgroundColor: '#D6F270' }}>
-                    <img 
-                      src={illuSendung1} 
-                      alt="Sendungen erstellen Illustration 1" 
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-                </div>
-              </div>
+              // Build array of which steps are actually rendered
+              const renderedSteps: number[] = [];
+              if (hasSendungErstellt) renderedSteps.push(0);
+              if (hasDuplicateAddresses) renderedSteps.push(1);
+              renderedSteps.push(2); // Step 2 always rendered
+              renderedSteps.push(3); // Step 3 always rendered
               
-              {/* Step 1: Adressdaten */}
-              <div className="min-w-full">
-                <div className="p-4 flex gap-8">
-                  <div className="flex-1">
-                    <p className="text-xs text-muted-foreground mb-2">Sendungen erstellen</p>
-                    <h3 className="text-xl font-bold mb-4">Bestellungen verbinden</h3>
-                    <p className="text-sm">
-                      Es wurden Bestellungen mit gleichen Kunden-/Lieferdaten gefunden. Sollen sie zu einer Sendung zusammengefasst werden?
-                    </p>
-                  </div>
-                  <div className="w-[220px] h-[220px] rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden" style={{ backgroundColor: '#D6F270' }}>
-                    <img 
-                      src={illuSendung2} 
-                      alt="Sendungen erstellen Illustration 2" 
-                      className="w-full h-full object-contain"
-                    />
+              // Find the index of current step in rendered steps array
+              const stepIndex = renderedSteps.indexOf(step);
+              
+              if (stepIndex === -1) {
+                // Step is not rendered, find the next rendered step
+                const nextRenderedStep = renderedSteps.find(s => s > step);
+                if (nextRenderedStep !== undefined) {
+                  return renderedSteps.indexOf(nextRenderedStep) + 1; // +1 for progress step
+                }
+                // If no next step, go to last step
+                return renderedSteps.length; // +1 for progress will be added below
+              }
+              
+              return stepIndex + 1; // +1 because progress is at index 0
+            };
+            
+            return (
+              <>
+                {/* Carousel Container */}
+                <div className="relative overflow-hidden flex-1">
+                  <div 
+                    className="flex transition-transform duration-300 ease-in-out"
+                    style={{ transform: `translateX(-${getStepOffset(addressMatchStep) * 100}%)` }}
+                  >
+                    {/* Step -1: Progress */}
+                    <div className="min-w-full">
+                      <div className="p-4 flex flex-col items-center justify-center h-full gap-4 pt-[60px]">
+                        <p className="text-sm text-foreground text-center">Ihre Bestellungen werden analysiert</p>
+                        <div className="w-full max-w-[500px]">
+                          <Progress value={progressValue} className="h-2" />
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Step 0: Initial - Only show if any rows have sendungErstellt */}
+                    {hasSendungErstellt && (
+                      <div className="min-w-full">
+                        <div className="p-4 flex gap-8">
+                          <div className="flex-1">
+                            <p className="text-xs text-muted-foreground mb-2">Sendungen erstellen</p>
+                            <h3 className="text-xl font-bold mb-4">
+                              Für einige der ausgewählten Bestellungen wurde bereits eine Sendung erstellt.
+                            </h3>
+                            <p className="text-sm">
+                              Möchten Sie für alle Bestellungen eine neue Sendungen erstellen?
+                            </p>
+                          </div>
+                          <div className="w-[220px] h-[220px] rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden" style={{ backgroundColor: '#D6F270' }}>
+                            <img 
+                              src={illuSendung1} 
+                              alt="Sendungen erstellen Illustration 1" 
+                              className="w-full h-full object-contain"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+              
+              {/* Step 1: Adressdaten - Only show if there are duplicate addresses */}
+              {hasDuplicateAddresses && (
+                <div className="min-w-full">
+                  <div className="p-4 flex gap-8">
+                    <div className="flex-1">
+                      <p className="text-xs text-muted-foreground mb-2">Sendungen erstellen</p>
+                      <h3 className="text-xl font-bold mb-4">Bestellungen verbinden</h3>
+                      <p className="text-sm">
+                        Es wurden Bestellungen mit gleichen Kunden-/Lieferdaten gefunden. Sollen sie zu einer Sendung zusammengefasst werden?
+                      </p>
+                    </div>
+                    <div className="w-[220px] h-[220px] rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden" style={{ backgroundColor: '#D6F270' }}>
+                      <img 
+                        src={illuSendung2} 
+                        alt="Sendungen erstellen Illustration 2" 
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
               
               {/* Step 2: Versandprofile */}
               {React.useMemo(() => {
@@ -5383,269 +5524,266 @@ function ShippingPage() {
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
+                  </div>
+                </div>
+              </>
+            );
+          })()}
 
           <AlertDialogFooter className="!flex-row !justify-between sm:!justify-between items-center !mt-auto !h-[36px] !p-0">
-            {addressMatchStep === -1 ? (
-              // Progress step - no buttons
-              <div />
-            ) : addressMatchStep === 0 ? (
-              <>
-                <AlertDialogAction 
-                  onClick={() => {
-                    setShowAddressMatchAlert(false);
-                    setAddressMatchStep(0);
-                  }}
-                  className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                >
-                  Abbrechen
-                </AlertDialogAction>
-                <div className="flex gap-3">
-                  <Button
-                    variant="secondary"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setAddressMatchStep(1); // Move to address matching step
-                    }}
-                  >
-                    Nur für Bestellungen ohne Sendung
-                  </Button>
-                  <Button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setAddressMatchStep(1); // Move to address matching step
-                    }}
-                  >
-                    Ja, für alle
-                  </Button>
-                </div>
-              </>
-            ) : addressMatchStep === 1 ? (
-              <>
-                <AlertDialogAction 
-                  onClick={() => {
-                    setShowAddressMatchAlert(false);
-                    setAddressMatchStep(0);
-                  }}
-                  className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                >
-                  Abbrechen
-                </AlertDialogAction>
-                <div className="flex gap-2">
-                  <Button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setAddressMatchStep(2); // Move to next step
-                    }}
-                    className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                  >
-                    Nein, getrennte Sendungen
-                  </Button>
-                  <Button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setAddressMatchStep(2); // Move to next step
-                    }}
-                  >
-                    Ja, verbinden
-                  </Button>
-                </div>
-              </>
-            ) : addressMatchStep === 2 ? (
-              <>
-                <AlertDialogAction 
-                  onClick={() => {
-                    setShowAddressMatchAlert(false);
-                    setAddressMatchStep(0);
-                  }}
-                  className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                >
-                  Abbrechen
-                </AlertDialogAction>
-                <div className="flex gap-2">
-                  <Button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      // Show check symbols in "Sendung erstellt" for all marked rows
-                      const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
-                      setChecklistMap(prev => {
-                        const newMap = new Map(prev);
-                        markedVisibleRows.forEach(row => {
-                          const rowNr = typeof row.nr === 'number' ? row.nr : parseInt(String(row.nr)) || 0;
-                          const existing = newMap.get(rowNr) || {
-                            nr: rowNr,
-                            rechnungVersendet: false,
-                            sendungErstellt: false,
-                            versandprofilHinzugefuegt: false,
-                            picklisteErstellt: false,
-                            packlisteErstellt: false,
-                            paketlisteErstellt: false,
-                            versendet: false,
-                            fehler: false,
-                          };
-                          newMap.set(rowNr, {
-                            ...existing,
-                            sendungErstellt: true,
-                          });
-                        });
-                        return newMap;
-                      });
-                      setAddressMatchStep(3); // Move to next step
-                    }}
-                    className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                  >
-                    Versandprofile später hinzufügen
-                  </Button>
-                  <Button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      // Show check symbols in "Sendung erstellt" for all marked rows
-                      const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
-                      setChecklistMap(prev => {
-                        const newMap = new Map(prev);
-                        markedVisibleRows.forEach(row => {
-                          const rowNr = typeof row.nr === 'number' ? row.nr : parseInt(String(row.nr)) || 0;
-                          const existing = newMap.get(rowNr) || {
-                            nr: rowNr,
-                            rechnungVersendet: false,
-                            sendungErstellt: false,
-                            versandprofilHinzugefuegt: false,
-                            picklisteErstellt: false,
-                            packlisteErstellt: false,
-                            paketlisteErstellt: false,
-                            versendet: false,
-                            fehler: false,
-                          };
-                          newMap.set(rowNr, {
-                            ...existing,
-                            sendungErstellt: true,
-                          });
-                        });
-                        return newMap;
-                      });
-                      setAddressMatchStep(3); // Move to next step
-                    }}
-                  >
-                    Ja, hinzufügen
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <>
-                {addressMatchStep !== 3 && (
-                  <Button
-                    variant="outline"
-                    onClick={() => setAddressMatchStep(2)}
-                    className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                  >
-                    Zurück
-                  </Button>
-                )}
-                <div className={`flex gap-3 ${addressMatchStep === 3 ? 'ml-auto' : ''}`}>
-                  <AlertDialogAction 
-                    onClick={() => {
-                      setShowAddressMatchAlert(false);
-                      setAddressMatchStep(0);
-                      // Handle: Don't show sendungen
-                      // TODO: Implement actual logic
-                    }}
-                    className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                  >
-                    Nein, schließen
-                  </AlertDialogAction>
-                  <AlertDialogAction 
-                    onClick={() => {
-                      // Get the currently selected rows from Bestellungen
-                      const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
-                      
-                      if (markedVisibleRows.length > 0) {
-                        // Collect all unique kundeAdresse values from selected rows
-                        const kundeAdressen = new Set(markedVisibleRows.map(row => row.kundeAdresse || ""));
-                        
-                        // Find matching rows in Sendungen table by kundeAdresse (use ordersState2 for all data, not just visible)
-                        const matchingRows = ordersState2.filter(row => kundeAdressen.has(row.kundeAdresse || ""));
-                        
-                        // Mark matching rows in Sendungen table
-                        if (matchingRows.length > 0) {
-                          const newMarkedRows = new Set<string | number>();
-                          matchingRows.forEach(row => {
-                            newMarkedRows.add(row.nr);
-                          });
-                          setMarkedRows2(newMarkedRows);
-                        }
-                        
-                        // Switch to Sendungen tab
-                        setActiveTab("versand");
-                        
-                        // Show check symbols in "Sendung erstellt" for selected Bestellungen rows
-                        setChecklistMap(prev => {
-                          const newMap = new Map(prev);
-                          // Update Bestellungen rows
-                          markedVisibleRows.forEach(row => {
-                            const rowNr = typeof row.nr === 'number' ? row.nr : parseInt(String(row.nr)) || 0;
-                            const existing = newMap.get(rowNr) || {
-                              nr: rowNr,
-                              rechnungVersendet: false,
-                              sendungErstellt: false,
-                              versandprofilHinzugefuegt: false,
-                              picklisteErstellt: false,
-                              packlisteErstellt: false,
-                              paketlisteErstellt: false,
-                              versendet: false,
-                              fehler: false,
-                            };
-                            newMap.set(rowNr, {
-                              ...existing,
-                              sendungErstellt: true,
+            {(() => {
+              // Check if any marked rows have "Sendung erstellt" -> true
+              const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
+              const hasSendungErstellt = markedVisibleRows.some(row => {
+                const rowNr = typeof row.nr === 'number' ? row.nr : parseInt(String(row.nr)) || null;
+                const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
+                return checklistData?.sendungErstellt === true;
+              });
+              
+              // Check if there are duplicate kundeAdresse values
+              const kundeAdressen = markedVisibleRows.map(row => row.kundeAdresse || "").filter(addr => addr !== "");
+              const kundeAdressenSet = new Set(kundeAdressen);
+              const hasDuplicateAddresses = kundeAdressen.length > kundeAdressenSet.size;
+              
+              if (addressMatchStep === -1) {
+                // Progress step - no buttons
+                return <div />;
+              } else if (addressMatchStep === 0 && hasSendungErstellt) {
+                return (
+                  <>
+                    <AlertDialogAction 
+                      onClick={() => {
+                        setShowAddressMatchAlert(false);
+                        setAddressMatchStep(0);
+                      }}
+                      className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                    >
+                      Abbrechen
+                    </AlertDialogAction>
+                    <div className="flex gap-3">
+                      <Button
+                        variant="secondary"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          // Skip to step 1 if duplicates exist, otherwise skip to step 2
+                          setAddressMatchStep(hasDuplicateAddresses ? 1 : 2);
+                        }}
+                      >
+                        Nur für Bestellungen ohne Sendung
+                      </Button>
+                      <Button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          // Skip to step 1 if duplicates exist, otherwise skip to step 2
+                          setAddressMatchStep(hasDuplicateAddresses ? 1 : 2);
+                        }}
+                      >
+                        Ja, für alle
+                      </Button>
+                    </div>
+                  </>
+                );
+              } else if (addressMatchStep === 1 && hasDuplicateAddresses) {
+                // Step 1 is shown (duplicate addresses exist)
+                return (
+                  <>
+                    <AlertDialogAction 
+                      onClick={() => {
+                        setShowAddressMatchAlert(false);
+                        setAddressMatchStep(0);
+                      }}
+                      className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                    >
+                      Abbrechen
+                    </AlertDialogAction>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setAddressMatchStep(2); // Move to next step
+                        }}
+                        className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                      >
+                        Nein, getrennte Sendungen
+                      </Button>
+                      <Button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          setAddressMatchStep(2); // Move to next step
+                        }}
+                      >
+                        Ja, verbinden
+                      </Button>
+                    </div>
+                  </>
+                );
+              } else if (addressMatchStep === 2) {
+                return (
+                  <>
+                    <AlertDialogAction 
+                      onClick={() => {
+                        setShowAddressMatchAlert(false);
+                        setAddressMatchStep(0);
+                      }}
+                      className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                    >
+                      Abbrechen
+                    </AlertDialogAction>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          // Show check symbols in "Sendung erstellt" for all marked rows
+                          const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
+                          setChecklistMap(prev => {
+                            const newMap = new Map(prev);
+                            markedVisibleRows.forEach(row => {
+                              const rowNr = typeof row.nr === 'number' ? row.nr : parseInt(String(row.nr)) || 0;
+                              const existing = newMap.get(rowNr) || {
+                                nr: rowNr,
+                                rechnungVersendet: false,
+                                sendungErstellt: false,
+                                versandprofilHinzugefuegt: false,
+                                picklisteErstellt: false,
+                                packlisteErstellt: false,
+                                paketlisteErstellt: false,
+                                versendet: false,
+                                fehler: false,
+                              };
+                              newMap.set(rowNr, {
+                                ...existing,
+                                sendungErstellt: true,
+                              });
                             });
+                            return newMap;
                           });
-                          // Also update matching Sendungen rows - show "Versandprofil hinzugefügt" for rows with DE in Versandland
-                          matchingRows.forEach(row => {
-                            const rowNr = typeof row.nr === 'number' ? row.nr : parseInt(String(row.nr)) || 0;
-                            const existing = newMap.get(rowNr) || {
-                              nr: rowNr,
-                              rechnungVersendet: false,
-                              sendungErstellt: false,
-                              versandprofilHinzugefuegt: false,
-                              picklisteErstellt: false,
-                              packlisteErstellt: false,
-                              paketlisteErstellt: false,
-                              versendet: false,
-                              fehler: false,
-                            };
-                            const hasDE = row.versandland?.toUpperCase().includes('DE');
-                            newMap.set(rowNr, {
-                              ...existing,
-                              versandprofilHinzugefuegt: hasDE ? true : existing.versandprofilHinzugefuegt,
+                          setAddressMatchStep(3); // Move to next step
+                        }}
+                        className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                      >
+                        Versandprofile später hinzufügen
+                      </Button>
+                      <Button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          // Show check symbols in "Sendung erstellt" for all marked rows
+                          const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
+                          setChecklistMap(prev => {
+                            const newMap = new Map(prev);
+                            markedVisibleRows.forEach(row => {
+                              const rowNr = typeof row.nr === 'number' ? row.nr : parseInt(String(row.nr)) || 0;
+                              const existing = newMap.get(rowNr) || {
+                                nr: rowNr,
+                                rechnungVersendet: false,
+                                sendungErstellt: false,
+                                versandprofilHinzugefuegt: false,
+                                picklisteErstellt: false,
+                                packlisteErstellt: false,
+                                paketlisteErstellt: false,
+                                versendet: false,
+                                fehler: false,
+                              };
+                              newMap.set(rowNr, {
+                                ...existing,
+                                sendungErstellt: true,
+                              });
                             });
+                            return newMap;
                           });
-                          return newMap;
-                        });
-                        
-                        // Update Versandprofil, Versanddienstleister, Versandverpackung for matching rows in Sendungen table with DE in Versandland
-                        setOrdersState2(prev => prev.map(order => {
-                          if (kundeAdressen.has(order.kundeAdresse || "") && order.versandland?.toUpperCase().includes('DE')) {
-                            return {
-                              ...order,
-                              versandprofil: 'DHL National',
-                              versanddienstleister: 'DHL',
-                              versandverpackung: 'Karton L',
-                            };
+                          setAddressMatchStep(3); // Move to next step
+                        }}
+                      >
+                        Ja, hinzufügen
+                      </Button>
+                    </div>
+                  </>
+                );
+              } else {
+                // Step 3 or other
+                return (
+                  <>
+                    {addressMatchStep !== 3 && (
+                      <Button
+                        variant="outline"
+                        onClick={() => setAddressMatchStep(2)}
+                        className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                      >
+                        Zurück
+                      </Button>
+                    )}
+                    <div className={`flex gap-3 ${addressMatchStep === 3 ? 'ml-auto' : ''}`}>
+                      <AlertDialogAction 
+                        onClick={() => {
+                          setShowAddressMatchAlert(false);
+                          setAddressMatchStep(0);
+                          // Handle: Don't show sendungen
+                          // TODO: Implement actual logic
+                        }}
+                        className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                      >
+                        Nein, schließen
+                      </AlertDialogAction>
+                      <AlertDialogAction 
+                        onClick={() => {
+                          // Get the currently selected rows from Bestellungen
+                          const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
+                          
+                          if (markedVisibleRows.length > 0) {
+                            // Collect all unique kundeAdresse values from selected rows
+                            const kundeAdressen = new Set(markedVisibleRows.map(row => row.kundeAdresse || ""));
+                            
+                            // Find matching rows in Sendungen table by kundeAdresse (use ordersState2 for all data, not just visible)
+                            const matchingRows = ordersState2.filter(row => kundeAdressen.has(row.kundeAdresse || ""));
+                            
+                            // Mark matching rows in Sendungen table
+                            if (matchingRows.length > 0) {
+                              const newMarkedRows = new Set<string | number>();
+                              matchingRows.forEach(row => {
+                                newMarkedRows.add(row.nr);
+                              });
+                              setMarkedRows2(newMarkedRows);
+                            }
+                            
+                            // Switch to Sendungen tab
+                            setActiveTab("versand");
+                            
+                            // Show check symbols in "Sendung erstellt" for selected Bestellungen rows
+                            setChecklistMap(prev => {
+                              const newMap = new Map(prev);
+                              // Update Bestellungen rows
+                              markedVisibleRows.forEach(row => {
+                                const rowNr = typeof row.nr === 'number' ? row.nr : parseInt(String(row.nr)) || 0;
+                                const existing = newMap.get(rowNr) || {
+                                  nr: rowNr,
+                                  rechnungVersendet: false,
+                                  sendungErstellt: false,
+                                  versandprofilHinzugefuegt: false,
+                                  picklisteErstellt: false,
+                                  packlisteErstellt: false,
+                                  paketlisteErstellt: false,
+                                  versendet: false,
+                                  fehler: false,
+                                };
+                                newMap.set(rowNr, {
+                                  ...existing,
+                                  sendungErstellt: true,
+                                });
+                              });
+                              return newMap;
+                            });
                           }
-                          return order;
-                        }));
-                      }
-                      
-                      setShowAddressMatchAlert(false);
-                      setAddressMatchStep(0);
-                    }}
-                  >
-                    Ja, anzeigen
-                  </AlertDialogAction>
-                </div>
-              </>
-            )}
+                          
+                          setShowAddressMatchAlert(false);
+                          setAddressMatchStep(0);
+                        }}
+                      >
+                        Ja, anzeigen
+                      </AlertDialogAction>
+                    </div>
+                  </>
+                );
+              }
+            })()}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -5909,7 +6047,7 @@ function ShippingPage() {
                 checkSelectionBeforeAction(() => {
                   // Count marked rows that are also visible (we're in rechnung tab)
                   const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
-                  
+
                   // Check if any selected rows already have "Rechnung versendet" visible
                   const rowsWithRechnungVersendet = markedVisibleRows.filter(row => {
                     const rowNr = typeof row.nr === 'number' ? row.nr : parseInt(String(row.nr)) || null;
@@ -5917,48 +6055,76 @@ function ShippingPage() {
                     const checklistData = checklistMap.get(rowNr);
                     return checklistData?.rechnungVersendet === true;
                   });
-                  
+
                   // If there are rows with already sent invoices, show confirmation modal
                   if (rowsWithRechnungVersendet.length > 0) {
                     setShowRechnungErneutVersendenModal(true);
                     return;
                   }
-                  
-                  const count = markedVisibleRows.length;
-                  
-                  // Show "Rechnung versendet" icons temporarily for all visible rows except the last one
-                  // Show "Fehler" icon temporarily for the last row (only in Bestellungen table)
-                  if (markedVisibleRows.length > 0 && activeTab === "rechnung") {
-                    // Show "Rechnung versendet" icons for all rows except the last one
-                    const rowsExceptLast = markedVisibleRows.slice(0, -1);
-                    rowsExceptLast.forEach(row => {
+
+                  // Separate rows with email and without email
+                  const rowsWithEmail = markedVisibleRows.filter(row => row.email && row.email.trim() !== '');
+                  const rowsWithoutEmail = markedVisibleRows.filter(row => !row.email || row.email.trim() === '');
+
+                  // Only process rows with email
+                  const successCount = rowsWithEmail.length;
+                  const errorCount = rowsWithoutEmail.length;
+
+                  // Set "Rechnung versendet" to true in checklistMap for rows with email
+                  if (rowsWithEmail.length > 0) {
+                    setChecklistMap(prev => {
+                      const newMap = new Map(prev);
+                      rowsWithEmail.forEach(row => {
+                        const rowNr = typeof row.nr === 'number' ? row.nr : parseInt(String(row.nr)) || null;
+                        if (rowNr !== null) {
+                          const existing = newMap.get(rowNr) || {
+                            nr: rowNr,
+                            rechnungVersendet: false,
+                            sendungErstellt: false,
+                            versandprofilHinzugefuegt: false,
+                            picklisteErstellt: false,
+                            packlisteErstellt: false,
+                            paketlisteErstellt: false,
+                            versendet: false,
+                            fehler: false,
+                          };
+                          newMap.set(rowNr, {
+                            ...existing,
+                            rechnungVersendet: true,
+                          });
+                        }
+                      });
+                      return newMap;
+                    });
+                  }
+
+                  // Show "Fehler" icon temporarily for rows without email (only in Bestellungen table)
+                  if (rowsWithoutEmail.length > 0 && activeTab === "rechnung") {
+                    rowsWithoutEmail.forEach(row => {
                       const rowNr = typeof row.nr === 'number' ? row.nr : parseInt(String(row.nr)) || null;
                       if (rowNr !== null) {
                         // Set to expire in 1 year (effectively until browser reload)
-                        showIconTemporarily(`rechnung-versendet-${rowNr}`, 365 * 24 * 60 * 60 * 1000);
+                        showIconTemporarily(`fehler-${rowNr}`, 365 * 24 * 60 * 60 * 1000);
                       }
                     });
-                    
-                    // Show "Fehler" icon for the last row in Bestellungen table
-                    const lastRow = markedVisibleRows[markedVisibleRows.length - 1];
-                    const lastRowNr = typeof lastRow.nr === 'number' ? lastRow.nr : parseInt(String(lastRow.nr)) || null;
-                    if (lastRowNr !== null) {
-                      // Set to expire in 1 year (effectively until browser reload)
-                      showIconTemporarily(`fehler-${lastRowNr}`, 365 * 24 * 60 * 60 * 1000);
-                    }
                   }
-                  toast.success(
-                    `${count} Rechnungen wurden erfolgreich versendet`,
-                    {
-                      duration: 3000,
-                    }
-                  );
-                  // Show error toast after success toast only if more than 3 rows were selected
-                  if (count > 3) {
+
+                  // Show success toast only if there are rows with email
+                  if (successCount > 0) {
+                    toast.success(
+                      `${successCount} Rechnungen wurden erfolgreich versendet`,
+                      {
+                        duration: 3000,
+                      }
+                    );
+                  }
+
+                  // Show error toast for rows without email
+                  if (errorCount > 0) {
                     setTimeout(() => {
                       toast.error(
                         <div>
-                          <div className="font-medium">1 Versandfehler</div>
+                          <div className="font-medium">{errorCount} Versandfehler</div>
                           <div className="text-xs mt-1 font-normal">Prüfen Sie die E-Mail Adresse.</div>
                         </div>,
                         {
@@ -5990,7 +6156,7 @@ function ShippingPage() {
                           },
                         }
                       );
-                    }, 3000);
+                    }, successCount > 0 ? 3000 : 0);
                   }
                 });
               }}

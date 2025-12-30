@@ -104,7 +104,7 @@ function SheetContent({
         {children}
         <div className="absolute top-6 right-6 lg:top-[40px] lg:right-[40px] flex items-center gap-6">
           {onToggleSelectAll && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 hidden">
               <Checkbox
                 checked={allRowsSelected || false}
                 onCheckedChange={() => onToggleSelectAll()}

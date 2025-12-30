@@ -27,6 +27,9 @@ type Order = {
   versandNetto: number;
   importdatum: string;
   importquelle: string;
+  rechnungVersendetDatum?: string | null;
+  sendungErstelltDatum?: string | null;
+  versandprofilHinzugefuegtDatum?: string | null;
   type: string;
 };
 
@@ -65,13 +68,11 @@ export function parseCSV(csvText: string): Order[] {
     'MwSt Satz': 'mwstSatz',
     'Gesamt Brutto': 'gesamtBrutto',
     'Bezahlt Am': 'bezahltAm',
-    'Status Rechnungsversand': 'statusRechnungsversand',
     'Versandland': 'versandland',
     'Versanddienstleister': 'versanddienstleister',
     'Versandverpackung': 'versandverpackung',
     'Versandprofil': 'versandprofil',
     'Versandt Gemeldet': 'versandtGemeldet',
-    'Status Versanddokumente': 'statusVersanddokumente',
     'Versanddatum': 'versanddatum',
     'Trackingnummer': 'trackingnummer',
     'Versand Brutto': 'versandBrutto',
@@ -88,12 +89,32 @@ export function parseCSV(csvText: string): Order[] {
     if (values.length === 0) continue;
 
     const order: Partial<Order> = {};
+    // Temporary storage for date columns that determine status
+    let rechnungVersendetDate: string | null = null;
+    let sendungErstelltDate: string | null = null;
+    let versandprofilHinzugefuegtDate: string | null = null;
     
     headers.forEach((header, index) => {
-      const propertyName = headerMap[header];
+      const trimmedHeader = header.trim();
+      const propertyName = headerMap[trimmedHeader];
+      const value = values[index] !== undefined ? values[index].trim() : '';
+      
+      // Handle special date columns that determine status
+      if (trimmedHeader === 'Rechnung versendet') {
+        rechnungVersendetDate = value ? value : null;
+        return; // Skip normal mapping, we'll set status separately
+      }
+      if (trimmedHeader === 'Sendung erstellt') {
+        sendungErstelltDate = value ? value : null;
+        return; // Skip normal mapping, we'll set status separately
+      }
+      // Handle "Versandprofil hinzugefugt" date column
+      if (trimmedHeader === 'Versandprofil hinzugefugt') {
+        versandprofilHinzugefuegtDate = value ? value : null;
+        return; // Skip normal mapping, we'll set it separately
+      }
+      
       if (propertyName && values[index] !== undefined) {
-        const value = values[index].trim();
-        
         // Handle empty values
         if (value === '') {
           if (propertyName === 'bezahltAm' || propertyName === 'versandtGemeldet' || propertyName === 'versanddatum') {
@@ -122,12 +143,6 @@ export function parseCSV(csvText: string): Order[] {
             case 'versandNetto':
               (order as any)[propertyName] = parseFloat(value) || 0;
               break;
-            case 'statusRechnungsversand':
-              (order as any)[propertyName] = value as 'versendet' | 'ausstehend' | 'fehler';
-              break;
-            case 'statusVersanddokumente':
-              (order as any)[propertyName] = value as 'erstellt' | 'ausstehend' | 'fehler';
-              break;
             case 'bezahltAm':
             case 'versandtGemeldet':
             case 'versanddatum':
@@ -149,6 +164,16 @@ export function parseCSV(csvText: string): Order[] {
         }
       }
     });
+    
+    // Set status fields based on date columns
+    // If "Rechnung versendet" has a date value, status is "versendet", otherwise "ausstehend"
+    order.statusRechnungsversand = rechnungVersendetDate ? 'versendet' : 'ausstehend';
+    // If "Sendung erstellt" has a date value, status is "erstellt", otherwise "ausstehend"
+    order.statusVersanddokumente = sendungErstelltDate ? 'erstellt' : 'ausstehend';
+    // Store the actual date values for display in the UI
+    order.rechnungVersendetDatum = rechnungVersendetDate || null;
+    order.sendungErstelltDatum = sendungErstelltDate || null;
+    order.versandprofilHinzugefuegtDatum = versandprofilHinzugefuegtDate || null;
 
     // Ensure all required fields have default values
     const completeOrder: Order = {
@@ -178,6 +203,9 @@ export function parseCSV(csvText: string): Order[] {
       versandNetto: order.versandNetto ?? 0,
       importdatum: order.importdatum ?? '',
       importquelle: order.importquelle ?? '',
+      rechnungVersendetDatum: order.rechnungVersendetDatum ?? null,
+      sendungErstelltDatum: order.sendungErstelltDatum ?? null,
+      versandprofilHinzugefuegtDatum: order.versandprofilHinzugefuegtDatum ?? null,
       type: order.type ?? '', // Will be set by the caller based on which CSV is being parsed
     };
 
