@@ -2413,7 +2413,8 @@ function ShippingPage() {
   const [addressMatchStep, setAddressMatchStep] = React.useState(-1); // -1 = Progress, 0 = Initial, 1 = Adressdaten, 2 = Versandprofile, 3 = Sendungen erstellt
   const [progressValue, setProgressValue] = React.useState(0);
   const [showSingleRowSendungModal, setShowSingleRowSendungModal] = React.useState(false);
-  const [singleRowSendungStep, setSingleRowSendungStep] = React.useState(0); // 0 = initial, 1 = versandprofil, 2 = success
+  const [singleRowSendungStep, setSingleRowSendungStep] = React.useState(-1); // -1 = Progress, 0 = Initial, 1 = Adressdaten, 2 = Versandprofile, 3 = Sendung erstellt
+  const [singleRowProgressValue, setSingleRowProgressValue] = React.useState(0);
   const [showRechnungErneutVersendenModal, setShowRechnungErneutVersendenModal] = React.useState(false);
   const [showFunktionenBestellungenCommand, setShowFunktionenBestellungenCommand] = React.useState(false);
   const [showFunktionenSendungenCommand, setShowFunktionenSendungenCommand] = React.useState(false);
@@ -2603,6 +2604,50 @@ function ShippingPage() {
       }));
     }
   }, [isChecked4, isChecked12]);
+
+  // Handle progress animation and auto-advance for single row sendung modal
+  React.useEffect(() => {
+    if (!showSingleRowSendungModal) {
+      return;
+    }
+
+    if (singleRowSendungStep === -1) {
+      // Animate progress from 0 to 100 over 3 seconds
+      const startTime = Date.now();
+      const duration = 3000; // 3 seconds
+      
+      const progressInterval = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min((elapsed / duration) * 100, 100);
+        
+        setSingleRowProgressValue(progress);
+        
+        if (progress >= 100) {
+          clearInterval(progressInterval);
+          // Auto-advance to next step after progress completes
+          // Check if the single marked row has "Sendung erstellt" -> true
+          const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
+          const hasSendungErstellt = markedVisibleRows.length === 1 && markedVisibleRows.some(row => {
+            const rowNr = typeof row.nr === 'number' ? row.nr : parseInt(String(row.nr)) || null;
+            const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
+            return checklistData?.sendungErstellt === true;
+          });
+          
+          // Determine next step: skip step 0 if no sendungErstellt, go directly to step 2 (no step 1 for single row)
+          if (hasSendungErstellt) {
+            setSingleRowSendungStep(0); // Go to step 0
+          } else {
+            setSingleRowSendungStep(2); // Skip step 0 and 1, go to step 2
+          }
+          setSingleRowProgressValue(0);
+        }
+      }, 16); // ~60fps
+
+      return () => {
+        clearInterval(progressInterval);
+      };
+    }
+  }, [showSingleRowSendungModal, singleRowSendungStep, visibleRows1, markedRows1, checklistMap]);
 
   // Handle progress animation and auto-advance for address match modal
   React.useEffect(() => {
@@ -5411,7 +5456,8 @@ function ShippingPage() {
                 if (markedVisibleRows.length === 1) {
                   // Single row - show single row modal
                   setShowSingleRowSendungModal(true);
-                  setSingleRowSendungStep(0);
+                  setSingleRowSendungStep(-1);
+                  setSingleRowProgressValue(0);
                 } else {
                   // Multiple rows - show address matching modal
                   setShowAddressMatchAlert(true);
@@ -5934,179 +5980,424 @@ function ShippingPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Alert Dialog for single row sendung creation */}
+      {/* Alert Dialog for single row sendung creation - Independent copy of Sendungen erstellen */}
       <AlertDialog 
         open={showSingleRowSendungModal} 
         onOpenChange={(open) => {
           setShowSingleRowSendungModal(open);
           if (!open) {
-            setSingleRowSendungStep(0);
+            setSingleRowSendungStep(-1);
+            setSingleRowProgressValue(0);
+          } else {
+            // Reset to progress step when opening
+            setSingleRowSendungStep(-1);
+            setSingleRowProgressValue(0);
           }
         }}
       >
-        <AlertDialogContent className="max-w-[512px] !flex !flex-col">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-xs font-normal text-muted-foreground font-sans">Sendung erstellen</AlertDialogTitle>
-          </AlertDialogHeader>
-          {/* Carousel Container */}
-          <div className="relative overflow-hidden flex-1">
-            <div 
-              className="flex transition-transform duration-300 ease-in-out"
-              style={{ transform: `translateX(-${singleRowSendungStep * 100}%)` }}
-            >
-              {/* Step 1: Initial */}
-              <div className="min-w-full">
-                <div className="p-4">
-                  <h3 className="text-xl font-bold mb-3">Möchten Sie eine Sendung für diese Bestellung erstellen?</h3>
-                </div>
-              </div>
+        <AlertDialogContent className="!w-[640px] !h-[380px] !min-w-[640px] !min-h-[380px] !max-w-[640px] !max-h-[380px] !flex !flex-col">
+          {(() => {
+            // Check if the single marked row has "Sendung erstellt" -> true
+            const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
+            const hasSendungErstellt = markedVisibleRows.length === 1 && markedVisibleRows.some(row => {
+              const rowNr = typeof row.nr === 'number' ? row.nr : parseInt(String(row.nr)) || null;
+              const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
+              return checklistData?.sendungErstellt === true;
+            });
+            
+            // Calculate transform offset - account for Steps 0 being conditionally rendered
+            // Returns the DOM position index (0 = Progress, 1+ = actual steps)
+            const getSingleRowStepOffset = (step: number) => {
+              if (step === -1) return 0; // Progress always at offset 0
               
-              {/* Step 2: Versandprofil */}
-              <div className="min-w-full">
-                <div className="p-4">
-                  <h3 className="text-xl font-bold mb-3">Kein passendes Versandprofil gefunden</h3>
-                  <p className="text-sm">
-                    Sendung wird ohne Versandprofil gespeichert. Sie können im Anschluss ein Versandprofil erstellen.
-                  </p>
-                </div>
-              </div>
+              // Build array of which steps are actually rendered
+              const renderedSteps: number[] = [];
+              if (hasSendungErstellt) renderedSteps.push(0);
+              renderedSteps.push(2); // Step 2 always rendered
+              renderedSteps.push(3); // Step 3 always rendered
               
-              {/* Step 3: Success */}
+              // Find the index of current step in rendered steps array
+              const stepIndex = renderedSteps.indexOf(step);
+              
+              if (stepIndex === -1) {
+                // Step is not rendered, find the next rendered step
+                const nextRenderedStep = renderedSteps.find(s => s > step);
+                if (nextRenderedStep !== undefined) {
+                  return renderedSteps.indexOf(nextRenderedStep) + 1; // +1 for progress step
+                }
+                // If no next step, go to last step
+                return renderedSteps.length; // +1 for progress will be added below
+              }
+              
+              return stepIndex + 1; // +1 because progress is at index 0
+            };
+            
+            // Step -1: Progress Card (separate object)
+            const singleRowProgressCard = (
               <div className="min-w-full">
-                <div className="p-4">
-                  <h3 className="text-xl font-bold mb-3">Sendung wurde erstellt</h3>
-                  <p className="text-sm">
-                    Möchten Sie sie jetzt anzeigen?
-                  </p>
+                <div className="p-4 flex flex-col items-center justify-center h-full gap-4 pt-[60px]">
+                  <p className="text-sm text-foreground text-center">Ihre Bestellung wird analysiert</p>
+                  <div className="w-full max-w-[500px]">
+                    <Progress value={singleRowProgressValue} className="h-2" />
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
+            );
+
+            // Step 0: Initial Card (separate object) - Only show if sendung erstellt exists
+            const singleRowInitialCard = hasSendungErstellt ? (
+              <div className="min-w-full">
+                <div className="p-4 flex gap-8">
+                  <div className="flex-1">
+                    <p className="text-xs text-muted-foreground mb-2">Sendung erstellen</p>
+                    <h3 className="text-xl font-bold mb-4">
+                      Für diese Bestellung wurde bereits eine Sendung erstellt.
+                    </h3>
+                    <p className="text-sm">
+                      Möchten Sie für diese Bestellung eine neue Sendung erstellen?
+                    </p>
+                  </div>
+                  <div className="w-[220px] h-[220px] rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden" style={{ backgroundColor: '#D6F270' }}>
+                    <img 
+                      src={illuSendung1} 
+                      alt="Sendung erstellen Illustration 1" 
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                </div>
+              </div>
+            ) : null;
+
+            // Step 2: Versandprofile Card (separate object)
+            const singleRowVersandprofileCard = (
+              <div className="min-w-full">
+                <div className="p-4 flex gap-8">
+                  <div className="flex-1">
+                    <p className="text-xs text-muted-foreground mb-2">Sendung erstellen</p>
+                    <h3 className="text-xl font-bold mb-4">Versandprofil hinzufügen</h3>
+                    <p className="text-sm">
+                      Für diese Bestellung ist ein passendes Versandprofil verfügbar. Möchten Sie es hinzufügen?
+                    </p>
+                  </div>
+                  <div className="w-[220px] h-[220px] rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden" style={{ backgroundColor: '#D6F270' }}>
+                    <img 
+                      src={illuSendung3} 
+                      alt="Sendung erstellen Illustration 3" 
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                </div>
+              </div>
+            );
+
+            // Step 3: Success Card (separate object)
+            const singleRowSuccessCard = (
+              <div className="min-w-full">
+                <div className="p-4 flex gap-8">
+                  <div className="flex-1">
+                    <p className="text-xs text-muted-foreground mb-2">Sendung erstellen</p>
+                    <h3 className="text-xl font-bold mb-4">Fertig!</h3>
+                    <p className="text-sm">
+                      1 neue Sendung wurde erstellt. Möchten Sie sie jetzt anzeigen?
+                    </p>
+                  </div>
+                  <div className="w-[220px] h-[220px] rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden" style={{ backgroundColor: '#D6F270' }}>
+                    <img 
+                      src={illuSendung4} 
+                      alt="Sendung erstellen Illustration 4" 
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                </div>
+              </div>
+            );
+            
+            return (
+              <>
+                {/* Carousel Container */}
+                <div className="relative overflow-hidden flex-1">
+                  <div 
+                    className="flex transition-transform duration-300 ease-in-out"
+                    style={{ transform: `translateX(-${getSingleRowStepOffset(singleRowSendungStep) * 100}%)` }}
+                  >
+                    {/* Step -1: Progress */}
+                    {singleRowProgressCard}
+                    
+                    {/* Step 0: Initial - Only show if sendung erstellt exists */}
+                    {singleRowInitialCard}
+                    
+                    {/* Step 2: Versandprofile */}
+                    {singleRowVersandprofileCard}
+                    
+                    {/* Step 3: Success */}
+                    {singleRowSuccessCard}
+                  </div>
+                </div>
+              </>
+            );
+          })()}
 
           <AlertDialogFooter className="!flex-row !justify-between sm:!justify-between items-center !mt-auto !h-[36px] !p-0">
-            {singleRowSendungStep === 0 ? (
-              <>
-                <AlertDialogAction 
-                  onClick={() => {
-                    setShowSingleRowSendungModal(false);
-                    setSingleRowSendungStep(0);
-                  }}
-                  className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                >
-                  Abbrechen
-                </AlertDialogAction>
-                <Button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setSingleRowSendungStep(1); // Move to versandprofil step
-                    
-                    // Show check symbols in "Sendung erstellt" for selected rows
-                    const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
-                    setChecklistMap(prev => {
-                      const newMap = new Map(prev);
-                      markedVisibleRows.forEach(row => {
-                        const rowNr = typeof row.nr === 'number' ? row.nr : parseInt(String(row.nr)) || 0;
-                        const existing = newMap.get(rowNr) || {
-                          nr: rowNr,
-                          rechnungVersendet: false,
-                          sendungErstellt: false,
-                          versandprofilHinzugefuegt: false,
-                          picklisteErstellt: false,
-                          packlisteErstellt: false,
-                          paketlisteErstellt: false,
-                          versendet: false,
-                          fehler: false,
-                        };
-                        newMap.set(rowNr, {
-                          ...existing,
-                          sendungErstellt: true,
-                        });
-                      });
-                      return newMap;
-                    });
-                  }}
-                >
-                  Ja
-                </Button>
-              </>
-            ) : singleRowSendungStep === 1 ? (
-              <>
-                <AlertDialogAction 
-                  onClick={() => {
-                    setShowSingleRowSendungModal(false);
-                    setSingleRowSendungStep(0);
-                  }}
-                  className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                >
-                  Abbrechen
-                </AlertDialogAction>
-                <Button
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setSingleRowSendungStep(2); // Move to success step
-                    // TODO: Implement logic
-                  }}
-                >
-                  OK, weiter
-                </Button>
-              </>
-            ) : (
-              <>
-                <AlertDialogAction 
-                  onClick={() => {
-                    setShowSingleRowSendungModal(false);
-                    setSingleRowSendungStep(0);
-                  }}
-                  className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                >
-                  Schließen
-                </AlertDialogAction>
-                <div className="flex gap-2 ml-auto">
-                  <AlertDialogAction 
-                    onClick={() => {
-                      setShowSingleRowSendungModal(false);
-                      setSingleRowSendungStep(0);
-                      // Handle: Don't show sendung
-                      // TODO: Implement actual logic
-                    }}
-                    className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                  >
-                    Versandprofil erstellen
-                  </AlertDialogAction>
-                  <AlertDialogAction 
-                    onClick={() => {
-                      // Get the currently selected row from Bestellungen
-                      const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
-                      
-                      if (markedVisibleRows.length === 1) {
-                        const selectedRow = markedVisibleRows[0];
-                        const kundeAdresse = selectedRow.kundeAdresse || "";
-                        
-                        // Find matching rows in Sendungen table by kundeAdresse (use ordersState2 for all data, not just visible)
-                        const matchingRows = ordersState2.filter(row => row.kundeAdresse === kundeAdresse);
-                        
-                        // Mark matching rows in Sendungen table
-                        if (matchingRows.length > 0) {
-                          const newMarkedRows = new Set<string | number>();
-                          matchingRows.forEach(row => {
-                            newMarkedRows.add(row.nr);
+            {(() => {
+              // Check if the single marked row has "Sendung erstellt" -> true
+              const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
+              const hasSendungErstellt = markedVisibleRows.length === 1 && markedVisibleRows.some(row => {
+                const rowNr = typeof row.nr === 'number' ? row.nr : parseInt(String(row.nr)) || null;
+                const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
+                return checklistData?.sendungErstellt === true;
+              });
+              
+              if (singleRowSendungStep === -1) {
+                // Progress step - no buttons
+                return <div />;
+              } else if (singleRowSendungStep === 0 && hasSendungErstellt) {
+                return (
+                  <>
+                    <AlertDialogAction 
+                      onClick={() => {
+                        setShowSingleRowSendungModal(false);
+                        setSingleRowSendungStep(-1);
+                      }}
+                      className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                    >
+                      Abbrechen
+                    </AlertDialogAction>
+                    <div className="flex gap-3">
+                      <Button
+                        variant="secondary"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          // Get the currently selected row from Bestellungen
+                          const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
+                          
+                          if (markedVisibleRows.length === 1) {
+                            const selectedRow = markedVisibleRows[0];
+                            const kundeAdresse = selectedRow.kundeAdresse || "";
+                            
+                            // Find matching rows in Sendungen table by kundeAdresse (use ordersState2 for all data, not just visible)
+                            const matchingRows = ordersState2.filter(row => row.kundeAdresse === kundeAdresse);
+                            
+                            // Mark matching rows in Sendungen table
+                            if (matchingRows.length > 0) {
+                              const newMarkedRows = new Set<string | number>();
+                              matchingRows.forEach(row => {
+                                newMarkedRows.add(row.nr);
+                              });
+                              setMarkedRows2(newMarkedRows);
+                            }
+                            
+                            // Switch to Sendungen tab
+                            setActiveTab("versand");
+                            
+                            // Show check symbols in "Sendung erstellt" for selected Bestellung row
+                            setChecklistMap(prev => {
+                              const newMap = new Map(prev);
+                              markedVisibleRows.forEach(row => {
+                                const rowNr = typeof row.nr === 'number' ? row.nr : parseInt(String(row.nr)) || 0;
+                                const existing = newMap.get(rowNr) || {
+                                  nr: rowNr,
+                                  rechnungVersendet: false,
+                                  sendungErstellt: false,
+                                  versandprofilHinzugefuegt: false,
+                                  picklisteErstellt: false,
+                                  packlisteErstellt: false,
+                                  paketlisteErstellt: false,
+                                  versendet: false,
+                                  fehler: false,
+                                };
+                                newMap.set(rowNr, {
+                                  ...existing,
+                                  sendungErstellt: true,
+                                });
+                              });
+                              return newMap;
+                            });
+                          }
+                          
+                          setShowSingleRowSendungModal(false);
+                          setSingleRowSendungStep(-1);
+                        }}
+                      >
+                        Nein, Sendung anzeigen
+                      </Button>
+                      <Button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          // Skip to step 2
+                          setSingleRowSendungStep(2);
+                        }}
+                      >
+                        Ja, neue Sendung
+                      </Button>
+                    </div>
+                  </>
+                );
+              } else if (singleRowSendungStep === 2) {
+                return (
+                  <>
+                    <AlertDialogAction 
+                      onClick={() => {
+                        setShowSingleRowSendungModal(false);
+                        setSingleRowSendungStep(-1);
+                      }}
+                      className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                    >
+                      Abbrechen
+                    </AlertDialogAction>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          // Show check symbols in "Sendung erstellt" for the single marked row
+                          const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
+                          setChecklistMap(prev => {
+                            const newMap = new Map(prev);
+                            markedVisibleRows.forEach(row => {
+                              const rowNr = typeof row.nr === 'number' ? row.nr : parseInt(String(row.nr)) || 0;
+                              const existing = newMap.get(rowNr) || {
+                                nr: rowNr,
+                                rechnungVersendet: false,
+                                sendungErstellt: false,
+                                versandprofilHinzugefuegt: false,
+                                picklisteErstellt: false,
+                                packlisteErstellt: false,
+                                paketlisteErstellt: false,
+                                versendet: false,
+                                fehler: false,
+                              };
+                              newMap.set(rowNr, {
+                                ...existing,
+                                sendungErstellt: true,
+                              });
+                            });
+                            return newMap;
                           });
-                          setMarkedRows2(newMarkedRows);
-                        }
-                        
-                        // Switch to Sendungen tab
-                        setActiveTab("versand");
-                      }
-                      
-                      setShowSingleRowSendungModal(false);
-                      setSingleRowSendungStep(0);
-                    }}
-                  >
-                    Ja
-                  </AlertDialogAction>
-                </div>
-              </>
-            )}
+                          setSingleRowSendungStep(3); // Move to next step
+                        }}
+                        className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                      >
+                        Versandprofil später hinzufügen
+                      </Button>
+                      <Button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          // TODO: Add versandprofil functionality for single row
+                          // Show check symbols in "Sendung erstellt" for the single marked row
+                          const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
+                          setChecklistMap(prev => {
+                            const newMap = new Map(prev);
+                            markedVisibleRows.forEach(row => {
+                              const rowNr = typeof row.nr === 'number' ? row.nr : parseInt(String(row.nr)) || 0;
+                              const existing = newMap.get(rowNr) || {
+                                nr: rowNr,
+                                rechnungVersendet: false,
+                                sendungErstellt: false,
+                                versandprofilHinzugefuegt: false,
+                                picklisteErstellt: false,
+                                packlisteErstellt: false,
+                                paketlisteErstellt: false,
+                                versendet: false,
+                                fehler: false,
+                              };
+                              newMap.set(rowNr, {
+                                ...existing,
+                                sendungErstellt: true,
+                                versandprofilHinzugefuegt: true,
+                              });
+                            });
+                            return newMap;
+                          });
+                          setSingleRowSendungStep(3); // Move to next step
+                        }}
+                      >
+                        Ja, hinzufügen
+                      </Button>
+                    </div>
+                  </>
+                );
+              } else {
+                // Step 3 or other
+                return (
+                  <>
+                    {singleRowSendungStep !== 3 && (
+                      <Button
+                        variant="outline"
+                        onClick={() => setSingleRowSendungStep(2)}
+                        className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                      >
+                        Zurück
+                      </Button>
+                    )}
+                    <div className={`flex gap-3 ${singleRowSendungStep === 3 ? 'ml-auto' : ''}`}>
+                      <AlertDialogAction 
+                        onClick={() => {
+                          setShowSingleRowSendungModal(false);
+                          setSingleRowSendungStep(-1);
+                        }}
+                        className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                      >
+                        Nein, schließen
+                      </AlertDialogAction>
+                      <AlertDialogAction 
+                        onClick={() => {
+                          // Get the currently selected row from Bestellungen
+                          const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
+                          
+                          if (markedVisibleRows.length === 1) {
+                            const selectedRow = markedVisibleRows[0];
+                            const kundeAdresse = selectedRow.kundeAdresse || "";
+                            
+                            // Find matching rows in Sendungen table by kundeAdresse (use ordersState2 for all data, not just visible)
+                            const matchingRows = ordersState2.filter(row => row.kundeAdresse === kundeAdresse);
+                            
+                            // Mark matching rows in Sendungen table
+                            if (matchingRows.length > 0) {
+                              const newMarkedRows = new Set<string | number>();
+                              matchingRows.forEach(row => {
+                                newMarkedRows.add(row.nr);
+                              });
+                              setMarkedRows2(newMarkedRows);
+                            }
+                            
+                            // Switch to Sendungen tab
+                            setActiveTab("versand");
+                            
+                            // Show check symbols in "Sendung erstellt" for selected Bestellung row
+                            setChecklistMap(prev => {
+                              const newMap = new Map(prev);
+                              markedVisibleRows.forEach(row => {
+                                const rowNr = typeof row.nr === 'number' ? row.nr : parseInt(String(row.nr)) || 0;
+                                const existing = newMap.get(rowNr) || {
+                                  nr: rowNr,
+                                  rechnungVersendet: false,
+                                  sendungErstellt: false,
+                                  versandprofilHinzugefuegt: false,
+                                  picklisteErstellt: false,
+                                  packlisteErstellt: false,
+                                  paketlisteErstellt: false,
+                                  versendet: false,
+                                  fehler: false,
+                                };
+                                newMap.set(rowNr, {
+                                  ...existing,
+                                  sendungErstellt: true,
+                                });
+                              });
+                              return newMap;
+                            });
+                          }
+                          
+                          setShowSingleRowSendungModal(false);
+                          setSingleRowSendungStep(-1);
+                        }}
+                      >
+                        Ja, anzeigen
+                      </AlertDialogAction>
+                    </div>
+                  </>
+                );
+              }
+            })()}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
