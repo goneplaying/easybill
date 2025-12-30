@@ -1945,7 +1945,7 @@ const getColumns = (
     minSize: 50,
     maxSize: 50,
     meta: {
-      className: "sticky right-[300px] z-[11] !border !border-border !p-0 !w-[50px] min-w-[50px] max-w-[50px] bg-background",
+      className: "sticky right-[300px] z-[11] !border-l !border-t-0 !border-b-0 !border-r-0 !border-border !p-0 !w-[50px] min-w-[50px] max-w-[50px] bg-background",
     },
     enableHiding: true,
   },
@@ -1980,7 +1980,7 @@ const getColumns = (
     minSize: 50,
     maxSize: 50,
     meta: {
-      className: "sticky right-[250px] z-[12] !border !border-border !p-0 !w-[50px] min-w-[50px] max-w-[50px] bg-background",
+      className: "sticky right-[250px] z-[12] !border-l !border-t-0 !border-b-0 !border-r-0 !border-border !p-0 !w-[50px] min-w-[50px] max-w-[50px] bg-background",
     },
     enableHiding: true,
   },
@@ -2015,77 +2015,7 @@ const getColumns = (
     minSize: 50,
     maxSize: 50,
     meta: {
-      className: "sticky right-[200px] z-[13] !border !border-border !p-0 !w-[50px] min-w-[50px] max-w-[50px] bg-background",
-    },
-    enableHiding: true,
-  },
-  {
-    id: `floating-col-6-${tableId}`,
-    header: () => (
-      <div className="flex items-center justify-center h-full w-full min-h-[44px]">
-        <ClipboardList className="size-4" />
-      </div>
-    ),
-    cell: ({ row }) => {
-      const rowNr = typeof row.original.nr === 'number' ? row.original.nr : parseInt(String(row.original.nr)) || null;
-      const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
-      const isChecked = checklistData?.picklisteErstellt ?? false;
-      return (
-        <div className="flex items-center justify-center h-full">
-          <Button
-            variant="link"
-            className="h-[40px] w-[40px] p-0"
-            onClick={() => {
-              if (rowNr !== null && onChecklistChange) {
-                onChecklistChange(rowNr, 'picklisteErstellt', !isChecked);
-              }
-            }}
-          >
-            <Check className={`size-4 transition-colors ${isChecked ? 'text-foreground hover:text-muted-foreground/50' : 'opacity-0 hover:opacity-100 hover:text-muted-foreground/50'}`} />
-          </Button>
-        </div>
-      );
-    },
-    size: 50,
-    minSize: 50,
-    maxSize: 50,
-    meta: {
-      className: "sticky right-[150px] z-[14] !border !border-border !p-0 !w-[50px] min-w-[50px] max-w-[50px] bg-background",
-    },
-    enableHiding: true,
-  },
-  {
-    id: `floating-col-4-${tableId}`,
-    header: () => (
-      <div className="flex items-center justify-center h-full w-full min-h-[44px]">
-        <ListChecks className="size-4" />
-      </div>
-    ),
-    cell: ({ row }) => {
-      const rowNr = typeof row.original.nr === 'number' ? row.original.nr : parseInt(String(row.original.nr)) || null;
-      const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
-      const isChecked = checklistData?.packlisteErstellt ?? false;
-      return (
-        <div className="flex items-center justify-center h-full">
-          <Button
-            variant="link"
-            className="h-[40px] w-[40px] p-0"
-            onClick={() => {
-              if (rowNr !== null && onChecklistChange) {
-                onChecklistChange(rowNr, 'packlisteErstellt', !isChecked);
-              }
-            }}
-          >
-            <Check className={`size-4 transition-colors ${isChecked ? 'text-foreground hover:text-muted-foreground/50' : 'opacity-0 hover:opacity-100 hover:text-muted-foreground/50'}`} />
-          </Button>
-        </div>
-      );
-    },
-    size: 50,
-    minSize: 50,
-    maxSize: 50,
-    meta: {
-      className: "sticky right-[100px] z-[15] !border !border-border !p-0 !w-[50px] min-w-[50px] max-w-[50px] bg-background",
+      className: "sticky right-[200px] z-[13] !border-l !border-t-0 !border-b-0 !border-r-0 !border-border !p-0 !w-[50px] min-w-[50px] max-w-[50px] bg-background",
     },
     enableHiding: true,
   },
@@ -2120,7 +2050,77 @@ const getColumns = (
     minSize: 50,
     maxSize: 50,
     meta: {
-      className: "sticky right-[50px] z-[16] !border !border-border !p-0 !w-[50px] min-w-[50px] max-w-[50px] bg-background",
+      className: "sticky right-[150px] z-[14] !border-l !border-t-0 !border-b-0 !border-r-0 !border-border !p-0 !w-[50px] min-w-[50px] max-w-[50px] bg-background",
+    },
+    enableHiding: true,
+  },
+  {
+    id: `floating-col-6-${tableId}`,
+    header: () => (
+      <div className="flex items-center justify-center h-full w-full min-h-[44px]">
+        <ClipboardList className="size-4" />
+      </div>
+    ),
+    cell: ({ row }) => {
+      const rowNr = typeof row.original.nr === 'number' ? row.original.nr : parseInt(String(row.original.nr)) || null;
+      const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
+      const isChecked = checklistData?.picklisteErstellt ?? false;
+      return (
+        <div className="flex items-center justify-center h-full">
+          <Button
+            variant="link"
+            className="h-[40px] w-[40px] p-0"
+            onClick={() => {
+              if (rowNr !== null && onChecklistChange) {
+                onChecklistChange(rowNr, 'picklisteErstellt', !isChecked);
+              }
+            }}
+          >
+            <Check className={`size-4 transition-colors ${isChecked ? 'text-foreground hover:text-muted-foreground/50' : 'opacity-0 hover:opacity-100 hover:text-muted-foreground/50'}`} />
+          </Button>
+        </div>
+      );
+    },
+    size: 50,
+    minSize: 50,
+    maxSize: 50,
+    meta: {
+      className: "sticky right-[100px] z-[15] !border-l !border-t-0 !border-b-0 !border-r-0 !border-border !p-0 !w-[50px] min-w-[50px] max-w-[50px] bg-background",
+    },
+    enableHiding: true,
+  },
+  {
+    id: `floating-col-4-${tableId}`,
+    header: () => (
+      <div className="flex items-center justify-center h-full w-full min-h-[44px]">
+        <ListChecks className="size-4" />
+      </div>
+    ),
+    cell: ({ row }) => {
+      const rowNr = typeof row.original.nr === 'number' ? row.original.nr : parseInt(String(row.original.nr)) || null;
+      const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
+      const isChecked = checklistData?.packlisteErstellt ?? false;
+      return (
+        <div className="flex items-center justify-center h-full">
+          <Button
+            variant="link"
+            className="h-[40px] w-[40px] p-0"
+            onClick={() => {
+              if (rowNr !== null && onChecklistChange) {
+                onChecklistChange(rowNr, 'packlisteErstellt', !isChecked);
+              }
+            }}
+          >
+            <Check className={`size-4 transition-colors ${isChecked ? 'text-foreground hover:text-muted-foreground/50' : 'opacity-0 hover:opacity-100 hover:text-muted-foreground/50'}`} />
+          </Button>
+        </div>
+      );
+    },
+    size: 50,
+    minSize: 50,
+    maxSize: 50,
+    meta: {
+      className: "sticky right-[50px] z-[16] !border-l !border-t-0 !border-b-0 !border-r-0 !border-border !p-0 !w-[50px] min-w-[50px] max-w-[50px] bg-background",
     },
     enableHiding: true,
   },
@@ -2155,7 +2155,7 @@ const getColumns = (
     minSize: 50,
     maxSize: 50,
     meta: {
-      className: "sticky right-[50px] z-[16] !border !border-border !p-0 !w-[50px] min-w-[50px] max-w-[50px] bg-background",
+      className: "sticky right-[50px] z-[16] !border-l !border-t-0 !border-b-0 !border-r-0 !border-border !p-0 !w-[50px] min-w-[50px] max-w-[50px] bg-background",
     },
     enableHiding: true,
   },
@@ -2182,7 +2182,7 @@ const getColumns = (
     minSize: 50,
     maxSize: 50,
     meta: {
-      className: "sticky right-0 z-[17] !border !border-border !p-0 !w-[50px] min-w-[50px] max-w-[50px] bg-background will-change-[transform]",
+      className: "sticky right-0 z-[17] !border-l !border-t-0 !border-b-0 !border-r-0 !border-border !p-0 !w-[50px] min-w-[50px] max-w-[50px] bg-background will-change-[transform]",
     },
     enableHiding: true,
   },
@@ -2364,6 +2364,8 @@ function ShippingPage() {
   const [isChecked7, setIsChecked7] = React.useState(false);
   const [isChecked8, setIsChecked8] = React.useState(false); // Keine Pickliste
   const [isChecked10, setIsChecked10] = React.useState(false); // Keine Packliste
+  const [isChecked13, setIsChecked13] = React.useState(false); // Kein Versandprofil
+  const [isChecked14, setIsChecked14] = React.useState(false); // Kein Versandlabel
   // Separate state for Versandprofile accordion
   const [isChecked9, setIsChecked9] = React.useState(false); // Ohne Versandprofil
   const [isChecked5, setIsChecked5] = React.useState(false);
@@ -2727,32 +2729,95 @@ function ShippingPage() {
     return count;
   }, [ordersState2, checklistMap]);
 
-  // Count rows in Sendungen table where "Versendet" icon is hidden (importdatum = "2025-12-09" or "09.12.2025")
+  // Count rows in Sendungen table where "Versendet" checkbox is false in checklistMap
   const nichtVersendetCount = React.useMemo(() => {
-    return ordersState2.filter(
-      (order) =>
-        order.type === "Versandvorgang" &&
-        (order.importdatum === "2025-12-09" || order.importdatum === "09.12.2025")
-    ).length;
-  }, [ordersState2]);
+    let count = 0;
+    ordersState2.forEach((order) => {
+      if (order.type === "Versandvorgang") {
+        const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+        if (rowNr !== null) {
+          const checklistData = checklistMap.get(rowNr);
+          const isVersendet = checklistData?.versendet ?? false;
+          if (!isVersendet) {
+            count++;
+          }
+        }
+      }
+    });
+    return count;
+  }, [ordersState2, checklistMap]);
 
-  // Count rows in Sendungen table where "Pickliste erstellt" icon is hidden (importdatum = "2025-12-09" or "09.12.2025")
+  // Count rows in Sendungen table where "Pickliste erstellt" checkbox is false in checklistMap
   const keinePicklisteCount = React.useMemo(() => {
-    return ordersState2.filter(
-      (order) =>
-        order.type === "Versandvorgang" &&
-        (order.importdatum === "2025-12-09" || order.importdatum === "09.12.2025")
-    ).length;
-  }, [ordersState2]);
+    let count = 0;
+    ordersState2.forEach((order) => {
+      if (order.type === "Versandvorgang") {
+        const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+        if (rowNr !== null) {
+          const checklistData = checklistMap.get(rowNr);
+          const hasPickliste = checklistData?.picklisteErstellt ?? false;
+          if (!hasPickliste) {
+            count++;
+          }
+        }
+      }
+    });
+    return count;
+  }, [ordersState2, checklistMap]);
 
-  // Count rows in Sendungen table where "Packliste erstellt" icon is hidden (importdatum = "2025-12-09" or "09.12.2025")
+  // Count rows in Sendungen table where "Packliste erstellt" checkbox is false in checklistMap
   const keinePacklisteCount = React.useMemo(() => {
-    return ordersState2.filter(
-      (order) =>
-        order.type === "Versandvorgang" &&
-        (order.importdatum === "2025-12-09" || order.importdatum === "09.12.2025")
-    ).length;
-  }, [ordersState2]);
+    let count = 0;
+    ordersState2.forEach((order) => {
+      if (order.type === "Versandvorgang") {
+        const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+        if (rowNr !== null) {
+          const checklistData = checklistMap.get(rowNr);
+          const hasPackliste = checklistData?.packlisteErstellt ?? false;
+          if (!hasPackliste) {
+            count++;
+          }
+        }
+      }
+    });
+    return count;
+  }, [ordersState2, checklistMap]);
+
+  // Count rows in Sendungen table where "Versandprofil hinzugefügt" checkbox is false in checklistMap
+  const keinVersandprofilCount = React.useMemo(() => {
+    let count = 0;
+    ordersState2.forEach((order) => {
+      if (order.type === "Versandvorgang") {
+        const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+        if (rowNr !== null) {
+          const checklistData = checklistMap.get(rowNr);
+          const hasVersandprofil = checklistData?.versandprofilHinzugefuegt ?? false;
+          if (!hasVersandprofil) {
+            count++;
+          }
+        }
+      }
+    });
+    return count;
+  }, [ordersState2, checklistMap]);
+
+  // Count rows in Sendungen table where Versandlabel (paketlisteErstellt) is false
+  const keinVersandlabelCount = React.useMemo(() => {
+    let count = 0;
+    ordersState2.forEach((order) => {
+      if (order.type === "Versandvorgang") {
+        const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+        if (rowNr !== null) {
+          const checklistData = checklistMap.get(rowNr);
+          const hasVersandlabel = checklistData?.paketlisteErstellt ?? false;
+          if (!hasVersandlabel) {
+            count++;
+          }
+        }
+      }
+    });
+    return count;
+  }, [ordersState2, checklistMap]);
 
   // Count rows in Bestellungen table where Versandprofil is "DHL National"
   const dhlNationalCount = React.useMemo(() => {
@@ -2785,6 +2850,36 @@ function ShippingPage() {
   // Filter items configuration
   const filterItems = React.useMemo(
     () => [
+      {
+        id: "new-orders-checkbox-13",
+        count: keinVersandprofilCount,
+        label: "Kein Versandprofil",
+        checked: isChecked13,
+        onCheckedChange: (checked: boolean) => {
+          // Deselect all rows first
+          setMarkedRows1(new Set());
+          setMarkedRows2(new Set());
+          setRowSelection1({});
+          setRowSelection2({});
+          // Then change checkbox state
+          setIsChecked13(checked);
+        },
+      },
+      {
+        id: "new-orders-checkbox-14",
+        count: keinVersandlabelCount,
+        label: "Kein Versandlabel",
+        checked: isChecked14,
+        onCheckedChange: (checked: boolean) => {
+          // Deselect all rows first
+          setMarkedRows1(new Set());
+          setMarkedRows2(new Set());
+          setRowSelection1({});
+          setRowSelection2({});
+          // Then change checkbox state
+          setIsChecked14(checked);
+        },
+      },
       {
         id: "new-orders-checkbox-2",
         count: rechnungVersendetHiddenCount,
@@ -2891,7 +2986,7 @@ function ShippingPage() {
         },
       },
     ],
-    [importdatumCount, rechnungVersendetHiddenCount, versanddokumenteCount, fehlerCountBestellungen, fehlerCountSendungen, nichtVersendetCount, keinePicklisteCount, keinePacklisteCount, isChecked, isChecked2, isChecked3, isChecked4, isChecked7, isChecked8, isChecked10, isChecked12]
+    [importdatumCount, rechnungVersendetHiddenCount, versanddokumenteCount, fehlerCountBestellungen, fehlerCountSendungen, nichtVersendetCount, keinePicklisteCount, keinePacklisteCount, keinVersandprofilCount, keinVersandlabelCount, isChecked, isChecked2, isChecked3, isChecked4, isChecked7, isChecked8, isChecked10, isChecked12, isChecked13, isChecked14]
   );
 
   // Separate filter items for Versandprofile accordion
@@ -3060,31 +3155,64 @@ function ShippingPage() {
   const filteredData2 = React.useMemo(() => {
     let result = ordersState2;
 
-    // Apply filter for "Nicht versendet" checkbox (rows in Sendungen table where "Versendet" icon is hidden - importdatum = "2025-12-09" or "09.12.2025")
+    // Apply filter for "Kein Versandprofil" checkbox (rows where versandprofilHinzugefuegt is false in checklistMap)
+    if (isChecked13) {
+      result = result.filter((order) => {
+        if (order.type !== "Versandvorgang") return false;
+        const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+        if (rowNr === null) return false;
+        const checklistData = checklistMap.get(rowNr);
+        const hasVersandprofil = checklistData?.versandprofilHinzugefuegt ?? false;
+        return !hasVersandprofil;
+      });
+    }
+
+    // Apply filter for "Kein Versandlabel" checkbox (rows where paketlisteErstellt is false)
+    if (isChecked14) {
+      result = result.filter((order) => {
+        if (order.type !== "Versandvorgang") return false;
+        const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+        if (rowNr === null) return false;
+        const checklistData = checklistMap.get(rowNr);
+        const hasVersandlabel = checklistData?.paketlisteErstellt ?? false;
+        return !hasVersandlabel;
+      });
+    }
+
+    // Apply filter for "Nicht versendet" checkbox (rows where versendet is false in checklistMap)
     if (isChecked7) {
-      result = result.filter(
-        (order) =>
-          order.type === "Versandvorgang" &&
-          (order.importdatum === "2025-12-09" || order.importdatum === "09.12.2025")
-      );
+      result = result.filter((order) => {
+        if (order.type !== "Versandvorgang") return false;
+        const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+        if (rowNr === null) return false;
+        const checklistData = checklistMap.get(rowNr);
+        const isVersendet = checklistData?.versendet ?? false;
+        return !isVersendet;
+      });
     }
 
-    // Apply filter for "Keine Pickliste" checkbox (rows in Sendungen table where "Pickliste erstellt" icon is hidden - importdatum = "2025-12-09" or "09.12.2025")
+    // Apply filter for "Keine Pickliste" checkbox (rows where picklisteErstellt is false in checklistMap)
     if (isChecked8) {
-      result = result.filter(
-        (order) =>
-          order.type === "Versandvorgang" &&
-          (order.importdatum === "2025-12-09" || order.importdatum === "09.12.2025")
-      );
+      result = result.filter((order) => {
+        if (order.type !== "Versandvorgang") return false;
+        const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+        if (rowNr === null) return false;
+        const checklistData = checklistMap.get(rowNr);
+        const hasPickliste = checklistData?.picklisteErstellt ?? false;
+        return !hasPickliste;
+      });
     }
 
-    // Apply filter for "Keine Packliste" checkbox (rows in Sendungen table where "Packliste erstellt" icon is hidden - importdatum = "2025-12-09" or "09.12.2025")
+    // Apply filter for "Keine Packliste" checkbox (rows where packlisteErstellt is false in checklistMap)
     if (isChecked10) {
-      result = result.filter(
-        (order) =>
-          order.type === "Versandvorgang" &&
-          (order.importdatum === "2025-12-09" || order.importdatum === "09.12.2025")
-      );
+      result = result.filter((order) => {
+        if (order.type !== "Versandvorgang") return false;
+        const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+        if (rowNr === null) return false;
+        const checklistData = checklistMap.get(rowNr);
+        const hasPackliste = checklistData?.packlisteErstellt ?? false;
+        return !hasPackliste;
+      });
     }
 
     // Apply filter for Importquelle dropdown
@@ -3146,7 +3274,7 @@ function ShippingPage() {
 
     // Return a new array reference to ensure React detects changes
     return result;
-  }, [ordersState2, importquelle, kaufdatum, importdatum, isChecked, isChecked12, isChecked7, isChecked8, isChecked10, checklistMap]);
+  }, [ordersState2, importquelle, kaufdatum, importdatum, isChecked, isChecked12, isChecked7, isChecked8, isChecked10, isChecked13, isChecked14, checklistMap]);
 
   // filteredOrders for sheet navigation - uses active table's data
   // Must be declared here after filteredData1 and filteredData2 are defined
@@ -3799,7 +3927,7 @@ function ShippingPage() {
                         }
                         // When Sendungen tab is active, show only these items
                         if (activeTab === "versand") {
-                          return ["new-orders-checkbox-5", "new-orders-checkbox-6", "new-orders-checkbox-7", "new-orders-checkbox-12"].includes(item.id);
+                          return ["new-orders-checkbox-13", "new-orders-checkbox-14", "new-orders-checkbox-5", "new-orders-checkbox-6", "new-orders-checkbox-7", "new-orders-checkbox-12"].includes(item.id);
                         }
                         return true;
                       })
