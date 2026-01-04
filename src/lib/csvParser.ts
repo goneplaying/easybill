@@ -317,8 +317,8 @@ export function parseChecklistCSV(csvText: string): Map<number, ChecklistData> {
     if (normalized.includes('versandprofil') && (normalized.includes('hinzu') || normalized.includes('gef'))) return 'versandprofilHinzugefuegt';
     if (normalized.includes('pickliste') && normalized.includes('erstellt')) return 'picklisteErstellt';
     if (normalized.includes('packliste') && normalized.includes('erstellt')) return 'packlisteErstellt';
-    // Check for "Paketlabel erstellt" or "Paketliste erstellt" - check paketlabel/paketliste before packliste to avoid false matches
-    if ((normalized.includes('paketlabel') || normalized.includes('paketliste')) && normalized.includes('erstellt')) return 'paketlisteErstellt';
+    // Check for "Versandlabel erstellt", "Paketlabel erstellt", or "Paketliste erstellt" - check versandlabel/paketlabel/paketliste before packliste to avoid false matches
+    if ((normalized.includes('versandlabel') || normalized.includes('paketlabel') || normalized.includes('paketliste')) && normalized.includes('erstellt')) return 'paketlisteErstellt';
     if (normalized === 'versendet') return 'versendet';
     if (normalized === 'fehler') return 'fehler';
     return null;
