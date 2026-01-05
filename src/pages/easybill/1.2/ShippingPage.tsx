@@ -97,6 +97,8 @@ import illuSendung4 from "@/assets/Illus/illu-sendung-erstellen-4.png";
 import illuTipps1 from "@/assets/Illus/illu-tipps-1.png";
 import illuTipps2 from "@/assets/Illus/illu-tipps-2.png";
 import illuTipps3 from "@/assets/Illus/illu-tipps-3.png";
+import illuTipps4 from "@/assets/Illus/illu-tipps-4.png";
+import illuTipps5 from "@/assets/Illus/illu-tipps-5.png";
 import statusTrue from "@/assets/svgs/status-true.svg";
 import statusFalse from "@/assets/svgs/status-false.svg";
 import bestellungenCSV from "@/assets/tables/bestellungen.csv?raw";
@@ -2415,6 +2417,16 @@ function ShippingPage() {
       topline: "Tagestipp",
       headline: "Pfeiltasten verwenden",
       bodyText: "Verwenden Sie die linke und rechte Pfeiltaste, um zwischen den Detailansichten der sichtbaren Einträge zu wechseln."
+    },
+    {
+      topline: "Tagestipp",
+      headline: "Status bearbeiten",
+      bodyText: "Der Status kann in den Checklisten pro Eintrag manuell angepasst werden."
+    },
+    {
+      topline: "Tagestipp",
+      headline: "Sortierung verwenden",
+      bodyText: "Durch Klicken auf einen Spaltenheader wird die Sortierung der Einträge geändert."
     }
   ];
   const [addressMatchStep, setAddressMatchStep] = React.useState(-1); // -1 = Progress, 0 = Initial, 1 = Adressdaten, 2 = Versandprofile, 3 = Sendungen erstellt
@@ -7120,7 +7132,7 @@ function ShippingPage() {
             {/* Image */}
             <div className="w-[300px] h-[220px] rounded-t-lg flex items-center justify-center overflow-hidden mx-auto" style={{ backgroundColor: '#D6F270' }}>
               <img 
-                src={currentTipIndex === 0 ? illuTipps1 : currentTipIndex === 1 ? illuTipps2 : illuTipps3}
+                src={currentTipIndex === 0 ? illuTipps1 : currentTipIndex === 1 ? illuTipps2 : currentTipIndex === 2 ? illuTipps3 : currentTipIndex === 3 ? illuTipps4 : illuTipps5}
                 alt={`Tagestipp ${currentTipIndex + 1}`}
                 className="w-full h-full object-contain"
               />
