@@ -518,7 +518,7 @@ function DataTable<TData, TValue>({
                 return (
                 <TableRow
                   key={headerGroup.id}
-                  className="bg-muted/40 hover:bg-muted/40"
+                  className="bg-white hover:bg-white"
                 >
                   {headerGroup.headers.map((header) => {
                     const isFloatingCol = header.column.id?.startsWith("floating-col-");
@@ -544,7 +544,7 @@ function DataTable<TData, TValue>({
                       className={cn(
                         "font-semibold", 
                         adjustedClassName,
-                        isFloatingCol && "bg-[#FBFBFB]",
+                        isFloatingCol && "bg-white",
                         isFloatingCol && "!text-center !align-middle",
                         isFloatingCol && "!pointer-events-auto"
                       )}

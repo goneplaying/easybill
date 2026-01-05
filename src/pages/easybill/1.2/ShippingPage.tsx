@@ -6874,9 +6874,9 @@ function ShippingPage() {
       </CommandDialog>
 
       {/* Tips Modal */}
-      <Dialog open={showTipsModal} onOpenChange={setShowTipsModal}>
+      <Dialog open={showTipsModal} onOpenChange={setShowTipsModal} modal={false}>
         <DialogContent 
-          className="fixed top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2 bottom-auto right-auto w-[calc(100vw-32px)] max-w-[300px] p-0 gap-0 sm:bottom-[120px] sm:right-[80px] sm:top-auto sm:left-auto sm:translate-x-0 sm:translate-y-0 sm:w-[300px]"
+          className="fixed top-[50%] left-[50%] -translate-x-1/2 -translate-y-1/2 bottom-auto right-auto w-[calc(100vw-32px)] max-w-[300px] p-0 gap-0 sm:bottom-[120px] sm:right-[80px] sm:top-auto sm:left-auto sm:translate-x-0 sm:translate-y-0 sm:w-[300px] pointer-events-auto"
           showCloseButton={false}
           transparentOverlay={true}
           onInteractOutside={(e) => {
