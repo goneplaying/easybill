@@ -1489,6 +1489,9 @@ const getColumns = (
     customSelectColumn,
     {
       accessorKey: "nr",
+      size: 100,
+      minSize: 100,
+      maxSize: 100,
       meta: {
         className: "!p-0 !px-0 !py-0 !text-center !align-middle",
       },
@@ -2763,13 +2766,13 @@ function ShippingPage() {
     
     // Count rows in table 2 (Sendungen) where Fehler icon is visible
     // Include Versandvorgang rows (as filteredData2 does)
-    // Exclude hidden rows (20, 21, 22, 23) unless they're in visibleKundeAdressenForSendungen
+    // Exclude hidden rows (19, 20, 21, 22, 23) unless they're in visibleKundeAdressenForSendungen
     ordersState2.forEach((order) => {
       const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
       if (rowNr === null) return;
       
       // Check if row is hidden
-      if (rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23) {
+      if (rowNr === 19 || rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23) {
         if (visibleKundeAdressenForSendungen.size === 0 || !visibleKundeAdressenForSendungen.has(order.kundeAdresse || "")) {
           return; // Skip hidden rows
         }
@@ -3246,13 +3249,13 @@ function ShippingPage() {
   const filteredData2 = React.useMemo(() => {
     let result = ordersState2;
 
-    // Hide rows with numbers 20, 21, 22, 23 at start (unless they match visible kundeAdresse values)
+    // Hide rows with numbers 19, 20, 21, 22, 23 at start (unless they match visible kundeAdresse values)
     result = result.filter((order) => {
       const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
       if (rowNr === null) return true;
       
-      // Always hide rows 20, 21, 22, 23 initially
-      if (rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23) {
+      // Always hide rows 19, 20, 21, 22, 23 initially
+      if (rowNr === 19 || rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23) {
         // Show them if their kundeAdresse matches a visible kundeAdresse
         if (visibleKundeAdressenForSendungen.size > 0 && visibleKundeAdressenForSendungen.has(order.kundeAdresse || "")) {
           return true;
