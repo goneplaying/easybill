@@ -4847,7 +4847,9 @@ function ShippingPage() {
         </div>
       </div>
 
-      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+      <Sheet open={isSheetOpen} onOpenChange={(open) => {
+        setIsSheetOpen(open);
+      }}>
         <SheetContent
           name="BestellungSheet"
           side="right"
@@ -4870,188 +4872,14 @@ function ShippingPage() {
             }}
           />
           <div className={`text-sm text-muted-foreground mb-1 ${isUnderSm ? 'mt-12' : 'mt-4'}`}>Bestellung</div>
-          <SheetTitle className={`font-bold tracking-tight text-foreground mb-3 mt-4`}>
+          <SheetTitle className={`font-bold tracking-tight text-foreground mb-2 mt-4`}>
             #{selectedOrder?.bestellnummer}
           </SheetTitle>
-          <div className="flex items-center gap-2 mt-4 mb-4">
-            <Button 
-              variant="default" 
-              className="px-3"
-              onClick={() => {
-                if (selectedOrder) {
-                  // Ensure all changes are saved (they're already saved when fields change, but ensure consistency)
-                  const orderIndex1 = ordersState1.findIndex(o => o.nr === selectedOrder.nr);
-                  if (orderIndex1 !== -1) {
-                    setOrdersState1(prev => prev.map((o, idx) => idx === orderIndex1 ? selectedOrder : o));
-                  }
-                  const orderIndex2 = ordersState2.findIndex(o => o.nr === selectedOrder.nr);
-                  if (orderIndex2 !== -1) {
-                    setOrdersState2(prev => prev.map((o, idx) => idx === orderIndex2 ? selectedOrder : o));
-                  }
-                  
-                  // If email is set, hide the Fehler icon for this row
-                  const rowNr = typeof selectedOrder.nr === 'number' ? selectedOrder.nr : parseInt(String(selectedOrder.nr)) || null;
-                  if (rowNr !== null && selectedOrder.email && selectedOrder.email.trim() !== '') {
-                    // Count current errors before updating
-                    const dataToCheck = activeTab === "rechnung" ? ordersState1 : ordersState2;
-                    let currentFehlerCount = 0;
-                    let currentRowHasFehler = false;
-                    
-                    dataToCheck.forEach((order) => {
-                      if (activeTab === "rechnung" && order.type === "Versandvorgang") return;
-                      const checkRowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
-                      if (checkRowNr !== null) {
-                        const checklistData = checklistMap.get(checkRowNr);
-                        if (checklistData?.fehler === true) {
-                          currentFehlerCount++;
-                          if (checkRowNr === rowNr) {
-                            currentRowHasFehler = true;
-                          }
-                        }
-                      }
-                    });
-                    
-                    // Update checklistMap to hide Fehler icon for this row
-                    if (currentRowHasFehler) {
-                      setChecklistMap(prev => {
-                        const newMap = new Map(prev);
-                        const existing = newMap.get(rowNr) || {
-                          nr: rowNr,
-                          rechnungVersendet: false,
-                          sendungErstellt: false,
-                          versandprofilHinzugefuegt: false,
-                          picklisteErstellt: false,
-                          packlisteErstellt: false,
-                          paketlisteErstellt: false,
-                          versendet: false,
-                          fehler: false,
-                        };
-                        newMap.set(rowNr, {
-                          ...existing,
-                          fehler: false,
-                        });
-                        return newMap;
-                      });
-                      
-                      // Hide Fehler column if this was the last error
-                      if (currentFehlerCount === 1) {
-                        if (activeTab === "rechnung") {
-                          setRechnungColumnVisibility((prev) => ({
-                            ...prev,
-                            "floating-col-2-rechnung": false,
-                          }));
-                          setIsChecked4(false);
-                        } else {
-                          setVersandColumnVisibility((prev) => ({
-                            ...prev,
-                            "floating-col-2-versand": false,
-                          }));
-                          setIsChecked12(false);
-                        }
-                      }
-                    }
-                  }
-                  
-                  // Close the sheet
-                  setIsSheetOpen(false);
-                  
-                  // Clear all filters to show all filtered rows
-                  setIsChecked(false);
-                  setIsChecked2(false);
-                  setIsChecked3(false);
-                  setIsChecked4(false);
-                  setIsChecked5(false);
-                  setIsChecked6(false);
-                  setIsChecked7(false);
-                  setIsChecked8(false);
-                  setIsChecked9(false);
-                  setIsChecked10(false);
-                  setGlobalFilter("");
-                  setGlobalFilter1("");
-                  setGlobalFilter2("");
-                  setImportquelle("");
-                  setZeilennummern("");
-                  setKaufdatum(undefined);
-                  setImportdatum(undefined);
-                  setSteuerland("");
-                  setVersanddatum(undefined);
-                  setVersandland("");
-                  setVersandzielland("");
-                  setVersandprofil("");
-                  setVersanddienstleister("");
-                  setVersandverpackung("");
-                }
-              }}
-            >
-              Speichern
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !px-2 !py-2">
-                  <File className="size-4" />
-                  {((sheetWidth ?? 1255) >= 640 && !isUnderSm) && <span>Rechnung</span>}
-                  <ChevronDown className="size-4 opacity-50 hidden sm:inline-block" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-actionbar text-actionbar-foreground border-actionbar-foreground/10">
-                <DropdownMenuItem className="text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground focus:bg-actionbar-hover focus:text-actionbar-foreground text-sm font-medium">
-                  <Mail className="size-4 text-white" />
-                  {markedRowsCount > 1 ? "Rechnungen per E-Mail versenden" : "Rechnung per E-Mail versenden"}
-                </DropdownMenuItem>
-                <DropdownMenuItem className="text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground focus:bg-actionbar-hover focus:text-actionbar-foreground text-sm font-medium">
-                  <CloudDownload className="size-4 text-white" />
-                  {markedRowsCount > 1 ? "Rechnungen downloaden" : "Rechnung downloaden"}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            {false && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !px-2 !py-2">
-                  <Settings2 className="size-4" />
-                  {((sheetWidth ?? 1255) >= 640 && !isUnderSm) && <span>Versandprofil</span>}
-                  <ChevronDown className="size-4 opacity-50 hidden sm:inline-block" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-actionbar text-actionbar-foreground border-actionbar-foreground/10">
-                <DropdownMenuItem className="text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground focus:bg-actionbar-hover focus:text-actionbar-foreground">
-                  Aus Bestellung Versandrofil erstellen
-                </DropdownMenuItem>
-                <DropdownMenuItem className="text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground focus:bg-actionbar-hover focus:text-actionbar-foreground">
-                  Zum Versandprofil hinzufügen
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            )}
-            <Button 
-              variant="outline" 
-              className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !pl-2 !pr-3 !py-2"
-              onClick={() => {
-                if (!selectedOrder) return;
-                // Mark the selected order if not already marked
-                if (activeTab === "rechnung" && !markedRows1.has(selectedOrder.nr)) {
-                  setMarkedRows1(prev => new Set(prev).add(selectedOrder.nr));
-                } else if (activeTab === "versand" && !markedRows2.has(selectedOrder.nr)) {
-                  setMarkedRows2(prev => new Set(prev).add(selectedOrder.nr));
-                }
-                // Trigger single-row sendung modal
-                setShowSingleRowSendungModal(true);
-                setSingleRowSendungStep(-1);
-                setSingleRowProgressValue(0);
-              }}
-            >
-              <Package className="size-4" />
-              {((sheetWidth ?? 1255) >= 640 && !isUnderSm) && <span>Sendung erstellen</span>}
-            </Button>
-            <Button variant="outline" className="h-9 w-9 bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 shadow-sm p-2 lg:p-0">
-              <MoreHorizontal className="size-4" />
-            </Button>
-          </div>
           {selectedOrder && (() => {
             // Helper: check if we should use wide layout (sheet width >= 640 AND window width >= 640)
             const useWideLayout = (sheetWidth ?? 1255) >= 640 && !isUnderSm;
             return (
-            <div className={`mt-5 ${(sheetWidth >= 1024 && !isUnderSm) ? 'grid grid-cols-[1fr_auto_1fr] gap-[32px]' : 'space-y-6'}`}>
+            <div className={`mt-3 ${(sheetWidth >= 1024 && !isUnderSm) ? 'grid grid-cols-[1fr_auto_1fr] gap-[32px]' : 'space-y-6'}`}>
               {/* Left Column: Status, Kundendaten, Versand */}
               <div className={useWideLayout ? 'flex flex-col h-full' : 'w-full'}>
                 <Accordion type="multiple" defaultValue={["item-1", "item-2", "item-3"]} className={`w-full ${useWideLayout ? 'flex-1 flex flex-col' : ''}`}>
@@ -5086,14 +4914,16 @@ function ShippingPage() {
                       const StatusItem = ({ value, label }: { value: string | null | undefined, label: string }) => {
                         const hasValue = value && value.trim() !== '';
                         return (
-                          <div className="flex items-center gap-[12px] h-[32px]">
-                            <span className="text-sm text-foreground w-[72px]">{value ? formatDate(value) : ''}</span>
-                            <img 
-                              src={hasValue ? statusTrue : statusFalse} 
-                              alt={hasValue ? "Status true" : "Status false"}
-                              className="w-auto h-auto flex-shrink-0"
-                            />
-                            <span className="text-sm text-foreground">{label}</span>
+                          <div className="flex items-center justify-between gap-[12px] h-[32px]">
+                            <div className="flex items-center gap-[12px]">
+                              <img 
+                                src={hasValue ? statusTrue : statusFalse} 
+                                alt={hasValue ? "Status true" : "Status false"}
+                                className="w-auto h-auto flex-shrink-0"
+                              />
+                              <span className="text-sm text-foreground">{label}</span>
+                            </div>
+                            <span className="text-sm text-muted-foreground">{value ? formatDate(value) : ''}</span>
                           </div>
                         );
                       };
@@ -5702,11 +5532,22 @@ function ShippingPage() {
       </Sheet>
 
       {/* Floating buttons container */}
-      <div className="fixed bottom-6 lg:bottom-10 left-1/2 -translate-x-1/2 z-50 flex gap-1 bg-actionbar p-1 rounded-[11px] shadow-lg transition-all duration-300">
-        <Button onClick={handleToggleMarkAll} className="w-[98px]">
-          {hasMarkedRows ? "Abwählen" : "Auswählen"}
-        </Button>
-        {activeTab === "rechnung" && (
+      <div 
+        className="fixed bottom-6 lg:bottom-10 left-1/2 -translate-x-1/2 z-[9999] flex gap-1 bg-actionbar p-1 rounded-[11px] shadow-lg transition-all duration-300 pointer-events-auto" 
+        data-actionbar
+        onPointerDown={(e) => {
+          e.stopPropagation();
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+        }}
+      >
+        {!(isSheetOpen && activeTab === "rechnung" && selectedOrder) && (
+          <Button onClick={handleToggleMarkAll} className="w-[98px]">
+            {hasMarkedRows ? "Abwählen" : "Auswählen"}
+          </Button>
+        )}
+        {activeTab === "rechnung" && !(isSheetOpen && activeTab === "rechnung" && selectedOrder) && (
           <Button 
             variant="outline" 
             className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !pl-2 !pr-3 !py-2"
@@ -5740,18 +5581,19 @@ function ShippingPage() {
             {markedRowsCount > 1 ? "Sendungen erstellen" : "Sendung erstellen"}
           </Button>
         )}
-        <div className="ml-auto flex gap-1">
-          {activeTab === "rechnung" && (
-            <Button 
-              variant="outline" 
-              className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !pl-2 !pr-3 !py-2"
-              onClick={() => setShowFunktionenBestellungenCommand(true)}
-            >
-              <MoreHorizontal className="size-4" />
-              <span className="hidden sm:inline">Weitere Funktionen</span>
-            </Button>
-          )}
-          {activeTab === "versand" && (
+        {!(isSheetOpen && activeTab === "rechnung" && selectedOrder) && (
+          <div className="ml-auto flex gap-1">
+            {activeTab === "rechnung" && (
+              <Button 
+                variant="outline" 
+                className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !pl-2 !pr-3 !py-2"
+                onClick={() => setShowFunktionenBestellungenCommand(true)}
+              >
+                <MoreHorizontal className="size-4" />
+                <span className="hidden sm:inline">Weitere Funktionen</span>
+              </Button>
+            )}
+            {activeTab === "versand" && (
             <>
               <Button 
                 variant="outline" 
@@ -5774,8 +5616,159 @@ function ShippingPage() {
                 <span className="hidden sm:inline">Weitere Funktionen</span>
               </Button>
             </>
-          )}
-        </div>
+            )}
+          </div>
+        )}
+        {/* Button copies with B labels - visible only when Bestellung sheet is open */}
+        {isSheetOpen && activeTab === "rechnung" && selectedOrder && (
+          <>
+            <Button 
+              variant="default"
+              className="w-[98px]"
+              onClick={() => {
+                if (!selectedOrder) return;
+                // Save logic for selectedOrder to ordersState1 and ordersState2
+                const orderIndex1 = ordersState1.findIndex(o => o.nr === selectedOrder.nr);
+                if (orderIndex1 !== -1) {
+                  setOrdersState1(prev => prev.map((o, idx) => idx === orderIndex1 ? selectedOrder : o));
+                }
+                const orderIndex2 = ordersState2.findIndex(o => o.nr === selectedOrder.nr);
+                if (orderIndex2 !== -1) {
+                  setOrdersState2(prev => prev.map((o, idx) => idx === orderIndex2 ? selectedOrder : o));
+                }
+                
+                // If email is set, hide the Fehler icon for this row
+                const rowNr = typeof selectedOrder.nr === 'number' ? selectedOrder.nr : parseInt(String(selectedOrder.nr)) || null;
+                if (rowNr !== null && selectedOrder.email && selectedOrder.email.trim() !== '') {
+                  // Count current errors before updating
+                  const dataToCheck = activeTab === "rechnung" ? ordersState1 : ordersState2;
+                  let currentFehlerCount = 0;
+                  let currentRowHasFehler = false;
+                  
+                  dataToCheck.forEach((order) => {
+                    if (activeTab === "rechnung" && order.type === "Versandvorgang") return;
+                    const checkRowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+                    if (checkRowNr !== null) {
+                      const checklistData = checklistMap.get(checkRowNr);
+                      if (checklistData?.fehler === true) {
+                        currentFehlerCount++;
+                        if (checkRowNr === rowNr) {
+                          currentRowHasFehler = true;
+                        }
+                      }
+                    }
+                  });
+                  
+                  // Update checklistMap to hide Fehler icon for this row
+                  if (currentRowHasFehler) {
+                    setChecklistMap(prev => {
+                      const newMap = new Map(prev);
+                      const existing = newMap.get(rowNr) || {
+                        nr: rowNr,
+                        rechnungVersendet: false,
+                        sendungErstellt: false,
+                        versandprofilHinzugefuegt: false,
+                        picklisteErstellt: false,
+                        packlisteErstellt: false,
+                        paketlisteErstellt: false,
+                        versendet: false,
+                        fehler: false,
+                      };
+                      newMap.set(rowNr, {
+                        ...existing,
+                        fehler: false,
+                      });
+                      return newMap;
+                    });
+                    
+                    // Hide Fehler column if this was the last error
+                    if (currentFehlerCount === 1) {
+                      if (activeTab === "rechnung") {
+                        setRechnungColumnVisibility((prev) => ({
+                          ...prev,
+                          "floating-col-2-rechnung": false,
+                        }));
+                        setIsChecked4(false);
+                      } else {
+                        setVersandColumnVisibility((prev) => ({
+                          ...prev,
+                          "floating-col-2-versand": false,
+                        }));
+                        setIsChecked12(false);
+                      }
+                    }
+                  }
+                }
+                
+                // Close the sheet
+                setIsSheetOpen(false);
+                
+                // Clear all filters to show all filtered rows
+                setIsChecked(false);
+                setIsChecked2(false);
+                setIsChecked3(false);
+                setIsChecked4(false);
+                setIsChecked5(false);
+                setIsChecked6(false);
+                setIsChecked7(false);
+                setIsChecked8(false);
+                setIsChecked9(false);
+                setIsChecked10(false);
+                setGlobalFilter("");
+                setGlobalFilter1("");
+                setGlobalFilter2("");
+                setImportquelle("");
+                setZeilennummern("");
+                setKaufdatum(undefined);
+                setImportdatum(undefined);
+                setSteuerland("");
+                setVersanddatum(undefined);
+                setVersandland("");
+                setVersandzielland("");
+                setVersandprofil("");
+                setVersanddienstleister("");
+                setVersandverpackung("");
+              }}
+            >
+              Speichern
+            </Button>
+            {activeTab === "rechnung" && isSheetOpen && selectedOrder && (
+              <Button 
+                variant="outline" 
+                className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !pl-2 !pr-3 !py-2"
+                onClick={() => {
+                  if (!selectedOrder) return;
+                  // Mark the selected order if not already marked - using type assertion to match sheet button logic
+                  const currentTab = activeTab as "rechnung" | "versand";
+                  if (currentTab === "rechnung" && !markedRows1.has(selectedOrder.nr)) {
+                    setMarkedRows1(prev => new Set(prev).add(selectedOrder.nr));
+                  } else if (currentTab === "versand" && !markedRows2.has(selectedOrder.nr)) {
+                    setMarkedRows2(prev => new Set(prev).add(selectedOrder.nr));
+                  }
+                  // Trigger single-row sendung modal
+                  setShowSingleRowSendungModal(true);
+                  setSingleRowSendungStep(-1);
+                  setSingleRowProgressValue(0);
+                }}
+              >
+                <Package className="size-4" />
+                Sendung erstellen
+              </Button>
+            )}
+            <div className="ml-auto flex gap-1">
+              {activeTab === "rechnung" && (
+                <Button 
+                  variant="outline" 
+                  className="bg-actionbar text-actionbar-foreground [&_svg]:text-actionbar-foreground hover:bg-actionbar-hover hover:text-actionbar-foreground hover:[&_svg]:text-actionbar-foreground border-actionbar-foreground/10 !pl-2 !pr-3 !py-2"
+                  onClick={() => setShowFunktionenBestellungenCommand(true)}
+                >
+                  <MoreHorizontal className="size-4" />
+                  <span className="hidden sm:inline">Weitere Funktionen</span>
+                </Button>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Alert Dialog for no selection */}
