@@ -2424,6 +2424,8 @@ function ShippingPage() {
   const [showRechnungErneutVersendenModal, setShowRechnungErneutVersendenModal] = React.useState(false);
   const [showFunktionenBestellungenCommand, setShowFunktionenBestellungenCommand] = React.useState(false);
   const [showFunktionenSendungenCommand, setShowFunktionenSendungenCommand] = React.useState(false);
+  const [showNoSendungenModal, setShowNoSendungenModal] = React.useState(false);
+  const [noSendungenModalIsSingle, setNoSendungenModalIsSingle] = React.useState(true);
 
   // Get unique versandland values from orders data
   const versandlandOptions = React.useMemo(() => {
@@ -2585,6 +2587,68 @@ function ShippingPage() {
     setSelectedOrder(row);
     setIsSheetOpen(true);
   };
+
+  // Function to show related shipments (Sendungen) for marked Bestellungen rows
+  const handleShowRelatedShipments = React.useCallback((clickedRow?: Order) => {
+    // Get marked rows from Bestellungen table
+    let markedBestellungenRows = visibleRows1.filter(row => markedRows1.has(row.nr));
+    
+    // If no rows marked but a row was clicked in context menu, use that row
+    if (markedBestellungenRows.length === 0 && clickedRow) {
+      markedBestellungenRows = [clickedRow];
+    }
+    
+    // If still no rows, do nothing
+    if (markedBestellungenRows.length === 0) {
+      return;
+    }
+    
+    const isSingleRow = markedBestellungenRows.length === 1;
+    
+    // Get bestellnummer values from marked rows
+    const bestellnummern = new Set(markedBestellungenRows.map(row => row.bestellnummer));
+    
+    // Find matching Sendungen rows by bestellnummer (including hidden ones to check if they exist)
+    const matchingSendungenRows = ordersState2.filter(order => 
+      bestellnummern.has(order.bestellnummer)
+    );
+    
+    // Filter out hidden rows (19, 20, 21, 22, 23) unless they're in visibleKundeAdressenForSendungen
+    const visibleMatchingSendungenRows = matchingSendungenRows.filter(order => {
+      const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+      if (rowNr === null) return true;
+      
+      // Check if row is hidden
+      if (rowNr === 19 || rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23) {
+        if (visibleKundeAdressenForSendungen.size === 0 || !visibleKundeAdressenForSendungen.has(order.kundeAdresse || "")) {
+          return false; // Skip hidden rows
+        }
+      }
+      return true;
+    });
+    
+    // If no matching visible Sendungen rows found, show modal
+    if (visibleMatchingSendungenRows.length === 0) {
+      setNoSendungenModalIsSingle(isSingleRow);
+      setShowNoSendungenModal(true);
+      return;
+    }
+    
+    // Switch to Sendungen tab
+    setActiveTab("versand");
+    
+    // Unmark all Sendungen rows
+    setMarkedRows2(new Set());
+    setRowSelection2({});
+    
+    // Mark the matching rows
+    const newMarkedRows2 = new Set<string | number>();
+    visibleMatchingSendungenRows.forEach(order => {
+      newMarkedRows2.add(order.nr);
+    });
+    
+    setMarkedRows2(newMarkedRows2);
+  }, [visibleRows1, markedRows1, ordersState2, visibleKundeAdressenForSendungen]);
 
   const handleFilteredDataChange1 = React.useCallback((data: Order[]) => {
     // Store actually visible rows (after global filter is applied)
@@ -4573,6 +4637,7 @@ function ShippingPage() {
                     onRowSelectionChange={setRowSelection1}
                     enableRowDrag={true}
                     onRowReorder={handleRowReorder1}
+                    onShowRelatedShipments={handleShowRelatedShipments}
                     toolbarLeft={
                       <>
                         <Button 
@@ -5645,6 +5710,27 @@ function ShippingPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogAction onClick={() => setShowNoSelectionAlert(false)}>
+              OK
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Alert Dialog for no Sendungen found */}
+      <AlertDialog open={showNoSendungenModal} onOpenChange={setShowNoSendungenModal}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {noSendungenModalIsSingle ? "Keine Sendung vorhanden" : "Keine Sendungen vorhanden"}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="!text-foreground text-sm font-light leading-[130%]">
+              {noSendungenModalIsSingle 
+                ? "Für diese Bestellung wurde bisher noch keine Sendung erstellt."
+                : "Für diese Bestellungen wurden bisher noch keine Sendungen erstellt."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowNoSendungenModal(false)}>
               OK
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -6787,6 +6873,17 @@ function ShippingPage() {
             >
               <Trash2 className="size-4 text-destructive" />
               Löschen
+            </CommandItem>
+          </CommandGroup>
+          <CommandGroup heading="Sendungen">
+            <CommandItem
+              onSelect={() => {
+                setShowFunktionenBestellungenCommand(false);
+                handleShowRelatedShipments();
+              }}
+            >
+              <Package className="size-4" />
+              {markedRowsCount === 1 ? "Dazugehörige Sendung anzeigen" : "Dazugehörige Sendungen anzeigen"}
             </CommandItem>
           </CommandGroup>
         </CommandList>

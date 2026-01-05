@@ -103,6 +103,7 @@ interface DataTableProps<TData, TValue> {
   enableRowDrag?: boolean;
   tableName?: string;
   getRowId?: (row: TData, index: number) => string;
+  onShowRelatedShipments?: (row?: TData) => void;
 }
 
 function DataTable<TData, TValue>({
@@ -135,6 +136,7 @@ function DataTable<TData, TValue>({
   enableRowDrag = false,
   tableName,
   getRowId,
+  onShowRelatedShipments,
 }: DataTableProps<TData, TValue>) {
   // Track last click to prevent marking on double-click
   const lastClickRef = React.useRef<{ row: TData | null; time: number }>({ row: null, time: 0 });
@@ -758,6 +760,22 @@ function DataTable<TData, TValue>({
                       }}>
                         Öffnen
                       </ContextMenuItem>
+                      {onShowRelatedShipments && (
+                        <ContextMenuItem onClick={() => {
+                          const markedRows = getMarkedRows ? getMarkedRows() : [];
+                          // If no rows marked, use the clicked row; otherwise use marked rows
+                          const rowToUse = markedRows.length === 0 ? row.original : undefined;
+                          onShowRelatedShipments(rowToUse);
+                        }}>
+                          {(() => {
+                            const markedRows = getMarkedRows ? getMarkedRows() : [];
+                            const rowCount = markedRows.length === 0 ? 1 : markedRows.length;
+                            return rowCount === 1 
+                              ? "Dazugehörige Sendung anzeigen" 
+                              : "Dazugehörige Sendungen anzeigen";
+                          })()}
+                        </ContextMenuItem>
+                      )}
                       <ContextMenuSeparator />
                       <ContextMenuItem 
                         className="text-destructive"
