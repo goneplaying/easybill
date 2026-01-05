@@ -31,10 +31,16 @@ import {
   ChevronDown,
   ArrowUp,
   ArrowDown,
-  Columns3,
   X,
   Search,
-  CheckCheck,
+  Mail,
+  Package,
+  Settings2,
+  QrCode,
+  ClipboardList,
+  ListChecks,
+  Truck,
+  AlertTriangle,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -104,6 +110,7 @@ interface DataTableProps<TData, TValue> {
   tableName?: string;
   getRowId?: (row: TData, index: number) => string;
   onShowRelatedShipments?: (row?: TData) => void;
+  relatedItemsLabel?: { singular: string; plural: string };
 }
 
 function DataTable<TData, TValue>({
@@ -137,6 +144,7 @@ function DataTable<TData, TValue>({
   tableName,
   getRowId,
   onShowRelatedShipments,
+  relatedItemsLabel = { singular: "Dazugehörige Sendung anzeigen", plural: "Dazugehörige Sendungen anzeigen" },
 }: DataTableProps<TData, TValue>) {
   // Track last click to prevent marking on double-click
   const lastClickRef = React.useRef<{ row: TData | null; time: number }>({ row: null, time: 0 });
@@ -361,9 +369,8 @@ function DataTable<TData, TValue>({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="h-9 ml-auto">
-              <Columns3 className="size-4" />
               <span className="hidden sm:inline">Spalten</span>
-              <ChevronDown className="size-4" />
+              <ChevronDown className="size-4 text-muted-foreground" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56 max-h-[400px] overflow-y-auto">
@@ -407,12 +414,11 @@ function DataTable<TData, TValue>({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="h-9">
-              <CheckCheck className="size-4" />
               <span className="hidden sm:inline">Checklisten</span>
-              <ChevronDown className="size-4" />
+              <ChevronDown className="size-4 text-muted-foreground" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuContent align="end" className="w-auto min-w-[8rem]">
             <DropdownMenuLabel>Checklisten anzeigen</DropdownMenuLabel>
             <DropdownMenuSeparator />
             {table
@@ -426,14 +432,39 @@ function DataTable<TData, TValue>({
               })
               .map((column) => {
                 const label = columnLabels[column.id] || column.id;
+                // Map labels to icons
+                const getIcon = (labelText: string) => {
+                  switch (labelText) {
+                    case "Rechnung versendet":
+                      return <Mail className="size-4 text-muted-foreground" />;
+                    case "Sendung erstellt":
+                      return <Package className="size-4 text-muted-foreground" />;
+                    case "Versandprofil hinzugefügt":
+                      return <Settings2 className="size-4 text-muted-foreground" />;
+                    case "Versandlabel erstellt":
+                      return <QrCode className="size-4 text-muted-foreground" />;
+                    case "Pickliste erstellt":
+                      return <ClipboardList className="size-4 text-muted-foreground" />;
+                    case "Packliste erstellt":
+                      return <ListChecks className="size-4 text-muted-foreground" />;
+                    case "Versendet":
+                      return <Truck className="size-4 text-muted-foreground" />;
+                    case "Fehler":
+                      return <AlertTriangle className="size-4 text-muted-foreground" />;
+                    default:
+                      return null;
+                  }
+                };
                 return (
                   <DropdownMenuCheckboxItem
                     key={column.id}
                     checked={column.getIsVisible()}
                     onCheckedChange={(value) => column.toggleVisibility(!!value)}
                     onSelect={(e) => e.preventDefault()}
+                    className="flex items-center justify-between"
                   >
-                    {label}
+                    <span>{label}</span>
+                    <span className="ml-4">{getIcon(label)}</span>
                   </DropdownMenuCheckboxItem>
                 );
               })}
@@ -771,8 +802,8 @@ function DataTable<TData, TValue>({
                             const markedRows = getMarkedRows ? getMarkedRows() : [];
                             const rowCount = markedRows.length === 0 ? 1 : markedRows.length;
                             return rowCount === 1 
-                              ? "Dazugehörige Sendung anzeigen" 
-                              : "Dazugehörige Sendungen anzeigen";
+                              ? relatedItemsLabel.singular 
+                              : relatedItemsLabel.plural;
                           })()}
                         </ContextMenuItem>
                       )}

@@ -2372,6 +2372,7 @@ function ShippingPage() {
   const [isChecked13, setIsChecked13] = React.useState(false); // Kein Versandprofil
   const [isChecked14, setIsChecked14] = React.useState(false); // Kein Versandlabel
   const [visibleKundeAdressenForSendungen, setVisibleKundeAdressenForSendungen] = React.useState<Set<string>>(new Set()); // Track which kundeAdresse values should make Sendungen visible
+  const [combineDuplicateAddresses, setCombineDuplicateAddresses] = React.useState<boolean | null>(null); // null = not set, true = combine (show one), false = separate (show both)
   // Separate state for Versandprofile accordion
   const [isChecked9, setIsChecked9] = React.useState(false); // Ohne Versandprofil
   const [isChecked5, setIsChecked5] = React.useState(false);
@@ -2426,6 +2427,8 @@ function ShippingPage() {
   const [showFunktionenSendungenCommand, setShowFunktionenSendungenCommand] = React.useState(false);
   const [showNoSendungenModal, setShowNoSendungenModal] = React.useState(false);
   const [noSendungenModalIsSingle, setNoSendungenModalIsSingle] = React.useState(true);
+  const [showNoBestellungenModal, setShowNoBestellungenModal] = React.useState(false);
+  const [noBestellungenModalIsSingle, setNoBestellungenModalIsSingle] = React.useState(true);
 
   // Get unique versandland values from orders data
   const versandlandOptions = React.useMemo(() => {
@@ -2650,6 +2653,54 @@ function ShippingPage() {
     setMarkedRows2(newMarkedRows2);
   }, [visibleRows1, markedRows1, ordersState2, visibleKundeAdressenForSendungen]);
 
+  // Function to show related orders (Bestellungen) for marked Sendungen rows
+  const handleShowRelatedBestellungen = React.useCallback((clickedRow?: Order) => {
+    // Get marked rows from Sendungen table
+    let markedSendungenRows = visibleRows2.filter(row => markedRows2.has(row.nr));
+    
+    // If no rows marked but a row was clicked in context menu, use that row
+    if (markedSendungenRows.length === 0 && clickedRow) {
+      markedSendungenRows = [clickedRow];
+    }
+    
+    // If still no rows, do nothing
+    if (markedSendungenRows.length === 0) {
+      return;
+    }
+    
+    const isSingleRow = markedSendungenRows.length === 1;
+    
+    // Get bestellnummer values from marked rows
+    const bestellnummern = new Set(markedSendungenRows.map(row => row.bestellnummer));
+    
+    // Find matching Bestellungen rows by bestellnummer
+    const matchingBestellungenRows = ordersState1.filter(order => 
+      bestellnummern.has(order.bestellnummer) && order.type !== "Versandvorgang"
+    );
+    
+    // If no matching Bestellungen rows found, show modal
+    if (matchingBestellungenRows.length === 0) {
+      setNoBestellungenModalIsSingle(isSingleRow);
+      setShowNoBestellungenModal(true);
+      return;
+    }
+    
+    // Switch to Bestellungen tab
+    setActiveTab("rechnung");
+    
+    // Unmark all Bestellungen rows
+    setMarkedRows1(new Set());
+    setRowSelection1({});
+    
+    // Mark the matching rows
+    const newMarkedRows1 = new Set<string | number>();
+    matchingBestellungenRows.forEach(order => {
+      newMarkedRows1.add(order.nr);
+    });
+    
+    setMarkedRows1(newMarkedRows1);
+  }, [visibleRows2, markedRows2, ordersState1]);
+
   const handleFilteredDataChange1 = React.useCallback((data: Order[]) => {
     // Store actually visible rows (after global filter is applied)
     setVisibleRows1(data);
@@ -2861,7 +2912,7 @@ function ShippingPage() {
         if (rowNr === null) return;
         
         // Check if row is hidden
-        if (rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23) {
+        if (rowNr === 19 || rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23) {
           if (visibleKundeAdressenForSendungen.size === 0 || !visibleKundeAdressenForSendungen.has(order.kundeAdresse || "")) {
             return; // Skip hidden rows
           }
@@ -2886,7 +2937,7 @@ function ShippingPage() {
         if (rowNr === null) return;
         
         // Check if row is hidden
-        if (rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23) {
+        if (rowNr === 19 || rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23) {
           if (visibleKundeAdressenForSendungen.size === 0 || !visibleKundeAdressenForSendungen.has(order.kundeAdresse || "")) {
             return; // Skip hidden rows
           }
@@ -2911,7 +2962,7 @@ function ShippingPage() {
         if (rowNr === null) return;
         
         // Check if row is hidden
-        if (rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23) {
+        if (rowNr === 19 || rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23) {
           if (visibleKundeAdressenForSendungen.size === 0 || !visibleKundeAdressenForSendungen.has(order.kundeAdresse || "")) {
             return; // Skip hidden rows
           }
@@ -2936,7 +2987,7 @@ function ShippingPage() {
         if (rowNr === null) return;
         
         // Check if row is hidden
-        if (rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23) {
+        if (rowNr === 19 || rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23) {
           if (visibleKundeAdressenForSendungen.size === 0 || !visibleKundeAdressenForSendungen.has(order.kundeAdresse || "")) {
             return; // Skip hidden rows
           }
@@ -2961,7 +3012,7 @@ function ShippingPage() {
         if (rowNr === null) return;
         
         // Check if row is hidden
-        if (rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23) {
+        if (rowNr === 19 || rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23) {
           if (visibleKundeAdressenForSendungen.size === 0 || !visibleKundeAdressenForSendungen.has(order.kundeAdresse || "")) {
             return; // Skip hidden rows
           }
@@ -3460,6 +3511,24 @@ function ShippingPage() {
     // Filter IN Versandvorgang rows (this is for the Sendungen table)
     result = result.filter((order) => order.type === "Versandvorgang");
 
+    // Apply duplicate address filtering based on user choice
+    if (combineDuplicateAddresses === true) {
+      // Show only one row per duplicate address (keep first occurrence based on nr)
+      const seenAddresses = new Set<string>();
+      result = result.filter((order) => {
+        const addr = order.kundeAdresse || "";
+        if (seenAddresses.has(addr)) {
+          return false; // Hide duplicates
+        }
+        seenAddresses.add(addr);
+        return true; // Show first occurrence
+      });
+    } else if (combineDuplicateAddresses === false) {
+      // Show all rows (both/all duplicates) - no filtering needed, all are already shown
+      // This is the default behavior, so we don't need to do anything
+    }
+    // If combineDuplicateAddresses is null, don't apply duplicate filtering
+
     // Sort by nr (ascending)
     result.sort((a, b) => {
       const aNr = typeof a.nr === "number" ? a.nr : parseInt(String(a.nr)) || 0;
@@ -3469,7 +3538,7 @@ function ShippingPage() {
 
     // Return a new array reference to ensure React detects changes
     return result;
-  }, [ordersState2, importquelle, kaufdatum, importdatum, isChecked, isChecked5, isChecked6, isChecked7, isChecked8, isChecked10, isChecked11, isChecked12, isChecked13, isChecked14, checklistMap, visibleKundeAdressenForSendungen]);
+  }, [ordersState2, importquelle, kaufdatum, importdatum, isChecked, isChecked5, isChecked6, isChecked7, isChecked8, isChecked10, isChecked11, isChecked12, isChecked13, isChecked14, checklistMap, visibleKundeAdressenForSendungen, combineDuplicateAddresses]);
 
   // filteredOrders for sheet navigation - uses active table's data
   // Must be declared here after filteredData1 and filteredData2 are defined
@@ -4579,14 +4648,14 @@ function ShippingPage() {
                   <span className="text-sm font-medium sm:hidden">
                     {activeTab === "rechnung" ? "Bestellungen" : "Sendungen"}
                   </span>
-                  <TabsList>
-                    <TabsTrigger value="rechnung">
-                      <CreditCard className="size-4 sm:hidden" />
-                      <span className="hidden sm:inline">Bestellungen</span>
+                  <TabsList className="p-0 border shadow-xs">
+                    <TabsTrigger value="rechnung" className="h-9">
+                      <CreditCard className="size-4 mr-2" />
+                      <span>Bestellungen</span>
                     </TabsTrigger>
-                    <TabsTrigger value="versand">
-                      <Package className="size-4 sm:hidden" />
-                      <span className="hidden sm:inline">Sendungen</span>
+                    <TabsTrigger value="versand" className="h-9">
+                      <Package className="size-4 mr-2" />
+                      <span>Sendungen</span>
                     </TabsTrigger>
                   </TabsList>
               </div>
@@ -4720,6 +4789,8 @@ function ShippingPage() {
                     enableRowDrag={true}
                     onRowReorder={handleRowReorder2}
                     tableName="VersandvorgaengeTable"
+                    onShowRelatedShipments={handleShowRelatedBestellungen}
+                    relatedItemsLabel={{ singular: "Dazugehörige Bestellung anzeigen", plural: "Dazugehörige Bestellungen anzeigen" }}
                     toolbarLeft={
                       <>
                         <Button 
@@ -5737,6 +5808,27 @@ function ShippingPage() {
         </AlertDialogContent>
       </AlertDialog>
 
+      {/* Alert Dialog for no Bestellungen found */}
+      <AlertDialog open={showNoBestellungenModal} onOpenChange={setShowNoBestellungenModal}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {noBestellungenModalIsSingle ? "Keine Bestellung vorhanden" : "Keine Bestellungen vorhanden"}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="!text-foreground text-sm font-light leading-[130%]">
+              {noBestellungenModalIsSingle 
+                ? "Für diese Sendung wurde bisher noch keine Bestellung erstellt."
+                : "Für diese Sendungen wurden bisher noch keine Bestellungen erstellt."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowNoBestellungenModal(false)}>
+              OK
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Alert Dialog for address matching with carousel */}
       <AlertDialog 
         open={showAddressMatchAlert} 
@@ -5981,6 +6073,8 @@ function ShippingPage() {
                       <Button
                         onClick={(e) => {
                           e.preventDefault();
+                          // Set state to show all duplicates (separate)
+                          setCombineDuplicateAddresses(false);
                           setAddressMatchStep(2); // Move to next step
                         }}
                         className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
@@ -5990,6 +6084,8 @@ function ShippingPage() {
                       <Button
                         onClick={(e) => {
                           e.preventDefault();
+                          // Set state to combine duplicates (show only one)
+                          setCombineDuplicateAddresses(true);
                           setAddressMatchStep(2); // Move to next step
                         }}
                       >
@@ -6932,6 +7028,17 @@ function ShippingPage() {
             >
               <Printer className="size-4" />
               Versanddokumente drucken
+            </CommandItem>
+          </CommandGroup>
+          <CommandGroup heading="Bestellungen">
+            <CommandItem
+              onSelect={() => {
+                setShowFunktionenSendungenCommand(false);
+                handleShowRelatedBestellungen();
+              }}
+            >
+              <CreditCard className="size-4" />
+              {markedRowsCount === 1 ? "Dazugehörige Bestellung anzeigen" : "Dazugehörige Bestellungen anzeigen"}
             </CommandItem>
           </CommandGroup>
           <CommandGroup heading="Sendungen">
