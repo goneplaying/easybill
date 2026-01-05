@@ -20,7 +20,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Search, X, Plus, Truck, CreditCard, Package, PackageOpen, PackageCheck, MoreHorizontal, Check, Circle, RotateCcw, RefreshCw, CalendarIcon, Filter, Settings2, ChevronDown, File, ToyBrick, Settings, HelpCircle, Merge, Menu, LayoutDashboard, ClipboardList, QrCode, Mail, ListChecks, AlertTriangle, CloudDownload, Printer, Trash2 } from "lucide-react";
+import { Search, X, Plus, Truck, CreditCard, Package, PackageOpen, PackageCheck, MoreHorizontal, Check, Circle, RotateCcw, RefreshCw, CalendarIcon, Filter, Settings2, ChevronDown, ToyBrick, Settings, HelpCircle, Merge, Menu, LayoutDashboard, ClipboardList, QrCode, Mail, ListChecks, AlertTriangle, CloudDownload, Printer, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { Progress } from "@/components/ui/progress";
@@ -100,7 +100,18 @@ import illuTipps3 from "@/assets/Illus/illu-tipps-3.png";
 import illuTipps4 from "@/assets/Illus/illu-tipps-4.png";
 import illuTipps5 from "@/assets/Illus/illu-tipps-5.png";
 import statusTrue from "@/assets/svgs/status-true.svg";
+import statusTrueTop from "@/assets/svgs/status-true-top.svg";
+import statusTrueBottom from "@/assets/svgs/status-true-bottom.svg";
 import statusFalse from "@/assets/svgs/status-false.svg";
+import statusFalseTop from "@/assets/svgs/status-false-top.svg";
+import statusFalseBottom from "@/assets/svgs/status-false-bottom.svg";
+import statusActive from "@/assets/svgs/status-active.svg";
+import statusActiveZahlung from "@/assets/svgs/status-active-zahlung.svg";
+import statusActiveRechnung from "@/assets/svgs/status-active-rechnung.svg";
+import statusActiveSendung from "@/assets/svgs/status-active-sendung.svg";
+import statusActiveVersandprofil from "@/assets/svgs/status-active-versandprofil.svg";
+import statusActiveVersandlabel from "@/assets/svgs/status-active-versandlabel.svg";
+import statusActiveVersand from "@/assets/svgs/status-active-versand.svg";
 import bestellungenCSV from "@/assets/tables/bestellungen.csv?raw";
 import sendungenCSV from "@/assets/tables/sendungen.csv?raw";
 import checklistenCSV from "@/assets/tables/checklisten.csv?raw";
@@ -4911,46 +4922,188 @@ function ShippingPage() {
                       };
                       
                       // Helper component for status items
-                      const StatusItem = ({ value, label }: { value: string | null | undefined, label: string }) => {
+                      const StatusItem = ({ 
+                        value, 
+                        label, 
+                        isFirst, 
+                        isLast,
+                        labelFalse,
+                        labelActive,
+                        labelTrue,
+                        hasPreviousTrue,
+                        hasActiveBefore,
+                        activeIcon
+                      }: { 
+                        value: string | null | undefined, 
+                        label: string,
+                        isFirst?: boolean,
+                        isLast?: boolean,
+                        labelFalse?: string,
+                        labelActive?: string,
+                        labelTrue?: string,
+                        hasPreviousTrue?: boolean,
+                        hasActiveBefore?: boolean,
+                        activeIcon?: string
+                      }) => {
                         const hasValue = value && value.trim() !== '';
+                        const isTrue = hasValue;
+                        // Active: if previous item is TRUE and current item is not TRUE
+                        const isActive = hasPreviousTrue === true && !isTrue;
+                        const isFalse = !isTrue && !isActive;
+                        
+                        // Determine which SVG to use based on state and position
+                        let statusIcon = statusFalse;
+                        if (isTrue) {
+                          statusIcon = isFirst ? statusTrueTop : (isLast ? statusTrueBottom : statusTrue);
+                        } else if (isActive) {
+                          // Active items use specific icon if provided, otherwise use default
+                          statusIcon = activeIcon || statusActive;
+                        } else {
+                          statusIcon = isFirst ? statusFalseTop : (isLast ? statusFalseBottom : statusFalse);
+                        }
+                        
+                        // Determine label based on state
+                        let displayLabel = label;
+                        if (labelFalse && isFalse) {
+                          displayLabel = labelFalse;
+                        } else if (labelActive && isActive) {
+                          displayLabel = labelActive;
+                        } else if (labelTrue && isTrue) {
+                          displayLabel = labelTrue;
+                        }
+                        
                         return (
                           <div className="flex items-center justify-between gap-[12px] h-[32px]">
-                            <div className="flex items-center gap-[12px]">
+                            <div className="flex items-center gap-[6px]">
                               <img 
-                                src={hasValue ? statusTrue : statusFalse} 
-                                alt={hasValue ? "Status true" : "Status false"}
+                                src={statusIcon} 
+                                alt={isTrue ? "Status true" : isActive ? "Status active" : "Status false"}
                                 className="w-auto h-auto flex-shrink-0"
                               />
-                              <span className="text-sm text-foreground">{label}</span>
+                              {isActive ? (
+                                <a href="#" className="text-sm font-normal text-primary underline-offset-4 hover:underline cursor-pointer">{displayLabel}</a>
+                              ) : (
+                                <span className={`text-sm font-normal ${hasActiveBefore ? 'text-muted-foreground' : 'text-foreground'}`}>{displayLabel}</span>
+                              )}
                             </div>
                             <span className="text-sm text-muted-foreground">{value ? formatDate(value) : ''}</span>
                           </div>
                         );
                       };
                       
+                      // Helper to check if item has a value
+                      const hasValueHelper = (val: string | null | undefined): boolean => !!(val && val.trim() !== '');
+                      
+                      // Determine states for all items to check for previous true items
+                      const kaufdatumTrue = hasValueHelper(selectedOrder.kaufdatum);
+                      const bezahltAmTrue = hasValueHelper(selectedOrder.bezahltAm);
+                      const rechnungVersendetValue = getFloatingColDate(checklistData?.rechnungVersendet, selectedOrder.rechnungVersendetDatum);
+                      const rechnungVersendetTrue = hasValueHelper(rechnungVersendetValue);
+                      const sendungErstelltValue = getFloatingColDate(checklistData?.sendungErstellt, selectedOrder.sendungErstelltDatum);
+                      const sendungErstelltTrue = hasValueHelper(sendungErstelltValue);
+                      const versandprofilHinzugefuegtValue = getFloatingColDate(checklistData?.versandprofilHinzugefuegt, selectedOrder.versandprofilHinzugefuegtDatum);
+                      const versandprofilHinzugefuegtTrue = hasValueHelper(versandprofilHinzugefuegtValue);
+                      const paketlisteErstelltValue = getFloatingColDate(checklistData?.paketlisteErstellt, selectedOrder.versandtGemeldet);
+                      const paketlisteErstelltTrue = hasValueHelper(paketlisteErstelltValue);
+                      const versendetValue = getFloatingColDate(checklistData?.versendet, selectedOrder.versanddatum);
+                      
+                      // Check which items have previous true items (next item after TRUE should be ACTIVE)
+                      // For bezahltAm: previous is kaufdatum
+                      const bezahltAmHasPrevTrue = kaufdatumTrue;
+                      // For rechnungVersendet: previous is bezahltAm
+                      const rechnungVersendetHasPrevTrue = bezahltAmTrue;
+                      // For sendungErstellt: previous is rechnungVersendet
+                      const sendungErstelltHasPrevTrue = rechnungVersendetTrue;
+                      // For versandprofilHinzugefuegt: previous is sendungErstellt
+                      const versandprofilHinzugefuegtHasPrevTrue = sendungErstelltTrue;
+                      // For paketlisteErstellt: previous is versandprofilHinzugefuegt
+                      const paketlisteErstelltHasPrevTrue = versandprofilHinzugefuegtTrue;
+                      // For versendet: previous is paketlisteErstellt
+                      const versendetHasPrevTrue = paketlisteErstelltTrue;
+                      
+                      // Check which items come after an active item (for muted color)
+                      const bezahltAmIsActive = bezahltAmHasPrevTrue && !bezahltAmTrue;
+                      const rechnungVersendetIsActive = rechnungVersendetHasPrevTrue && !rechnungVersendetTrue;
+                      const sendungErstelltIsActive = sendungErstelltHasPrevTrue && !sendungErstelltTrue;
+                      const versandprofilHinzugefuegtIsActive = versandprofilHinzugefuegtHasPrevTrue && !versandprofilHinzugefuegtTrue;
+                      const paketlisteErstelltIsActive = paketlisteErstelltHasPrevTrue && !paketlisteErstelltTrue;
+                      
+                      // Items after active items should use muted color
+                      const rechnungVersendetHasActiveBefore = bezahltAmIsActive;
+                      const sendungErstelltHasActiveBefore = bezahltAmIsActive || rechnungVersendetIsActive;
+                      const versandprofilHinzugefuegtHasActiveBefore = bezahltAmIsActive || rechnungVersendetIsActive || sendungErstelltIsActive;
+                      const paketlisteErstelltHasActiveBefore = bezahltAmIsActive || rechnungVersendetIsActive || sendungErstelltIsActive || versandprofilHinzugefuegtIsActive;
+                      const versendetHasActiveBefore = bezahltAmIsActive || rechnungVersendetIsActive || sendungErstelltIsActive || versandprofilHinzugefuegtIsActive || paketlisteErstelltIsActive;
+                      
                       return (
                         <div className="flex flex-col gap-0">
-                          <StatusItem value={selectedOrder.kaufdatum} label="Gekauft" />
-                          <StatusItem value={selectedOrder.bezahltAm} label="Bezahlt" />
                           <StatusItem 
-                            value={getFloatingColDate(checklistData?.rechnungVersendet, selectedOrder.rechnungVersendetDatum)} 
-                            label="Rechnung versendet" 
+                            value={selectedOrder.kaufdatum} 
+                            label="Gekauft"
+                            isFirst={true}
+                            labelFalse="Kauf"
+                            labelActive="Kaufen"
+                            labelTrue="Gekauft"
                           />
                           <StatusItem 
-                            value={getFloatingColDate(checklistData?.sendungErstellt, selectedOrder.sendungErstelltDatum)} 
-                            label="Sendung erstellt" 
+                            value={selectedOrder.bezahltAm} 
+                            label="Bezahlt"
+                            hasPreviousTrue={bezahltAmHasPrevTrue}
+                            activeIcon={statusActiveZahlung}
+                            labelFalse="Zahlung"
+                            labelActive="Zahlung prüfen"
+                            labelTrue="Bezahlt"
                           />
                           <StatusItem 
-                            value={getFloatingColDate(checklistData?.versandprofilHinzugefuegt, selectedOrder.versandprofilHinzugefuegtDatum)} 
-                            label="Versandprofil hinzugefügt" 
+                            value={rechnungVersendetValue} 
+                            label="Rechnung versendet"
+                            hasPreviousTrue={rechnungVersendetHasPrevTrue}
+                            hasActiveBefore={rechnungVersendetHasActiveBefore}
+                            activeIcon={statusActiveRechnung}
+                            labelFalse="Rechnung"
+                            labelActive="Rechnung versenden"
+                            labelTrue="Rechnung versendet"
                           />
                           <StatusItem 
-                            value={getFloatingColDate(checklistData?.paketlisteErstellt, selectedOrder.versandtGemeldet)} 
-                            label="Versandlabel erstellt" 
+                            value={sendungErstelltValue} 
+                            label="Sendung erstellt"
+                            hasPreviousTrue={sendungErstelltHasPrevTrue}
+                            hasActiveBefore={sendungErstelltHasActiveBefore}
+                            activeIcon={statusActiveSendung}
+                            labelFalse="Sendung"
+                            labelActive="Sendung erstellen"
+                            labelTrue="Sendung erstellt"
                           />
                           <StatusItem 
-                            value={getFloatingColDate(checklistData?.versendet, selectedOrder.versanddatum)} 
-                            label="Versendet" 
+                            value={versandprofilHinzugefuegtValue} 
+                            label="Versandprofil hinzugefügt"
+                            hasPreviousTrue={versandprofilHinzugefuegtHasPrevTrue}
+                            hasActiveBefore={versandprofilHinzugefuegtHasActiveBefore}
+                            activeIcon={statusActiveVersandprofil}
+                            labelFalse="Versandprofil"
+                            labelActive="Versandprofil hinzufügen"
+                            labelTrue="Versandprofil hinzugefügt"
+                          />
+                          <StatusItem 
+                            value={paketlisteErstelltValue} 
+                            label="Versandlabel erstellt"
+                            hasPreviousTrue={paketlisteErstelltHasPrevTrue}
+                            hasActiveBefore={paketlisteErstelltHasActiveBefore}
+                            activeIcon={statusActiveVersandlabel}
+                            labelFalse="Versandlabel"
+                            labelActive="Versandlabel erstellen"
+                            labelTrue="Versandlabel erstellt"
+                          />
+                          <StatusItem 
+                            value={versendetValue} 
+                            label="Versendet"
+                            isLast={true}
+                            hasPreviousTrue={versendetHasPrevTrue}
+                            hasActiveBefore={versendetHasActiveBefore}
+                            activeIcon={statusActiveVersand}
+                            labelFalse="Versand"
+                            labelActive="Versenden"
+                            labelTrue="Versendet"
                           />
                         </div>
                       );
@@ -6948,7 +7101,7 @@ function ShippingPage() {
               }}
             >
               <Mail className="size-4" />
-              {markedRowsCount > 1 ? "Rechnungen per E-Mail versenden" : "Rechnung per E-Mail versenden"}
+              {markedRowsCount > 1 ? "Rechnungen versenden" : "Rechnung versenden"}
             </CommandItem>
             <CommandItem
               onSelect={() => {
