@@ -2368,6 +2368,7 @@ function ShippingPage() {
   const [isChecked10, setIsChecked10] = React.useState(false); // Keine Packliste
   const [isChecked13, setIsChecked13] = React.useState(false); // Kein Versandprofil
   const [isChecked14, setIsChecked14] = React.useState(false); // Kein Versandlabel
+  const [visibleKundeAdressenForSendungen, setVisibleKundeAdressenForSendungen] = React.useState<Set<string>>(new Set()); // Track which kundeAdresse values should make Sendungen visible
   // Separate state for Versandprofile accordion
   const [isChecked9, setIsChecked9] = React.useState(false); // Ohne Versandprofil
   const [isChecked5, setIsChecked5] = React.useState(false);
@@ -3196,11 +3197,27 @@ function ShippingPage() {
 
     // Return a new array reference to ensure React detects changes
     return result;
-  }, [ordersState1, importquelle, kaufdatum, importdatum, isChecked, isChecked2, isChecked3, isChecked4, isChecked5, isChecked9, isChecked6, isChecked11, checklistMap]);
+  }, [ordersState2, importquelle, kaufdatum, importdatum, isChecked, isChecked12, isChecked7, isChecked8, isChecked10, isChecked13, isChecked14, checklistMap, visibleKundeAdressenForSendungen]);
 
   // Filter data for table 2 (only base orders)
   const filteredData2 = React.useMemo(() => {
     let result = ordersState2;
+
+    // Hide rows with numbers 20, 21, 22, 23 at start (unless they match visible kundeAdresse values)
+    result = result.filter((order) => {
+      const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+      if (rowNr === null) return true;
+      
+      // Always hide rows 20, 21, 22, 23 initially
+      if (rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23) {
+        // Show them if their kundeAdresse matches a visible kundeAdresse
+        if (visibleKundeAdressenForSendungen.size > 0 && visibleKundeAdressenForSendungen.has(order.kundeAdresse || "")) {
+          return true;
+        }
+        return false;
+      }
+      return true;
+    });
 
     // Apply filter for "Kein Versandprofil" checkbox (rows where versandprofilHinzugefuegt is false in checklistMap)
     if (isChecked13) {
@@ -4004,7 +4021,10 @@ function ShippingPage() {
                         </div>
                         <Label
                           htmlFor={item.id}
-                          className="text-[13px] font-light leading-[130%] text-muted-foreground group-hover:text-accent-foreground cursor-pointer break-words"
+                          className={cn(
+                            "text-[0.8rem] leading-[130%] text-muted-foreground group-hover:text-accent-foreground cursor-pointer break-words antialiased",
+                            item.checked ? "font-medium" : "font-normal"
+                          )}
                         >
                           {item.label === "Kein Versandvorgang" ? (
                             <>
@@ -4018,16 +4038,16 @@ function ShippingPage() {
                         </Label>
                       </div>
                     </div>
-                    ))}
-                  </div>
-                  <div className="flex justify-center mt-5">
-                    <Button variant="link" className="p-0 h-auto text-sm font-normal mb-2">
-                      <Plus className="size-4" />
-                      Spezialfilter hinzufügen
-                    </Button>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
+                  ))}
+                </div>
+                <div className="flex justify-center mt-5">
+                  <Button variant="link" className="p-0 h-auto text-sm font-normal mb-2">
+                    <Plus className="size-4" />
+                    Spezialfilter hinzufügen
+                  </Button>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
               <AccordionItem value="item-4" className="border-b border-border">
                 <AccordionTrigger 
                   className="py-6 text-[20px] font-bold text-foreground hover:no-underline"
@@ -4087,7 +4107,10 @@ function ShippingPage() {
                         </div>
                         <Label
                           htmlFor={item.id}
-                          className="text-[13px] font-light leading-[130%] text-muted-foreground group-hover:text-accent-foreground cursor-pointer break-words"
+                          className={cn(
+                            "text-[0.8rem] leading-[130%] text-muted-foreground group-hover:text-accent-foreground cursor-pointer break-words antialiased",
+                            item.checked ? "font-medium" : "font-normal"
+                          )}
                         >
                           {item.label === "Kein Versandvorgang" ? (
                             <>
@@ -5304,7 +5327,10 @@ function ShippingPage() {
                         </div>
                         <Label
                           htmlFor={item.id}
-                          className="text-[13px] font-light leading-[130%] text-muted-foreground group-hover:text-accent-foreground cursor-pointer break-words"
+                          className={cn(
+                            "text-[0.8rem] leading-[130%] text-muted-foreground group-hover:text-accent-foreground cursor-pointer break-words antialiased",
+                            item.checked ? "font-medium" : "font-normal"
+                          )}
                         >
                           {item.label === "Kein Versandvorgang" ? (
                             <>
@@ -5318,17 +5344,17 @@ function ShippingPage() {
                         </Label>
                       </div>
                     </div>
-                  ))}
-                </div>
-                <div className="flex justify-center mt-5">
-                  <Button variant="link" className="p-0 h-auto text-sm font-normal mb-2">
-                    <Plus className="size-4" />
-                    Spezialfilter hinzufügen
-                  </Button>
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="item-1" className="border-b border-border">
+                    ))}
+                  </div>
+                  <div className="flex justify-center mt-5">
+                    <Button variant="link" className="p-0 h-auto text-sm font-normal mb-2">
+                      <Plus className="size-4" />
+                      Spezialfilter hinzufügen
+                    </Button>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="item-1" className="border-b border-border">
               <AccordionTrigger 
                 className="py-6 text-[20px] font-bold text-foreground hover:no-underline"
                 indicator={
@@ -5477,11 +5503,17 @@ function ShippingPage() {
                 // Show different modal based on number of selected rows
                 if (markedVisibleRows.length === 1) {
                   // Single row - show single row modal
+                  // Store which kundeAdresse value is marked (to show matching Sendungen later)
+                  const kundeAdressen = new Set(markedVisibleRows.map(row => row.kundeAdresse || ""));
+                  setVisibleKundeAdressenForSendungen(kundeAdressen);
                   setShowSingleRowSendungModal(true);
                   setSingleRowSendungStep(-1);
                   setSingleRowProgressValue(0);
                 } else {
                   // Multiple rows - show address matching modal
+                  // Store which kundeAdresse values are marked (to show matching Sendungen later)
+                  const kundeAdressen = new Set(markedVisibleRows.map(row => row.kundeAdresse || ""));
+                  setVisibleKundeAdressenForSendungen(kundeAdressen);
                   setShowAddressMatchAlert(true);
                   setAddressMatchStep(-1);
                   setProgressValue(0);
@@ -5928,10 +5960,22 @@ function ShippingPage() {
                     <div className={`flex gap-3 ${addressMatchStep === 3 ? 'ml-auto' : ''}`}>
                       <AlertDialogAction 
                         onClick={() => {
+                          // Get the currently selected rows from Bestellungen (from when button was clicked)
+                          const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
+                          
+                          if (markedVisibleRows.length > 0) {
+                            // Collect all unique kundeAdresse values from selected rows
+                            const kundeAdressen = new Set(markedVisibleRows.map(row => row.kundeAdresse || ""));
+                            
+                            // Make all rows in Sendungen visible which match the Kunde/Lieferadresse values
+                            setVisibleKundeAdressenForSendungen(kundeAdressen);
+                            
+                            // Switch to Sendungen tab
+                            setActiveTab("versand");
+                          }
+                          
                           setShowAddressMatchAlert(false);
                           setAddressMatchStep(0);
-                          // Handle: Don't show sendungen
-                          // TODO: Implement actual logic
                         }}
                         className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
                       >
@@ -5945,6 +5989,9 @@ function ShippingPage() {
                           if (markedVisibleRows.length > 0) {
                             // Collect all unique kundeAdresse values from selected rows
                             const kundeAdressen = new Set(markedVisibleRows.map(row => row.kundeAdresse || ""));
+                            
+                            // Make all rows in Sendungen visible which match the Kunde/Lieferadresse values
+                            setVisibleKundeAdressenForSendungen(kundeAdressen);
                             
                             // Find matching rows in Sendungen table by kundeAdresse (use ordersState2 for all data, not just visible)
                             const matchingRows = ordersState2.filter(row => kundeAdressen.has(row.kundeAdresse || ""));
@@ -6196,6 +6243,10 @@ function ShippingPage() {
                             const selectedRow = markedVisibleRows[0];
                             const kundeAdresse = selectedRow.kundeAdresse || "";
                             
+                            // Make all rows in Sendungen visible which match the Kunde/Lieferadresse value
+                            const kundeAdressen = new Set([kundeAdresse]);
+                            setVisibleKundeAdressenForSendungen(kundeAdressen);
+                            
                             // Find matching rows in Sendungen table by kundeAdresse (use ordersState2 for all data, not just visible)
                             const matchingRows = ordersState2.filter(row => row.kundeAdresse === kundeAdresse);
                             
@@ -6356,6 +6407,21 @@ function ShippingPage() {
                     <div className={`flex gap-3 ${singleRowSendungStep === 3 ? 'ml-auto' : ''}`}>
                       <AlertDialogAction 
                         onClick={() => {
+                          // Get the currently selected row from Bestellungen
+                          const markedVisibleRows = visibleRows1.filter(row => markedRows1.has(row.nr));
+                          
+                          if (markedVisibleRows.length === 1) {
+                            const selectedRow = markedVisibleRows[0];
+                            const kundeAdresse = selectedRow.kundeAdresse || "";
+                            
+                            // Make all rows in Sendungen visible which match the Kunde/Lieferadresse value
+                            const kundeAdressen = new Set([kundeAdresse]);
+                            setVisibleKundeAdressenForSendungen(kundeAdressen);
+                            
+                            // Switch to Sendungen tab
+                            setActiveTab("versand");
+                          }
+                          
                           setShowSingleRowSendungModal(false);
                           setSingleRowSendungStep(-1);
                         }}
@@ -6371,6 +6437,10 @@ function ShippingPage() {
                           if (markedVisibleRows.length === 1) {
                             const selectedRow = markedVisibleRows[0];
                             const kundeAdresse = selectedRow.kundeAdresse || "";
+                            
+                            // Make all rows in Sendungen visible which match the Kunde/Lieferadresse value
+                            const kundeAdressen = new Set([kundeAdresse]);
+                            setVisibleKundeAdressenForSendungen(kundeAdressen);
                             
                             // Find matching rows in Sendungen table by kundeAdresse (use ordersState2 for all data, not just visible)
                             const matchingRows = ordersState2.filter(row => row.kundeAdresse === kundeAdresse);
