@@ -1736,9 +1736,9 @@ const getColumns = (
         if (type === "Versandvorgang") return "";
         return formatDate(row.getValue("bezahltAm"));
       },
-      size: 120,
-      minSize: 120,
-      maxSize: 120,
+      size: 140,
+      minSize: 140,
+      maxSize: 140,
     },
   ] : []),
   {
@@ -1800,9 +1800,9 @@ const getColumns = (
         </div>
       );
     },
-    size: 200,
-    minSize: 200,
-    maxSize: 200,
+    size: activeTab === "versand" ? 160 : 200,
+    minSize: activeTab === "versand" ? 160 : 200,
+    maxSize: activeTab === "versand" ? 160 : 200,
   },
   {
     accessorKey: "versanddienstleister",
@@ -2763,19 +2763,27 @@ function ShippingPage() {
     
     // Count rows in table 2 (Sendungen) where Fehler icon is visible
     // Include Versandvorgang rows (as filteredData2 does)
+    // Exclude hidden rows (20, 21, 22, 23) unless they're in visibleKundeAdressenForSendungen
     ordersState2.forEach((order) => {
       const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
-      if (rowNr !== null) {
-        const checklistData = checklistMap.get(rowNr);
-        const hasError = checklistData?.fehler ?? false;
-        if (hasError) {
-          count++;
+      if (rowNr === null) return;
+      
+      // Check if row is hidden
+      if (rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23) {
+        if (visibleKundeAdressenForSendungen.size === 0 || !visibleKundeAdressenForSendungen.has(order.kundeAdresse || "")) {
+          return; // Skip hidden rows
         }
+      }
+      
+      const checklistData = checklistMap.get(rowNr);
+      const hasError = checklistData?.fehler ?? false;
+      if (hasError) {
+        count++;
       }
     });
     
     return count;
-  }, [ordersState2, checklistMap]);
+  }, [ordersState2, checklistMap, visibleKundeAdressenForSendungen]);
 
   // Count rows in Sendungen table where "Versendet" checkbox is false in checklistMap
   const nichtVersendetCount = React.useMemo(() => {
@@ -2783,17 +2791,24 @@ function ShippingPage() {
     ordersState2.forEach((order) => {
       if (order.type === "Versandvorgang") {
         const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
-        if (rowNr !== null) {
-          const checklistData = checklistMap.get(rowNr);
-          const isVersendet = checklistData?.versendet ?? false;
-          if (!isVersendet) {
-            count++;
+        if (rowNr === null) return;
+        
+        // Check if row is hidden
+        if (rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23) {
+          if (visibleKundeAdressenForSendungen.size === 0 || !visibleKundeAdressenForSendungen.has(order.kundeAdresse || "")) {
+            return; // Skip hidden rows
           }
+        }
+        
+        const checklistData = checklistMap.get(rowNr);
+        const isVersendet = checklistData?.versendet ?? false;
+        if (!isVersendet) {
+          count++;
         }
       }
     });
     return count;
-  }, [ordersState2, checklistMap]);
+  }, [ordersState2, checklistMap, visibleKundeAdressenForSendungen]);
 
   // Count rows in Sendungen table where "Pickliste erstellt" checkbox is false in checklistMap
   const keinePicklisteCount = React.useMemo(() => {
@@ -2801,17 +2816,24 @@ function ShippingPage() {
     ordersState2.forEach((order) => {
       if (order.type === "Versandvorgang") {
         const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
-        if (rowNr !== null) {
-          const checklistData = checklistMap.get(rowNr);
-          const hasPickliste = checklistData?.picklisteErstellt ?? false;
-          if (!hasPickliste) {
-            count++;
+        if (rowNr === null) return;
+        
+        // Check if row is hidden
+        if (rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23) {
+          if (visibleKundeAdressenForSendungen.size === 0 || !visibleKundeAdressenForSendungen.has(order.kundeAdresse || "")) {
+            return; // Skip hidden rows
           }
+        }
+        
+        const checklistData = checklistMap.get(rowNr);
+        const hasPickliste = checklistData?.picklisteErstellt ?? false;
+        if (!hasPickliste) {
+          count++;
         }
       }
     });
     return count;
-  }, [ordersState2, checklistMap]);
+  }, [ordersState2, checklistMap, visibleKundeAdressenForSendungen]);
 
   // Count rows in Sendungen table where "Packliste erstellt" checkbox is false in checklistMap
   const keinePacklisteCount = React.useMemo(() => {
@@ -2819,17 +2841,24 @@ function ShippingPage() {
     ordersState2.forEach((order) => {
       if (order.type === "Versandvorgang") {
         const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
-        if (rowNr !== null) {
-          const checklistData = checklistMap.get(rowNr);
-          const hasPackliste = checklistData?.packlisteErstellt ?? false;
-          if (!hasPackliste) {
-            count++;
+        if (rowNr === null) return;
+        
+        // Check if row is hidden
+        if (rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23) {
+          if (visibleKundeAdressenForSendungen.size === 0 || !visibleKundeAdressenForSendungen.has(order.kundeAdresse || "")) {
+            return; // Skip hidden rows
           }
+        }
+        
+        const checklistData = checklistMap.get(rowNr);
+        const hasPackliste = checklistData?.packlisteErstellt ?? false;
+        if (!hasPackliste) {
+          count++;
         }
       }
     });
     return count;
-  }, [ordersState2, checklistMap]);
+  }, [ordersState2, checklistMap, visibleKundeAdressenForSendungen]);
 
   // Count rows in Sendungen table where "Versandprofil hinzugefügt" checkbox is false in checklistMap
   const keinVersandprofilCount = React.useMemo(() => {
@@ -2837,17 +2866,24 @@ function ShippingPage() {
     ordersState2.forEach((order) => {
       if (order.type === "Versandvorgang") {
         const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
-        if (rowNr !== null) {
-          const checklistData = checklistMap.get(rowNr);
-          const hasVersandprofil = checklistData?.versandprofilHinzugefuegt ?? false;
-          if (!hasVersandprofil) {
-            count++;
+        if (rowNr === null) return;
+        
+        // Check if row is hidden
+        if (rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23) {
+          if (visibleKundeAdressenForSendungen.size === 0 || !visibleKundeAdressenForSendungen.has(order.kundeAdresse || "")) {
+            return; // Skip hidden rows
           }
+        }
+        
+        const checklistData = checklistMap.get(rowNr);
+        const hasVersandprofil = checklistData?.versandprofilHinzugefuegt ?? false;
+        if (!hasVersandprofil) {
+          count++;
         }
       }
     });
     return count;
-  }, [ordersState2, checklistMap]);
+  }, [ordersState2, checklistMap, visibleKundeAdressenForSendungen]);
 
   // Count rows in Sendungen table where Versandlabel (paketlisteErstellt) is false
   const keinVersandlabelCount = React.useMemo(() => {
@@ -2855,17 +2891,24 @@ function ShippingPage() {
     ordersState2.forEach((order) => {
       if (order.type === "Versandvorgang") {
         const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
-        if (rowNr !== null) {
-          const checklistData = checklistMap.get(rowNr);
-          const hasVersandlabel = checklistData?.paketlisteErstellt ?? false;
-          if (!hasVersandlabel) {
-            count++;
+        if (rowNr === null) return;
+        
+        // Check if row is hidden
+        if (rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23) {
+          if (visibleKundeAdressenForSendungen.size === 0 || !visibleKundeAdressenForSendungen.has(order.kundeAdresse || "")) {
+            return; // Skip hidden rows
           }
+        }
+        
+        const checklistData = checklistMap.get(rowNr);
+        const hasVersandlabel = checklistData?.paketlisteErstellt ?? false;
+        if (!hasVersandlabel) {
+          count++;
         }
       }
     });
     return count;
-  }, [ordersState2, checklistMap]);
+  }, [ordersState2, checklistMap, visibleKundeAdressenForSendungen]);
 
   // Count rows in Bestellungen table where Versandprofil is "DHL National"
   const dhlNationalCount = React.useMemo(() => {
@@ -3197,7 +3240,7 @@ function ShippingPage() {
 
     // Return a new array reference to ensure React detects changes
     return result;
-  }, [ordersState2, importquelle, kaufdatum, importdatum, isChecked, isChecked12, isChecked7, isChecked8, isChecked10, isChecked13, isChecked14, checklistMap, visibleKundeAdressenForSendungen]);
+  }, [ordersState1, importquelle, kaufdatum, importdatum, isChecked, isChecked2, isChecked3, isChecked4, isChecked5, isChecked6, isChecked9, isChecked11, checklistMap]);
 
   // Filter data for table 2 (only base orders)
   const filteredData2 = React.useMemo(() => {
@@ -3323,6 +3366,27 @@ function ShippingPage() {
       });
     }
 
+    // Apply filter for "DHL National" checkbox (versandprofil is "DHL National")
+    if (isChecked5) {
+      result = result.filter(
+        (order) => order.versandprofil === "DHL National"
+      );
+    }
+
+    // Apply filter for "DPD Europa" checkbox (versandprofil is "DPD Europa" or "DPD International")
+    if (isChecked6) {
+      result = result.filter(
+        (order) => order.versandprofil === "DPD Europa" || order.versandprofil === "DPD International"
+      );
+    }
+
+    // Apply filter for "UPS USA" checkbox (versandprofil is "UPS USA")
+    if (isChecked11) {
+      result = result.filter(
+        (order) => order.versandprofil === "UPS USA"
+      );
+    }
+
     // Note: Filters for "Rechnungen nicht versendet" and "Bestellungen bezahlt, nicht gesendet"
     // are intentionally NOT applied to the Sendungen table - they only apply to Bestellungen table
 
@@ -3338,7 +3402,7 @@ function ShippingPage() {
 
     // Return a new array reference to ensure React detects changes
     return result;
-  }, [ordersState2, importquelle, kaufdatum, importdatum, isChecked, isChecked12, isChecked7, isChecked8, isChecked10, isChecked13, isChecked14, checklistMap]);
+  }, [ordersState2, importquelle, kaufdatum, importdatum, isChecked, isChecked5, isChecked6, isChecked7, isChecked8, isChecked10, isChecked11, isChecked12, isChecked13, isChecked14, checklistMap, visibleKundeAdressenForSendungen]);
 
   // filteredOrders for sheet navigation - uses active table's data
   // Must be declared here after filteredData1 and filteredData2 are defined
@@ -3969,7 +4033,7 @@ function ShippingPage() {
                 </button>
               )}
             </div>
-            <Accordion type="multiple" defaultValue={["item-0", "item-1", "item-2", "item-3", "item-4"]} className="w-full">
+            <Accordion type="multiple" defaultValue={["item-0", "item-4"]} className="w-full">
               <AccordionItem value="item-0" className="border-b border-border">
                 <AccordionTrigger 
                   className="py-6 text-[20px] font-bold text-foreground hover:no-underline"
