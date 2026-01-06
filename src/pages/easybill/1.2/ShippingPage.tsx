@@ -4156,7 +4156,7 @@ function ShippingPage() {
             </div>
             {/* Version number at bottom */}
             <div className="hidden lg:flex mt-auto text-xs text-white/60">
-              v1.9
+              v1.10
             </div>
           </div>
           {/* Left part - 300px width */}
