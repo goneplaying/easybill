@@ -1946,7 +1946,7 @@ const getColumns = (
         <div className="flex items-center justify-center h-full">
           <Button
             variant="link"
-            className="h-9 w-9 p-0 hover:border hover:border-border rounded-md"
+            className="h-8 w-8 p-0 hover:border hover:border-border rounded-md"
             onClick={() => {
               if (rowNr !== null && onChecklistChange) {
                 onChecklistChange(rowNr, 'rechnungVersendet', !isChecked);
@@ -1981,7 +1981,7 @@ const getColumns = (
         <div className="flex items-center justify-center h-full">
           <Button
             variant="link"
-            className="h-9 w-9 p-0 hover:border hover:border-border rounded-md"
+            className="h-8 w-8 p-0 hover:border hover:border-border rounded-md"
             onClick={() => {
               if (rowNr !== null && onChecklistChange) {
                 onChecklistChange(rowNr, 'sendungErstellt', !isChecked);
@@ -2016,7 +2016,7 @@ const getColumns = (
         <div className="flex items-center justify-center h-full">
           <Button
             variant="link"
-            className="h-9 w-9 p-0 hover:border hover:border-border rounded-md"
+            className="h-8 w-8 p-0 hover:border hover:border-border rounded-md"
             onClick={() => {
               if (rowNr !== null && onChecklistChange) {
                 onChecklistChange(rowNr, 'versandprofilHinzugefuegt', !isChecked);
@@ -2051,7 +2051,7 @@ const getColumns = (
         <div className="flex items-center justify-center h-full">
           <Button
             variant="link"
-            className="h-9 w-9 p-0 hover:border hover:border-border rounded-md"
+            className="h-8 w-8 p-0 hover:border hover:border-border rounded-md"
             onClick={() => {
               if (rowNr !== null && onChecklistChange) {
                 onChecklistChange(rowNr, 'paketlisteErstellt', !isChecked);
@@ -2086,7 +2086,7 @@ const getColumns = (
         <div className="flex items-center justify-center h-full">
           <Button
             variant="link"
-            className="h-9 w-9 p-0 hover:border hover:border-border rounded-md"
+            className="h-8 w-8 p-0 hover:border hover:border-border rounded-md"
             onClick={() => {
               if (rowNr !== null && onChecklistChange) {
                 onChecklistChange(rowNr, 'picklisteErstellt', !isChecked);
@@ -2121,7 +2121,7 @@ const getColumns = (
         <div className="flex items-center justify-center h-full">
           <Button
             variant="link"
-            className="h-9 w-9 p-0 hover:border hover:border-border rounded-md"
+            className="h-8 w-8 p-0 hover:border hover:border-border rounded-md"
             onClick={() => {
               if (rowNr !== null && onChecklistChange) {
                 onChecklistChange(rowNr, 'packlisteErstellt', !isChecked);
@@ -2156,7 +2156,7 @@ const getColumns = (
         <div className="flex items-center justify-center h-full">
           <Button
             variant="link"
-            className="h-9 w-9 p-0 hover:border hover:border-border rounded-md"
+            className="h-8 w-8 p-0 hover:border hover:border-border rounded-md"
             onClick={() => {
               if (rowNr !== null && onChecklistChange) {
                 onChecklistChange(rowNr, 'versendet', !isChecked);
@@ -4898,7 +4898,7 @@ function ShippingPage() {
                   <AccordionTrigger className="py-6 text-[20px] font-bold text-foreground hover:no-underline">
                     Status
                   </AccordionTrigger>
-                  <AccordionContent className="mb-4 min-h-[120px]">
+                  <AccordionContent className="flex flex-col gap-0 mb-4 min-h-[120px]">
                     {selectedOrder && (() => {
                       const rowNr = typeof selectedOrder.nr === 'number' ? selectedOrder.nr : parseInt(String(selectedOrder.nr)) || null;
                       const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
@@ -4973,20 +4973,34 @@ function ShippingPage() {
                         }
                         
                         return (
-                          <div className="flex items-center justify-between gap-[12px] h-[32px]">
-                            <div className="flex items-center gap-[6px]">
-                              <img 
-                                src={statusIcon} 
-                                alt={isTrue ? "Status true" : isActive ? "Status active" : "Status false"}
-                                className="w-auto h-auto flex-shrink-0"
-                              />
-                              {isActive ? (
-                                <a href="#" className="text-sm font-normal text-primary underline-offset-4 hover:underline cursor-pointer">{displayLabel}</a>
-                              ) : (
-                                <span className={`text-sm font-normal ${hasActiveBefore ? 'text-muted-foreground' : 'text-foreground'}`}>{displayLabel}</span>
-                              )}
-                            </div>
-                            <span className="text-sm text-muted-foreground">{value ? formatDate(value) : ''}</span>
+                          <div className={`flex items-center justify-between ${!isActive ? 'gap-[12px]' : ''} h-[40px]`}>
+                            {isActive ? (
+                              <>
+                                <div className="flex items-center gap-[10px]">
+                                  <img 
+                                    src={statusIcon} 
+                                    alt="Status active"
+                                    className="w-auto h-auto flex-shrink-0"
+                                  />
+                                  <span className="text-sm font-normal text-foreground">{labelFalse || label}</span>
+                                </div>
+                                <div className="ml-auto text-right inline-block">
+                                  <a href="#" className="text-sm font-normal text-primary underline-offset-4 hover:underline cursor-pointer">{displayLabel}</a>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div className="flex items-center gap-[10px]">
+                                  <img 
+                                    src={statusIcon} 
+                                    alt={isTrue ? "Status true" : "Status false"}
+                                    className="w-auto h-auto flex-shrink-0"
+                                  />
+                                  <span className={`text-sm font-normal ${hasActiveBefore ? 'text-muted-foreground' : 'text-foreground'}`}>{displayLabel}</span>
+                                </div>
+                                <span className="text-sm text-muted-foreground">{value ? formatDate(value) : ''}</span>
+                              </>
+                            )}
                           </div>
                         );
                       };
