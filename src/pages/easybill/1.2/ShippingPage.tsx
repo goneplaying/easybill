@@ -4947,60 +4947,34 @@ function ShippingPage() {
                       }) => {
                         const hasValue = value && value.trim() !== '';
                         const isTrue = hasValue;
-                        // Active: if previous item is TRUE and current item is not TRUE
-                        const isActive = hasPreviousTrue === true && !isTrue;
-                        const isFalse = !isTrue && !isActive;
                         
                         // Determine which SVG to use based on state and position
                         let statusIcon = statusFalse;
                         if (isTrue) {
                           statusIcon = isFirst ? statusTrueTop : (isLast ? statusTrueBottom : statusTrue);
-                        } else if (isActive) {
-                          // Active items use specific icon if provided, otherwise use default
-                          statusIcon = activeIcon || statusActive;
                         } else {
                           statusIcon = isFirst ? statusFalseTop : (isLast ? statusFalseBottom : statusFalse);
                         }
                         
-                        // Determine label based on state
+                        // Determine label based on state (only true/false, no active)
                         let displayLabel = label;
-                        if (labelFalse && isFalse) {
-                          displayLabel = labelFalse;
-                        } else if (labelActive && isActive) {
-                          displayLabel = labelActive;
-                        } else if (labelTrue && isTrue) {
+                        if (isTrue && labelTrue) {
                           displayLabel = labelTrue;
+                        } else if (!isTrue && labelFalse) {
+                          displayLabel = labelFalse;
                         }
                         
                         return (
-                          <div className={`flex items-center justify-between ${!isActive ? 'gap-[12px]' : ''} h-[40px]`}>
-                            {isActive ? (
-                              <>
-                                <div className="flex items-center gap-[10px]">
-                                  <img 
-                                    src={statusIcon} 
-                                    alt="Status active"
-                                    className="w-auto h-auto flex-shrink-0"
-                                  />
-                                  <span className="text-sm font-normal text-foreground">{labelFalse || label}</span>
-                                </div>
-                                <div className="ml-auto text-right inline-block">
-                                  <a href="#" className="text-sm font-normal text-primary underline-offset-4 hover:underline cursor-pointer">{displayLabel}</a>
-                                </div>
-                              </>
-                            ) : (
-                              <>
-                                <div className="flex items-center gap-[10px]">
-                                  <img 
-                                    src={statusIcon} 
-                                    alt={isTrue ? "Status true" : "Status false"}
-                                    className="w-auto h-auto flex-shrink-0"
-                                  />
-                                  <span className={`text-sm font-normal ${hasActiveBefore ? 'text-muted-foreground' : 'text-foreground'}`}>{displayLabel}</span>
-                                </div>
-                                <span className="text-sm text-muted-foreground">{value ? formatDate(value) : ''}</span>
-                              </>
-                            )}
+                          <div className="flex items-center justify-between gap-[12px] h-[40px]">
+                            <div className="flex items-center gap-[10px]">
+                              <img 
+                                src={statusIcon} 
+                                alt={isTrue ? "Status true" : "Status false"}
+                                className="w-auto h-auto flex-shrink-0"
+                              />
+                              <span className={`text-sm font-normal ${isTrue ? 'text-foreground' : 'text-muted-foreground'}`}>{displayLabel}</span>
+                            </div>
+                            <span className="text-sm text-muted-foreground">{value ? formatDate(value) : ''}</span>
                           </div>
                         );
                       };
@@ -5062,7 +5036,6 @@ function ShippingPage() {
                           <StatusItem 
                             value={selectedOrder.bezahltAm} 
                             label="Bezahlt"
-                            hasPreviousTrue={bezahltAmHasPrevTrue}
                             activeIcon={statusActiveZahlung}
                             labelFalse="Zahlung"
                             labelActive="Zahlung prüfen"
@@ -5089,19 +5062,28 @@ function ShippingPage() {
                               labelActive="Sendung erstellen"
                               labelTrue="Sendung erstellt"
                             />
-                            <div className="pt-1 pb-3 pl-[42px] flex items-center gap-2">
-                              <Button
-                                name="listItemDetails"
-                                variant="outline"
-                                size="sm"
-                                className="h-9 w-9 ml-0"
-                              >
-                                <Package className="size-4" />
-                              </Button>
-                              <div className="flex flex-col gap-0.5">
-                                <div className="text-xs text-muted-foreground">Text item 1</div>
-                                <div className="text-sm">Text item 2</div>
+                            <div className="pt-3 pb-3 pl-[42px] flex items-center justify-between gap-2">
+                              <div className="flex items-center justify-center gap-3">
+                                <Button
+                                  name="listItemDetails"
+                                  variant="outline"
+                                  size="lg"
+                                  className="h-10 w-10 ml-0"
+                                >
+                                  <Package className="size-4" />
+                                </Button>
+                                <div className="flex flex-col gap-1">
+                                  <div className="text-xs text-muted-foreground">Text item 1</div>
+                                  <div className="text-sm">Text item 2</div>
+                                </div>
                               </div>
+                              <Button
+                                variant="link"
+                                className="p-0 px-0 has-[>svg]:px-0 h-auto text-sm font-normal"
+                              >
+                                <Plus className="size-4" />
+                                Sendung hinzufügen
+                              </Button>
                             </div>
                           </div>
                           <StatusItem 
