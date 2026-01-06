@@ -4156,7 +4156,7 @@ function ShippingPage() {
             </div>
             {/* Version number at bottom */}
             <div className="hidden lg:flex mt-auto text-xs text-white/60">
-              v1.9
+              v1.11
             </div>
           </div>
           {/* Left part - 300px width */}
@@ -5078,16 +5078,32 @@ function ShippingPage() {
                             labelActive="Rechnung versenden"
                             labelTrue="Rechnung versendet"
                           />
-                          <StatusItem 
-                            value={sendungErstelltValue} 
-                            label="Sendung erstellt"
-                            hasPreviousTrue={sendungErstelltHasPrevTrue}
-                            hasActiveBefore={sendungErstelltHasActiveBefore}
-                            activeIcon={statusActiveSendung}
-                            labelFalse="Sendung"
-                            labelActive="Sendung erstellen"
-                            labelTrue="Sendung erstellt"
-                          />
+                          <div>
+                            <StatusItem 
+                              value={sendungErstelltValue} 
+                              label="Sendung erstellt"
+                              hasPreviousTrue={sendungErstelltHasPrevTrue}
+                              hasActiveBefore={sendungErstelltHasActiveBefore}
+                              activeIcon={statusActiveSendung}
+                              labelFalse="Sendung"
+                              labelActive="Sendung erstellen"
+                              labelTrue="Sendung erstellt"
+                            />
+                            <div className="pt-1 pb-3 pl-[42px] flex items-center gap-2">
+                              <Button
+                                name="listItemDetails"
+                                variant="outline"
+                                size="sm"
+                                className="h-9 w-9 ml-0"
+                              >
+                                <Package className="size-4" />
+                              </Button>
+                              <div className="flex flex-col gap-0.5">
+                                <div className="text-xs text-muted-foreground">Text item 1</div>
+                                <div className="text-sm">Text item 2</div>
+                              </div>
+                            </div>
+                          </div>
                           <StatusItem 
                             value={versandprofilHinzugefuegtValue} 
                             label="Versandprofil hinzugefügt"
