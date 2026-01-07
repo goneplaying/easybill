@@ -2,9 +2,9 @@ import { Link } from "react-router-dom";
 import { Truck, ToyBrick, Settings, HelpCircle, Menu, LayoutDashboard } from "lucide-react";
 import logo from "@/assets/easybill-logo.svg";
 import logoPlus from "@/assets/easybill-logo+.svg";
-import { Button } from "@/components/ui/button";
 
-export default function SettingsPage() {
+export default function ToolsPage() {
+
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto">
@@ -21,17 +21,17 @@ export default function SettingsPage() {
             </button>
             {/* Original buttons for large screens */}
             <div className="hidden lg:flex flex-col gap-0.5 w-full mt-4">
-              <Link to="/1.1/dashboard" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
+              <Link to="/a/dashboard" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
                 <LayoutDashboard className="size-5 text-white" />
               </Link>
-              <Link to="/1.1/shipping" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
+              <Link to="/a/shipping" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
                 <Truck className="size-5 text-white" />
               </Link>
-              <Link to="/1.1/tools" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
-                <ToyBrick className="size-5 text-white" />
+              <Link to="/a/tools" className="flex items-center justify-center w-full aspect-square rounded-md bg-white transition-colors">
+                <ToyBrick className="size-5 text-foreground" />
               </Link>
-              <Link to="/1.1/settings" className="flex items-center justify-center w-full aspect-square rounded-md bg-white transition-colors">
-                <Settings className="size-5 text-foreground" />
+              <Link to="/a/settings" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
+                <Settings className="size-5 text-white" />
               </Link>
               <div className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
                 <HelpCircle className="size-5 text-white" />
@@ -40,7 +40,7 @@ export default function SettingsPage() {
             {/* Version number at bottom */}
             <div className="hidden lg:block mt-auto pt-4">
               <div className="text-white/70 text-xs text-center font-medium">
-                v1.1
+                v1.2
               </div>
             </div>
           </div>
@@ -51,20 +51,11 @@ export default function SettingsPage() {
           {/* Right part - flexible width */}
           <div className="flex-1 min-w-0 px-6 py-5 lg:px-8 lg:py-10 flex flex-col gap-[28px]">
             <h1>
-              Settings
+              Tools
             </h1>
-            <div className="flex gap-2">
-              <Button variant="default">
-                Versand
-              </Button>
-              <Button variant="outline">
-                Abbrechen
-              </Button>
-            </div>
           </div>
         </div>
       </div>
-
     </div>
   );
 }

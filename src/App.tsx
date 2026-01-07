@@ -2,15 +2,11 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "./components/theme-provider";
 import HomePage from "./pages/easybill/HomePage";
 import VersionsPage from "./pages/easybill/VersionsPage";
-import ShippingPage from "./pages/easybill/1.1/ShippingPage";
-import DashboardPage from "./pages/easybill/1.1/DashboardPage";
-import SettingsPage from "./pages/easybill/1.1/SettingsPage";
-import ToolsPage from "./pages/easybill/1.1/ToolsPage";
 // Version 1.2 imports
-import ShippingPage12 from "./pages/easybill/1.2/ShippingPage";
-import DashboardPage12 from "./pages/easybill/1.2/DashboardPage";
-import SettingsPage12 from "./pages/easybill/1.2/SettingsPage";
-import ToolsPage12 from "./pages/easybill/1.2/ToolsPage";
+import ShippingPage12 from "./pages/easybill/a/ShippingPage";
+import DashboardPage12 from "./pages/easybill/a/DashboardPage";
+import SettingsPage12 from "./pages/easybill/a/SettingsPage";
+import ToolsPage12 from "./pages/easybill/a/ToolsPage";
 
 function App() {
   return (
@@ -19,16 +15,11 @@ function App() {
         <Routes>
           <Route index element={<HomePage />} />
           <Route path="versions" element={<VersionsPage />} />
-          {/* Version 1.1 routes */}
-          <Route path="1.1/shipping" element={<ShippingPage />} />
-          <Route path="1.1/dashboard" element={<DashboardPage />} />
-          <Route path="1.1/settings" element={<SettingsPage />} />
-          <Route path="1.1/tools" element={<ToolsPage />} />
           {/* Version 1.2 routes */}
-          <Route path="1.2/shipping" element={<ShippingPage12 />} />
-          <Route path="1.2/dashboard" element={<DashboardPage12 />} />
-          <Route path="1.2/settings" element={<SettingsPage12 />} />
-          <Route path="1.2/tools" element={<ToolsPage12 />} />
+          <Route path="a/shipping" element={<ShippingPage12 />} />
+          <Route path="a/dashboard" element={<DashboardPage12 />} />
+          <Route path="a/settings" element={<SettingsPage12 />} />
+          <Route path="a/tools" element={<ToolsPage12 />} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>

@@ -1437,16 +1437,16 @@ function DashboardPage() {
             </button>
             {/* Original buttons for large screens */}
             <div className="hidden lg:flex flex-col gap-0.5 w-full mt-4">
-              <Link to="/1.1/dashboard" className="flex items-center justify-center w-full aspect-square rounded-md bg-white transition-colors">
+              <Link to="/a/dashboard" className="flex items-center justify-center w-full aspect-square rounded-md bg-white transition-colors">
                 <LayoutDashboard className="size-5 text-foreground" />
               </Link>
-              <Link to="/1.1/shipping" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
+              <Link to="/a/shipping" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
                 <Truck className="size-5 text-white" />
               </Link>
-              <Link to="/1.1/tools" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
+              <Link to="/a/tools" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
                 <ToyBrick className="size-5 text-white" />
               </Link>
-              <Link to="/1.1/settings" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
+              <Link to="/a/settings" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
                 <Settings className="size-5 text-white" />
               </Link>
               <div className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
@@ -1456,7 +1456,7 @@ function DashboardPage() {
             {/* Version number at bottom */}
             <div className="hidden lg:block mt-auto pt-4">
               <div className="text-white/70 text-xs text-center font-medium">
-                v1.1
+                v1.2
               </div>
             </div>
           </div>

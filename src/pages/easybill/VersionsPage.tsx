@@ -26,13 +26,13 @@ function VersionsPage() {
             {/* Version 1.2 */}
             <Card className="flex flex-row w-full items-center">
               <CardHeader className="flex-1">
-                <CardTitle>1.10</CardTitle>
+                <CardTitle>1.11</CardTitle>
                 <CardDescription>
                   Aktuelle Version mit erweiterten Funktionen
                 </CardDescription>
               </CardHeader>
               <CardContent className="flex items-center justify-center px-6 py-0">
-                <Link to="/1.2/shipping">
+                <Link to="/a/shipping">
                   <Button>Öffnen</Button>
                 </Link>
               </CardContent>

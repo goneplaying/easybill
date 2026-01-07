@@ -3,8 +3,7 @@ import { Truck, ToyBrick, Settings, HelpCircle, Menu, LayoutDashboard } from "lu
 import logo from "@/assets/easybill-logo.svg";
 import logoPlus from "@/assets/easybill-logo+.svg";
 
-export default function ToolsPage() {
-
+export default function SettingsPage() {
   return (
     <div className="min-h-screen bg-background">
       <div className="mx-auto">
@@ -21,17 +20,17 @@ export default function ToolsPage() {
             </button>
             {/* Original buttons for large screens */}
             <div className="hidden lg:flex flex-col gap-0.5 w-full mt-4">
-              <Link to="/1.2/dashboard" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
+              <Link to="/a/dashboard" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
                 <LayoutDashboard className="size-5 text-white" />
               </Link>
-              <Link to="/1.2/shipping" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
+              <Link to="/a/shipping" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
                 <Truck className="size-5 text-white" />
               </Link>
-              <Link to="/1.2/tools" className="flex items-center justify-center w-full aspect-square rounded-md bg-white transition-colors">
-                <ToyBrick className="size-5 text-foreground" />
+              <Link to="/a/tools" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
+                <ToyBrick className="size-5 text-white" />
               </Link>
-              <Link to="/1.2/settings" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
-                <Settings className="size-5 text-white" />
+              <Link to="/a/settings" className="flex items-center justify-center w-full aspect-square rounded-md bg-white transition-colors">
+                <Settings className="size-5 text-foreground" />
               </Link>
               <div className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
                 <HelpCircle className="size-5 text-white" />
@@ -51,11 +50,12 @@ export default function ToolsPage() {
           {/* Right part - flexible width */}
           <div className="flex-1 min-w-0 px-6 py-5 lg:px-8 lg:py-10 flex flex-col gap-[28px]">
             <h1>
-              Tools
+              Settings
             </h1>
           </div>
         </div>
       </div>
+
     </div>
   );
 }
