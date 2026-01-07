@@ -5,6 +5,7 @@ type Order = {
   shop?: string;
   kaufdatum: string;
   bestellnummer: string;
+  sendungsnummer?: string;
   info: string;
   kundeAdresse: string;
   email: string;
@@ -59,6 +60,7 @@ export function parseCSV(csvText: string): Order[] {
     'Shop': 'shop',
     'Kaufdatum': 'kaufdatum',
     'Bestellnummer': 'bestellnummer',
+    'Sendungsnummer': 'sendungsnummer',
     'Info': 'info',
     'Kunde Adresse': 'kundeAdresse',
     'Email': 'email',
@@ -181,6 +183,7 @@ export function parseCSV(csvText: string): Order[] {
       shop: order.shop,
       kaufdatum: order.kaufdatum ?? '',
       bestellnummer: order.bestellnummer ?? '',
+      sendungsnummer: order.sendungsnummer,
       info: order.info ?? '',
       kundeAdresse: order.kundeAdresse ?? '',
       email: order.email ?? '',

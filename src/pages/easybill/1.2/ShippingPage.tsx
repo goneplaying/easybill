@@ -122,6 +122,7 @@ type Order = {
   nr: number | string;
   kaufdatum: string;
   bestellnummer: string;
+  sendungsnummer?: string;
   info: string;
   kundeAdresse: string;
   email: string;
@@ -1551,9 +1552,15 @@ const getColumns = (
     {
       accessorKey: "bestellnummer",
       header: ({ column }) => (
-        <DataTableColumnHeader column={column} title={activeTab === "versand" ? "Versand-\nnummer" : "Bestell-\nnummer"} />
+        <DataTableColumnHeader column={column} title={activeTab === "versand" ? "Sendungs-\nnummer" : "Bestell-\nnummer"} />
       ),
       cell: ({ row }) => {
+        if (activeTab === "versand") {
+          const sendungsnummer = row.original.sendungsnummer;
+          return (
+            <span>{sendungsnummer || row.getValue("bestellnummer")}</span>
+          );
+        }
         return (
           <span>{row.getValue("bestellnummer")}</span>
         );
@@ -2258,7 +2265,7 @@ const columnLabels1: Record<string, string> = {
 const columnLabels2: Record<string, string> = {
   nr: "Nr",
   kaufdatum: "Kaufdatum",
-  bestellnummer: "Versandnummer",
+  bestellnummer: "Sendungsnummer",
   info: "Info",
   kundeAdresse: "Kunde/Lieferadresse",
   email: "E-Mail",
