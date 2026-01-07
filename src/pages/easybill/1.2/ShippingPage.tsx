@@ -106,7 +106,7 @@ import statusFalse from "@/assets/svgs/status-false.svg";
 import statusFalseTop from "@/assets/svgs/status-false-top.svg";
 import statusFalseBottom from "@/assets/svgs/status-false-bottom.svg";
 import statusGap from "@/assets/svgs/status-gap.svg";
-import statusActive from "@/assets/svgs/status-active.svg";
+import _statusActive from "@/assets/svgs/status-active.svg";
 import statusActiveZahlung from "@/assets/svgs/status-active-zahlung.svg";
 import statusActiveRechnung from "@/assets/svgs/status-active-rechnung.svg";
 import statusActiveSendung from "@/assets/svgs/status-active-sendung.svg";
@@ -5055,10 +5055,10 @@ function ShippingPage() {
             // Helper: check if we should use wide layout (sheet width >= 640 AND window width >= 640)
             const useWideLayout = (sheetWidth ?? 1255) >= 640 && !isUnderSm;
             return (
-            <div className={`mt-3 pb-[90px] ${(sheetWidth >= 1024 && !isUnderSm) ? 'grid grid-cols-[1fr_auto_1fr] gap-[32px]' : 'space-y-6'}`}>
+            <div className={`mt-3 pb-[90px] ${(sheetWidth >= 1024 && !isUnderSm) ? 'grid grid-cols-[1fr_auto_1fr] gap-[32px] items-start' : 'space-y-6'}`}>
               {/* Left Column: Status, Kundendaten, Versand */}
-              <div className={useWideLayout ? 'flex flex-col h-full' : 'w-full'}>
-                <Accordion type="multiple" defaultValue={["item-1", "item-2"]} className={`w-full ${useWideLayout ? 'flex-1 flex flex-col' : ''}`}>
+              <div className={useWideLayout ? 'flex flex-col' : 'w-full'}>
+                <Accordion type="multiple" defaultValue={["item-1", "item-2"]} className="w-full">
                 <AccordionItem value="item-1" className="border-b border-border">
                   <AccordionTrigger className="py-6 text-[20px] font-bold text-foreground hover:no-underline">
                     Status
@@ -5093,11 +5093,11 @@ function ShippingPage() {
                         isFirst, 
                         isLast,
                         labelFalse,
-                        labelActive,
+                        labelActive: _labelActive,
                         labelTrue,
-                        hasPreviousTrue,
-                        hasActiveBefore,
-                        activeIcon
+                        hasPreviousTrue: _hasPreviousTrue,
+                        hasActiveBefore: _hasActiveBefore,
+                        activeIcon: _activeIcon
                       }: { 
                         value: string | null | undefined, 
                         label: string,
@@ -5166,7 +5166,6 @@ function ShippingPage() {
                       // Check which items come after an active item (for muted color)
                       const bezahltAmIsActive = bezahltAmHasPrevTrue && !bezahltAmTrue;
                       const rechnungVersendetIsActive = rechnungVersendetHasPrevTrue && !rechnungVersendetTrue;
-                      const sendungErstelltIsActive = sendungErstelltHasPrevTrue && !sendungErstelltTrue;
                       
                       // Items after active items should use muted color
                       const rechnungVersendetHasActiveBefore = bezahltAmIsActive;
@@ -5271,11 +5270,11 @@ function ShippingPage() {
                     })()}
                   </AccordionContent>
                 </AccordionItem>
-                <AccordionItem value="item-2" className={`border-b border-border ${useWideLayout ? 'flex-1 flex flex-col' : ''}`}>
+                <AccordionItem value="item-2" className="border-b border-border">
                   <AccordionTrigger className="py-6 text-[20px] font-bold text-foreground hover:no-underline">
                     Kundendaten
                   </AccordionTrigger>
-                  <AccordionContent className={`mb-4 ${useWideLayout ? 'flex-1 flex flex-col' : ''}`}>
+                  <AccordionContent className="mb-4">
                     {selectedOrder && (() => {
                       // Replace commas with newlines, then add Deutschland
                       const formattedAddress = selectedOrder.kundeAdresse
@@ -5366,8 +5365,8 @@ function ShippingPage() {
                 </Accordion>
               </div>
               {/* Divider */}
-              {sheetWidth >= 1024 && (
-                <div className="w-px bg-border" />
+              {(sheetWidth >= 1024 && !isUnderSm) && (
+                <div className="w-px bg-border self-stretch" />
               )}
               {/* Right Column: Bestellung */}
               <div className={sheetWidth >= 1024 ? '' : 'w-full'}>
@@ -5501,10 +5500,10 @@ function ShippingPage() {
             // Helper: check if we should use wide layout (sheet width >= 640 AND window width >= 640)
             const useWideLayout = (sheetWidth ?? 1255) >= 640 && !isUnderSm;
             return (
-            <div className={`mt-3 pb-[90px] ${(sheetWidth >= 1024 && !isUnderSm) ? 'grid grid-cols-[1fr_auto_1fr] gap-[32px]' : 'space-y-6'}`}>
+            <div className={`mt-3 pb-[90px] ${(sheetWidth >= 1024 && !isUnderSm) ? 'grid grid-cols-[1fr_auto_1fr] gap-[32px] items-start' : 'space-y-6'}`}>
               {/* Left Column: Status, Kundendaten, Versand */}
-              <div className={useWideLayout ? 'flex flex-col h-full' : 'w-full'}>
-                <Accordion type="multiple" defaultValue={["item-1", "item-2", "item-3"]} className={`w-full ${useWideLayout ? 'flex-1 flex flex-col' : ''}`}>
+              <div className={useWideLayout ? 'flex flex-col' : 'w-full'}>
+                <Accordion type="multiple" defaultValue={["item-1", "item-2", "item-3"]} className="w-full">
                 <AccordionItem value="item-1" className="border-b border-border">
                   <AccordionTrigger className="py-6 text-[20px] font-bold text-foreground hover:no-underline">
                     Status
@@ -5539,11 +5538,11 @@ function ShippingPage() {
                         isFirst, 
                         isLast,
                         labelFalse,
-                        labelActive,
+                        labelActive: _labelActive,
                         labelTrue,
-                        hasPreviousTrue,
-                        hasActiveBefore,
-                        activeIcon,
+                        hasPreviousTrue: _hasPreviousTrue,
+                        hasActiveBefore: _hasActiveBefore,
+                        activeIcon: _activeIcon,
                         showDate = true
                       }: { 
                         value: string | null | undefined, 
@@ -5631,7 +5630,6 @@ function ShippingPage() {
                       const paketlisteErstelltIsActive = paketlisteErstelltHasPrevTrue && !paketlisteErstelltTrue;
                       
                       // Items after active items should use muted color
-                      const rechnungVersendetHasActiveBefore = bezahltAmIsActive;
                       const sendungErstelltHasActiveBefore = bezahltAmIsActive || rechnungVersendetIsActive;
                       const versandprofilHinzugefuegtHasActiveBefore = bezahltAmIsActive || rechnungVersendetIsActive || sendungErstelltIsActive;
                       const paketlisteErstelltHasActiveBefore = bezahltAmIsActive || rechnungVersendetIsActive || sendungErstelltIsActive || versandprofilHinzugefuegtIsActive;
@@ -5756,11 +5754,11 @@ function ShippingPage() {
                     })()}
                   </AccordionContent>
                 </AccordionItem>
-                <AccordionItem value="item-2" className={`border-b border-border ${useWideLayout ? 'flex-1 flex flex-col' : ''}`}>
+                <AccordionItem value="item-2" className="border-b border-border">
                   <AccordionTrigger className="py-6 text-[20px] font-bold text-foreground hover:no-underline">
                     Kundendaten
                   </AccordionTrigger>
-                  <AccordionContent className={`mb-4 ${useWideLayout ? 'flex-1 flex flex-col' : ''}`}>
+                  <AccordionContent className="mb-4">
                     {selectedShipment && (() => {
                       // Replace commas with newlines, then add Deutschland
                       const formattedAddress = selectedShipment.kundeAdresse
@@ -5930,8 +5928,8 @@ function ShippingPage() {
                 </Accordion>
               </div>
               {/* Divider */}
-              {sheetWidth >= 1024 && (
-                <div className="w-px bg-border" />
+              {(sheetWidth >= 1024 && !isUnderSm) && (
+                <div className="w-px bg-border self-stretch" />
               )}
               {/* Right Column: Sendung */}
               <div className={sheetWidth >= 1024 ? '' : 'w-full'}>
