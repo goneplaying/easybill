@@ -20,26 +20,48 @@ export default defineConfig({
     build: {
       rollupOptions: {
         output: {
-          manualChunks: {
+          manualChunks(id) {
             // Vendor chunks
-            'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-            'radix-ui': [
-              '@radix-ui/react-accordion',
-              '@radix-ui/react-checkbox',
-              '@radix-ui/react-context-menu',
-              '@radix-ui/react-dialog',
-              '@radix-ui/react-dropdown-menu',
-              '@radix-ui/react-label',
-              '@radix-ui/react-popover',
-              '@radix-ui/react-select',
-              '@radix-ui/react-separator',
-              '@radix-ui/react-slot',
-              '@radix-ui/react-tabs',
-              '@radix-ui/react-tooltip',
-            ],
-            'table-vendor': ['@tanstack/react-table'],
-            'icons': ['lucide-react'],
-            'utils': ['date-fns', 'clsx', 'tailwind-merge', 'class-variance-authority'],
+            if (id.includes('node_modules')) {
+              // React core (separate from react-dom)
+              if (id.includes('react/') && !id.includes('react-dom')) {
+                return 'react-core';
+              }
+              // React DOM
+              if (id.includes('react-dom')) {
+                return 'react-dom';
+              }
+              // React Router
+              if (id.includes('react-router')) {
+                return 'react-router';
+              }
+              // Radix UI components
+              if (id.includes('@radix-ui')) {
+                return 'radix-ui';
+              }
+              // Table library
+              if (id.includes('@tanstack/react-table')) {
+                return 'table-vendor';
+              }
+              // Icons
+              if (id.includes('lucide-react')) {
+                return 'icons';
+              }
+              // Utility libraries
+              if (id.includes('date-fns') || id.includes('clsx') || id.includes('tailwind-merge') || id.includes('class-variance-authority')) {
+                return 'utils';
+              }
+              // Charts library
+              if (id.includes('recharts')) {
+                return 'charts';
+              }
+              // Sonner (toast notifications)
+              if (id.includes('sonner')) {
+                return 'sonner';
+              }
+              // Other node_modules
+              return 'vendor';
+            }
           },
         },
       },
