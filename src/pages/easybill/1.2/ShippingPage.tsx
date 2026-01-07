@@ -153,6 +153,7 @@ type Order = {
 // Article type
 type Article = {
   artikel: string;
+  anzahl: number;
   preisNetto: number;
   preisBrutto: number;
 };
@@ -221,8 +222,12 @@ function generateArticles(order: Order): Article[] {
     // Use order number to determine which articles to show for consistency
     const articleIndex = (seed + i) % exampleArticles.length;
     
+    // Generate quantity (1-5) based on seed for consistency
+    const anzahl = Math.floor(seededRandom(seed + i + 1000) * 5) + 1;
+    
     articles.push({
       artikel: exampleArticles[articleIndex],
+      anzahl: anzahl,
       preisNetto: nettoPrice,
       preisBrutto: bruttoPrice,
     });
@@ -2325,6 +2330,8 @@ function ShippingPage() {
   const [refreshIconRotation, setRefreshIconRotation] = React.useState(0);
   const [selectedOrder, setSelectedOrder] = React.useState<Order | null>(null);
   const [isSheetOpen, setIsSheetOpen] = React.useState(false);
+  const [selectedShipment, setSelectedShipment] = React.useState<Order | null>(null);
+  const [isSendungSheetOpen, setIsSendungSheetOpen] = React.useState(false);
   const [isFilterSheetOpen, setIsFilterSheetOpen] = React.useState(false);
   const [sheetWidth, setSheetWidth] = React.useState(1255);
   const [isSmallScreen, setIsSmallScreen] = React.useState(false);
@@ -2610,8 +2617,13 @@ function ShippingPage() {
   });
 
   const handleRowDoubleClick = (row: Order) => {
-    setSelectedOrder(row);
-    setIsSheetOpen(true);
+    if (activeTab === "versand") {
+      setSelectedShipment(row);
+      setIsSendungSheetOpen(true);
+    } else {
+      setSelectedOrder(row);
+      setIsSheetOpen(true);
+    }
   };
 
   // Function to show related shipments (Sendungen) for marked Bestellungen rows
@@ -2852,10 +2864,15 @@ function ShippingPage() {
   }, [ordersState1]);
 
   // Count rows where "Rechnung versendet" icon is hidden (checklistData?.rechnungVersendet is false or undefined)
+  // Exclude hidden row 24
   const rechnungVersendetHiddenCount = React.useMemo(() => {
     return ordersState1.filter((order) => {
+      // Exclude Versandvorgang rows (as filteredData1 does)
+      if (order.type === "Versandvorgang") return false;
       const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
       if (rowNr === null) return false;
+      // Exclude hidden row 24
+      if (rowNr === 24) return false;
       const checklistData = checklistMap.get(rowNr);
       const showIcon = checklistData?.rechnungVersendet ?? false;
       return !showIcon; // Count rows where icon is hidden
@@ -2863,10 +2880,15 @@ function ShippingPage() {
   }, [ordersState1, checklistMap]);
 
   // Count rows where "Sendung erstellt" icon is hidden AND "Bezahlt am" has a date
+  // Exclude hidden row 24
   const versanddokumenteCount = React.useMemo(() => {
     return ordersState1.filter((order) => {
+      // Exclude Versandvorgang rows (as filteredData1 does)
+      if (order.type === "Versandvorgang") return false;
       const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
       if (rowNr === null) return false;
+      // Exclude hidden row 24
+      if (rowNr === 24) return false;
       const checklistData = checklistMap.get(rowNr);
       const showIcon = checklistData?.sendungErstellt ?? false;
       const iconHidden = !showIcon;
@@ -2876,6 +2898,7 @@ function ShippingPage() {
   }, [ordersState1, checklistMap]);
 
   // Count rows where "Fehler" icon is visible for Bestellungen table
+  // Exclude hidden row 24
   const fehlerCountBestellungen = React.useMemo(() => {
     let count = 0;
     
@@ -2887,6 +2910,8 @@ function ShippingPage() {
       
       const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
       if (rowNr !== null) {
+        // Exclude hidden row 24
+        if (rowNr === 24) return;
         const checklistData = checklistMap.get(rowNr);
         const hasError = checklistData?.fehler ?? false;
         if (hasError) {
@@ -2904,13 +2929,13 @@ function ShippingPage() {
     
     // Count rows in table 2 (Sendungen) where Fehler icon is visible
     // Include Versandvorgang rows (as filteredData2 does)
-    // Exclude hidden rows (19, 20, 21, 22, 23) unless they're in visibleKundeAdressenForSendungen
+    // Exclude hidden rows (19, 20, 21, 22, 23, 24) unless they're in visibleKundeAdressenForSendungen
     ordersState2.forEach((order) => {
       const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
       if (rowNr === null) return;
       
       // Check if row is hidden
-      if (rowNr === 19 || rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23) {
+      if (rowNr === 19 || rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23 || rowNr === 24) {
         if (visibleKundeAdressenForSendungen.size === 0 || !visibleKundeAdressenForSendungen.has(order.kundeAdresse || "")) {
           return; // Skip hidden rows
         }
@@ -2935,7 +2960,7 @@ function ShippingPage() {
         if (rowNr === null) return;
         
         // Check if row is hidden
-        if (rowNr === 19 || rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23) {
+        if (rowNr === 19 || rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23 || rowNr === 24) {
           if (visibleKundeAdressenForSendungen.size === 0 || !visibleKundeAdressenForSendungen.has(order.kundeAdresse || "")) {
             return; // Skip hidden rows
           }
@@ -2960,7 +2985,7 @@ function ShippingPage() {
         if (rowNr === null) return;
         
         // Check if row is hidden
-        if (rowNr === 19 || rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23) {
+        if (rowNr === 19 || rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23 || rowNr === 24) {
           if (visibleKundeAdressenForSendungen.size === 0 || !visibleKundeAdressenForSendungen.has(order.kundeAdresse || "")) {
             return; // Skip hidden rows
           }
@@ -2985,7 +3010,7 @@ function ShippingPage() {
         if (rowNr === null) return;
         
         // Check if row is hidden
-        if (rowNr === 19 || rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23) {
+        if (rowNr === 19 || rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23 || rowNr === 24) {
           if (visibleKundeAdressenForSendungen.size === 0 || !visibleKundeAdressenForSendungen.has(order.kundeAdresse || "")) {
             return; // Skip hidden rows
           }
@@ -3010,7 +3035,7 @@ function ShippingPage() {
         if (rowNr === null) return;
         
         // Check if row is hidden
-        if (rowNr === 19 || rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23) {
+        if (rowNr === 19 || rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23 || rowNr === 24) {
           if (visibleKundeAdressenForSendungen.size === 0 || !visibleKundeAdressenForSendungen.has(order.kundeAdresse || "")) {
             return; // Skip hidden rows
           }
@@ -3035,7 +3060,7 @@ function ShippingPage() {
         if (rowNr === null) return;
         
         // Check if row is hidden
-        if (rowNr === 19 || rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23) {
+        if (rowNr === 19 || rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23 || rowNr === 24) {
           if (visibleKundeAdressenForSendungen.size === 0 || !visibleKundeAdressenForSendungen.has(order.kundeAdresse || "")) {
             return; // Skip hidden rows
           }
@@ -3277,6 +3302,13 @@ function ShippingPage() {
   const filteredData1 = React.useMemo(() => {
     let result = ordersState1;
 
+    // Hide row with nr 24 by default
+    result = result.filter((order) => {
+      const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+      if (rowNr === null) return true;
+      return rowNr !== 24;
+    });
+
     // Apply filter for Importquelle dropdown
     if (importquelle && importquelle !== "Alle") {
       result = result.filter((order) => order.importquelle === importquelle);
@@ -3386,6 +3418,14 @@ function ShippingPage() {
   // Filter data for table 2 (only base orders)
   const filteredData2 = React.useMemo(() => {
     let result = ordersState2;
+
+    // Hide row 24 always
+    result = result.filter((order) => {
+      const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+      if (rowNr === null) return true;
+      if (rowNr === 24) return false;
+      return true;
+    });
 
     // Hide rows with numbers 19, 20, 21, 22, 23 at start (unless they match visible kundeAdresse values)
     result = result.filter((order) => {
@@ -3563,14 +3603,19 @@ function ShippingPage() {
     return result;
   }, [ordersState2, importquelle, kaufdatum, importdatum, isChecked, isChecked5, isChecked6, isChecked7, isChecked8, isChecked10, isChecked11, isChecked12, isChecked13, isChecked14, checklistMap, visibleKundeAdressenForSendungen, combineDuplicateAddresses]);
 
-  // filteredOrders for sheet navigation - uses active table's data
+  // filteredOrders for BestellungSheet navigation - uses Bestellungen table data
   // Must be declared here after filteredData1 and filteredData2 are defined
   const filteredOrders = React.useMemo(() => {
-    return activeTab === "versand" ? filteredData2 : filteredData1;
-  }, [activeTab, filteredData1, filteredData2]);
+    return filteredData1;
+  }, [filteredData1]);
+
+  // filteredShipments for SendungSheet navigation - uses Sendungen table data
+  const filteredShipments = React.useMemo(() => {
+    return filteredData2;
+  }, [filteredData2]);
 
 
-  // Sheet navigation helpers - must be declared after filteredOrders
+  // BestellungSheet navigation helpers - must be declared after filteredOrders
   const currentIndex = selectedOrder ? filteredOrders.findIndex((o) => o.nr === selectedOrder.nr) : -1;
   const showArrows = filteredOrders.length > 1;
 
@@ -3586,6 +3631,23 @@ function ShippingPage() {
     }
   };
 
+  // SendungSheet navigation helpers - must be declared after filteredShipments
+  const currentShipmentIndex = selectedShipment ? filteredShipments.findIndex((o) => o.nr === selectedShipment.nr) : -1;
+  const showShipmentArrows = filteredShipments.length > 1;
+
+  const handlePrevClickShipment = () => {
+    if (currentShipmentIndex > 0) {
+      setSelectedShipment(filteredShipments[currentShipmentIndex - 1]);
+    }
+  };
+
+  const handleNextClickShipment = () => {
+    if (currentShipmentIndex < filteredShipments.length - 1) {
+      setSelectedShipment(filteredShipments[currentShipmentIndex + 1]);
+    }
+  };
+
+  // Keyboard navigation for BestellungSheet
   React.useEffect(() => {
     if (!isSheetOpen || !showArrows) return;
 
@@ -3599,14 +3661,30 @@ function ShippingPage() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isSheetOpen, showArrows, currentIndex, filteredOrders]); // Added dependencies directly to be safe, though handlePrev/Next close over them.
+  }, [isSheetOpen, showArrows, currentIndex, filteredOrders]);
+
+  // Keyboard navigation for SendungSheet
+  React.useEffect(() => {
+    if (!isSendungSheetOpen || !showShipmentArrows) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") {
+        handlePrevClickShipment();
+      } else if (e.key === "ArrowRight") {
+        handleNextClickShipment();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isSendungSheetOpen, showShipmentArrows, currentShipmentIndex, filteredShipments]);
 
   // Handle Enter key to open sheet with first marked/selected row
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Only handle Enter key when sheet is closed and not in an input/textarea/button
+      // Only handle Enter key when sheets are closed and not in an input/textarea/button
       if (e.key !== "Enter") return;
-      if (isSheetOpen) return;
+      if (isSheetOpen || isSendungSheetOpen) return;
       
       const target = e.target as HTMLElement;
       if (
@@ -3644,20 +3722,25 @@ function ShippingPage() {
         }
       }
 
-      // Open sheet with first row if found
+      // Open appropriate sheet with first row if found
       if (firstRow) {
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
         // Set both states together to avoid timing issues
-        setSelectedOrder(firstRow);
-        setIsSheetOpen(true);
+        if (activeTab === "versand") {
+          setSelectedShipment(firstRow);
+          setIsSendungSheetOpen(true);
+        } else {
+          setSelectedOrder(firstRow);
+          setIsSheetOpen(true);
+        }
       }
     };
 
     document.addEventListener("keydown", handleKeyDown, true); // Use capture phase to catch early
     return () => document.removeEventListener("keydown", handleKeyDown, true);
-  }, [isSheetOpen, activeTab, markedRows1, markedRows2, rowSelection1, rowSelection2, filteredData1, filteredData2]);
+  }, [isSheetOpen, isSendungSheetOpen, activeTab, markedRows1, markedRows2, rowSelection1, rowSelection2, filteredData1, filteredData2]);
 
   // Handle sheet resizing
   React.useEffect(() => {
@@ -4083,6 +4166,26 @@ function ShippingPage() {
     const currentMarkedRows = activeTab === "versand" ? markedRows2 : markedRows1;
     return currentMarkedRows.has(selectedOrder.nr);
   }, [selectedOrder, activeTab, markedRows1, markedRows2]);
+
+  // Handle toggle mark for SendungSheet
+  const handleToggleCurrentShipmentMark = React.useCallback(() => {
+    if (!selectedShipment) return;
+    
+    const rowNr = selectedShipment.nr;
+    const newMarked = new Set(markedRows2);
+    if (newMarked.has(rowNr)) {
+      newMarked.delete(rowNr);
+    } else {
+      newMarked.add(rowNr);
+    }
+    setMarkedRows2(newMarked);
+  }, [selectedShipment, markedRows2]);
+
+  // Check if the current shipment row is marked
+  const isCurrentShipmentMarked = React.useMemo(() => {
+    if (!selectedShipment) return false;
+    return markedRows2.has(selectedShipment.nr);
+  }, [selectedShipment, markedRows2]);
 
   // Check if any rows are marked
   const hasMarkedRows = React.useMemo(() => {
@@ -4882,7 +4985,10 @@ function ShippingPage() {
               setIsResizing(true);
             }}
           />
-          <div className={`text-sm text-muted-foreground mb-1 ${isUnderSm ? 'mt-12' : 'mt-4'}`}>Bestellung</div>
+          <div className={`flex items-center gap-2 mb-1 ${isUnderSm ? 'mt-12' : 'mt-4'}`}>
+            <CreditCard className="size-4" />
+            <span className="text-sm">Bestellung</span>
+          </div>
           <SheetTitle className={`font-bold tracking-tight text-foreground mb-2 mt-4`}>
             #{selectedOrder?.bestellnummer}
           </SheetTitle>
@@ -4893,7 +4999,7 @@ function ShippingPage() {
             <div className={`mt-3 ${(sheetWidth >= 1024 && !isUnderSm) ? 'grid grid-cols-[1fr_auto_1fr] gap-[32px]' : 'space-y-6'}`}>
               {/* Left Column: Status, Kundendaten, Versand */}
               <div className={useWideLayout ? 'flex flex-col h-full' : 'w-full'}>
-                <Accordion type="multiple" defaultValue={["item-1", "item-2", "item-3"]} className={`w-full ${useWideLayout ? 'flex-1 flex flex-col' : ''}`}>
+                <Accordion type="multiple" defaultValue={["item-1", "item-2"]} className={`w-full ${useWideLayout ? 'flex-1 flex flex-col' : ''}`}>
                 <AccordionItem value="item-1" className="border-b border-border">
                   <AccordionTrigger className="py-6 text-[20px] font-bold text-foreground hover:no-underline">
                     Status
@@ -4965,7 +5071,7 @@ function ShippingPage() {
                         }
                         
                         return (
-                          <div className="flex items-center justify-between gap-[12px] h-[40px]">
+                          <div className="flex items-center justify-between gap-[12px] h-[36px]">
                             <div className="flex items-center gap-[10px]">
                               <img 
                                 src={statusIcon} 
@@ -4989,11 +5095,6 @@ function ShippingPage() {
                       const rechnungVersendetTrue = hasValueHelper(rechnungVersendetValue);
                       const sendungErstelltValue = getFloatingColDate(checklistData?.sendungErstellt, selectedOrder.sendungErstelltDatum);
                       const sendungErstelltTrue = hasValueHelper(sendungErstelltValue);
-                      const versandprofilHinzugefuegtValue = getFloatingColDate(checklistData?.versandprofilHinzugefuegt, selectedOrder.versandprofilHinzugefuegtDatum);
-                      const versandprofilHinzugefuegtTrue = hasValueHelper(versandprofilHinzugefuegtValue);
-                      const paketlisteErstelltValue = getFloatingColDate(checklistData?.paketlisteErstellt, selectedOrder.versandtGemeldet);
-                      const paketlisteErstelltTrue = hasValueHelper(paketlisteErstelltValue);
-                      const versendetValue = getFloatingColDate(checklistData?.versendet, selectedOrder.versanddatum);
                       
                       // Check which items have previous true items (next item after TRUE should be ACTIVE)
                       // For bezahltAm: previous is kaufdatum
@@ -5002,26 +5103,15 @@ function ShippingPage() {
                       const rechnungVersendetHasPrevTrue = bezahltAmTrue;
                       // For sendungErstellt: previous is rechnungVersendet
                       const sendungErstelltHasPrevTrue = rechnungVersendetTrue;
-                      // For versandprofilHinzugefuegt: previous is sendungErstellt
-                      const versandprofilHinzugefuegtHasPrevTrue = sendungErstelltTrue;
-                      // For paketlisteErstellt: previous is versandprofilHinzugefuegt
-                      const paketlisteErstelltHasPrevTrue = versandprofilHinzugefuegtTrue;
-                      // For versendet: previous is paketlisteErstellt
-                      const versendetHasPrevTrue = paketlisteErstelltTrue;
                       
                       // Check which items come after an active item (for muted color)
                       const bezahltAmIsActive = bezahltAmHasPrevTrue && !bezahltAmTrue;
                       const rechnungVersendetIsActive = rechnungVersendetHasPrevTrue && !rechnungVersendetTrue;
                       const sendungErstelltIsActive = sendungErstelltHasPrevTrue && !sendungErstelltTrue;
-                      const versandprofilHinzugefuegtIsActive = versandprofilHinzugefuegtHasPrevTrue && !versandprofilHinzugefuegtTrue;
-                      const paketlisteErstelltIsActive = paketlisteErstelltHasPrevTrue && !paketlisteErstelltTrue;
                       
                       // Items after active items should use muted color
                       const rechnungVersendetHasActiveBefore = bezahltAmIsActive;
                       const sendungErstelltHasActiveBefore = bezahltAmIsActive || rechnungVersendetIsActive;
-                      const versandprofilHinzugefuegtHasActiveBefore = bezahltAmIsActive || rechnungVersendetIsActive || sendungErstelltIsActive;
-                      const paketlisteErstelltHasActiveBefore = bezahltAmIsActive || rechnungVersendetIsActive || sendungErstelltIsActive || versandprofilHinzugefuegtIsActive;
-                      const versendetHasActiveBefore = bezahltAmIsActive || rechnungVersendetIsActive || sendungErstelltIsActive || versandprofilHinzugefuegtIsActive || paketlisteErstelltIsActive;
                       
                       return (
                         <div className="flex flex-col gap-0">
@@ -5055,6 +5145,7 @@ function ShippingPage() {
                             <StatusItem 
                               value={sendungErstelltValue} 
                               label="Sendung erstellt"
+                              isLast={true}
                               hasPreviousTrue={sendungErstelltHasPrevTrue}
                               hasActiveBefore={sendungErstelltHasActiveBefore}
                               activeIcon={statusActiveSendung}
@@ -5070,10 +5161,10 @@ function ShippingPage() {
                                   size="lg"
                                   className="h-10 w-10 ml-0"
                                 >
-                                  <Package className="size-4" />
+                                  <CreditCard className="size-4" />
                                 </Button>
                                 <div className="flex flex-col gap-1">
-                                  <div className="text-xs text-muted-foreground">Text item 1</div>
+                                  <div className="text-xs text-muted-foreground">Sendungsnummer</div>
                                   <div className="text-sm">Text item 2</div>
                                 </div>
                               </div>
@@ -5082,41 +5173,10 @@ function ShippingPage() {
                                 className="p-0 px-0 has-[>svg]:px-0 h-auto text-sm font-normal"
                               >
                                 <Plus className="size-4" />
-                                Sendung hinzufügen
+                                Bestellung hinzufügen
                               </Button>
                             </div>
                           </div>
-                          <StatusItem 
-                            value={versandprofilHinzugefuegtValue} 
-                            label="Versandprofil hinzugefügt"
-                            hasPreviousTrue={versandprofilHinzugefuegtHasPrevTrue}
-                            hasActiveBefore={versandprofilHinzugefuegtHasActiveBefore}
-                            activeIcon={statusActiveVersandprofil}
-                            labelFalse="Versandprofil"
-                            labelActive="Versandprofil hinzufügen"
-                            labelTrue="Versandprofil hinzugefügt"
-                          />
-                          <StatusItem 
-                            value={paketlisteErstelltValue} 
-                            label="Versandlabel erstellt"
-                            hasPreviousTrue={paketlisteErstelltHasPrevTrue}
-                            hasActiveBefore={paketlisteErstelltHasActiveBefore}
-                            activeIcon={statusActiveVersandlabel}
-                            labelFalse="Versandlabel"
-                            labelActive="Versandlabel erstellen"
-                            labelTrue="Versandlabel erstellt"
-                          />
-                          <StatusItem 
-                            value={versendetValue} 
-                            label="Versendet"
-                            isLast={true}
-                            hasPreviousTrue={versendetHasPrevTrue}
-                            hasActiveBefore={versendetHasActiveBefore}
-                            activeIcon={statusActiveVersand}
-                            labelFalse="Versand"
-                            labelActive="Versenden"
-                            labelTrue="Versendet"
-                          />
                         </div>
                       );
                     })()}
@@ -5214,109 +5274,6 @@ function ShippingPage() {
                     })()}
                   </AccordionContent>
                 </AccordionItem>
-                <AccordionItem value="item-3" className="border-b border-border">
-                  <AccordionTrigger className="py-6 text-[20px] font-bold text-foreground hover:no-underline">
-                    Versand
-                  </AccordionTrigger>
-                  <AccordionContent className="mb-4">
-                    {selectedOrder && (
-                      <>
-                        <div className="mb-5">
-                          <label className="text-sm font-medium text-foreground">Versandprofil</label>
-                          <Select 
-                            value={selectedOrder.versandprofil || ""}
-                            onValueChange={(value) => {
-                              const updatedOrder = { ...selectedOrder, versandprofil: value };
-                              setSelectedOrder(updatedOrder);
-                              // Update orders arrays (update both tables if order exists)
-                              const orderIndex1 = ordersState1.findIndex(o => o.nr === selectedOrder.nr);
-                              if (orderIndex1 !== -1) {
-                                setOrdersState1(prev => prev.map((o, idx) => idx === orderIndex1 ? updatedOrder : o));
-                              }
-                              const orderIndex2 = ordersState2.findIndex(o => o.nr === selectedOrder.nr);
-                              if (orderIndex2 !== -1) {
-                                setOrdersState2(prev => prev.map((o, idx) => idx === orderIndex2 ? updatedOrder : o));
-                              }
-                            }}
-                          >
-                            <SelectTrigger className="mt-2">
-                              <SelectValue placeholder="Versandprofil auswählen" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {versandprofilOptions.map((profil) => (
-                                <SelectItem key={profil} value={profil}>
-                                  {profil}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div className={`grid ${!useWideLayout ? 'grid-cols-1' : 'grid-cols-2'} gap-x-[28px] gap-y-5`}>
-                        <div>
-                          <label className="text-sm font-medium text-foreground">Versanddienstleister</label>
-                          <Select 
-                            value={selectedOrder.versanddienstleister}
-                            onValueChange={(value) => {
-                              const updatedOrder = { ...selectedOrder, versanddienstleister: value };
-                              setSelectedOrder(updatedOrder);
-                              // Update orders arrays (update both tables if order exists)
-                              const orderIndex1 = ordersState1.findIndex(o => o.nr === selectedOrder.nr);
-                              if (orderIndex1 !== -1) {
-                                setOrdersState1(prev => prev.map((o, idx) => idx === orderIndex1 ? updatedOrder : o));
-                              }
-                              const orderIndex2 = ordersState2.findIndex(o => o.nr === selectedOrder.nr);
-                              if (orderIndex2 !== -1) {
-                                setOrdersState2(prev => prev.map((o, idx) => idx === orderIndex2 ? updatedOrder : o));
-                              }
-                            }}
-                          >
-                            <SelectTrigger className="mt-2">
-                              <SelectValue placeholder="Versanddienstleister auswählen" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="DHL">DHL</SelectItem>
-                              <SelectItem value="Hermes">Hermes</SelectItem>
-                              <SelectItem value="DPD">DPD</SelectItem>
-                              <SelectItem value="UPS">UPS</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <label className="text-sm font-medium text-foreground">Versandverpackung</label>
-                          <Select 
-                            value={selectedOrder.versandverpackung}
-                            onValueChange={(value) => {
-                              const updatedOrder = { ...selectedOrder, versandverpackung: value };
-                              setSelectedOrder(updatedOrder);
-                              // Update orders arrays (update both tables if order exists)
-                              const orderIndex1 = ordersState1.findIndex(o => o.nr === selectedOrder.nr);
-                              if (orderIndex1 !== -1) {
-                                setOrdersState1(prev => prev.map((o, idx) => idx === orderIndex1 ? updatedOrder : o));
-                              }
-                              const orderIndex2 = ordersState2.findIndex(o => o.nr === selectedOrder.nr);
-                              if (orderIndex2 !== -1) {
-                                setOrdersState2(prev => prev.map((o, idx) => idx === orderIndex2 ? updatedOrder : o));
-                              }
-                            }}
-                          >
-                            <SelectTrigger className="mt-2">
-                              <SelectValue placeholder="Versandverpackung auswählen" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="Karton S">Karton S</SelectItem>
-                              <SelectItem value="Karton M">Karton M</SelectItem>
-                              <SelectItem value="Karton L">Karton L</SelectItem>
-                              <SelectItem value="Karton XL">Karton XL</SelectItem>
-                              <SelectItem value="Spezialkarton">Spezialkarton</SelectItem>
-                              <SelectItem value="Palette">Palette</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-                      </>
-                    )}
-                  </AccordionContent>
-                </AccordionItem>
                 </Accordion>
               </div>
               {/* Divider */}
@@ -5353,6 +5310,7 @@ function ShippingPage() {
                             <TableHeader>
                               <TableRow>
                                 <TableHead className="w-1/3">Artikel</TableHead>
+                                <TableHead className="text-right">Anzahl</TableHead>
                                 <TableHead className="text-right">MwSt. Satz</TableHead>
                                 <TableHead className="text-right">Preis Netto</TableHead>
                                 <TableHead className="text-right">Preis Brutto</TableHead>
@@ -5362,6 +5320,7 @@ function ShippingPage() {
                               {articles.map((article, index) => (
                                 <TableRow key={index}>
                                   <TableCell>{article.artikel}</TableCell>
+                                  <TableCell className="text-right">{article.anzahl}</TableCell>
                                   <TableCell className="text-right">{selectedOrder.mwstSatz}%</TableCell>
                                   <TableCell className="text-right">{formatEUR(article.preisNetto)}</TableCell>
                                   <TableCell className="text-right">{formatEUR(article.preisBrutto)}</TableCell>
@@ -5369,6 +5328,7 @@ function ShippingPage() {
                               ))}
                               <TableRow>
                                 <TableCell>Versand</TableCell>
+                                <TableCell></TableCell>
                                 <TableCell className="text-right">{selectedOrder.mwstSatz}%</TableCell>
                                 <TableCell className="text-right">{formatEUR(selectedOrder.versandNetto)}</TableCell>
                                 <TableCell className="text-right">{formatEUR(selectedOrder.versandBrutto)}</TableCell>
@@ -5376,8 +5336,525 @@ function ShippingPage() {
                               <TableRow>
                                 <TableCell className="font-medium text-foreground">Gesamt</TableCell>
                                 <TableCell></TableCell>
+                                <TableCell></TableCell>
                                 <TableCell className="text-right font-medium text-foreground">{formatEUR(selectedOrder.gesamtNetto)}</TableCell>
                                 <TableCell className="text-right font-medium text-foreground">{formatEUR(selectedOrder.gesamtBrutto)}</TableCell>
+                              </TableRow>
+                            </TableBody>
+                          </Table>
+                        </div>
+                        );
+                      })()}
+                      </>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+              </div>
+            </div>
+            );
+          })()}
+        </SheetContent>
+      </Sheet>
+
+      {/* SendungSheet */}
+      <Sheet open={isSendungSheetOpen} onOpenChange={(open) => {
+        setIsSendungSheetOpen(open);
+      }}>
+        <SheetContent
+          name="SendungSheet"
+          side="right"
+          className="overflow-y-auto p-6 lg:p-10 !max-w-full lg:!max-w-none"
+          style={isSmallScreen ? { width: '100%', maxWidth: '100%' } : { width: `${responsiveSheetWidth}px`, maxWidth: `${responsiveSheetWidth}px` }}
+          onPrevClick={showShipmentArrows ? handlePrevClickShipment : undefined}
+          onNextClick={showShipmentArrows ? handleNextClickShipment : undefined}
+          isPrevDisabled={currentShipmentIndex <= 0}
+          isNextDisabled={currentShipmentIndex >= filteredShipments.length - 1}
+          onToggleSelectAll={handleToggleCurrentShipmentMark}
+          allRowsSelected={isCurrentShipmentMarked}
+          aria-label="sendung"
+        >
+          {/* Resize handle */}
+          <div
+            className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/20 active:bg-primary/40 transition-colors z-50"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              setIsResizing(true);
+            }}
+          />
+          {selectedShipment && (() => {
+            // Determine icon based on state (same logic as floating columns)
+            const rowNr = typeof selectedShipment.nr === 'number' ? selectedShipment.nr : parseInt(String(selectedShipment.nr)) || null;
+            const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
+            const versendet = checklistData?.versendet ?? false;
+            const paketlabelErstellt = checklistData?.paketlisteErstellt ?? false;
+            
+            let icon = <PackageOpen className="size-4" />;
+            if (versendet) {
+              icon = <PackageCheck className="size-4" />;
+            } else if (paketlabelErstellt) {
+              icon = <Package className="size-4" />;
+            }
+            
+            return (
+              <>
+                <div className={`flex items-center gap-2 mb-1 ${isUnderSm ? 'mt-12' : 'mt-4'}`}>
+                  {icon}
+                  <span className="text-sm">Sendung</span>
+                </div>
+                <SheetTitle className={`font-bold tracking-tight text-foreground mb-2 mt-4`}>
+                  #{selectedShipment?.bestellnummer}
+                </SheetTitle>
+              </>
+            );
+          })()}
+          {selectedShipment && (() => {
+            // Helper: check if we should use wide layout (sheet width >= 640 AND window width >= 640)
+            const useWideLayout = (sheetWidth ?? 1255) >= 640 && !isUnderSm;
+            return (
+            <div className={`mt-3 ${(sheetWidth >= 1024 && !isUnderSm) ? 'grid grid-cols-[1fr_auto_1fr] gap-[32px]' : 'space-y-6'}`}>
+              {/* Left Column: Status, Kundendaten, Versand */}
+              <div className={useWideLayout ? 'flex flex-col h-full' : 'w-full'}>
+                <Accordion type="multiple" defaultValue={["item-1", "item-2", "item-3"]} className={`w-full ${useWideLayout ? 'flex-1 flex flex-col' : ''}`}>
+                <AccordionItem value="item-1" className="border-b border-border">
+                  <AccordionTrigger className="py-6 text-[20px] font-bold text-foreground hover:no-underline">
+                    Status
+                  </AccordionTrigger>
+                  <AccordionContent className="flex flex-col gap-0 mb-4 min-h-[120px]">
+                    {selectedShipment && (() => {
+                      const rowNr = typeof selectedShipment.nr === 'number' ? selectedShipment.nr : parseInt(String(selectedShipment.nr)) || null;
+                      const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
+                      
+                      // Get today's date in YYYY-MM-DD format (only for temporary/created data)
+                      const getTodayDate = () => {
+                        const today = new Date();
+                        const year = today.getFullYear();
+                        const month = String(today.getMonth() + 1).padStart(2, '0');
+                        const day = String(today.getDate()).padStart(2, '0');
+                        return `${year}-${month}-${day}`;
+                      };
+                      
+                      // Helper function to get date value: CSV data has priority, use today's date only if checklist is true but no CSV date exists
+                      const getFloatingColDate = (checklistValue: boolean | undefined, csvDate: string | null | undefined) => {
+                        if (!checklistValue) return null;
+                        // If CSV has a date, use it (has priority)
+                        if (csvDate && csvDate.trim() !== '') return csvDate;
+                        // Otherwise, use today's date (temporary/created data)
+                        return getTodayDate();
+                      };
+                      
+                      // Helper component for status items
+                      const StatusItem = ({ 
+                        value, 
+                        label, 
+                        isFirst, 
+                        isLast,
+                        labelFalse,
+                        labelActive,
+                        labelTrue,
+                        hasPreviousTrue,
+                        hasActiveBefore,
+                        activeIcon
+                      }: { 
+                        value: string | null | undefined, 
+                        label: string,
+                        isFirst?: boolean,
+                        isLast?: boolean,
+                        labelFalse?: string,
+                        labelActive?: string,
+                        labelTrue?: string,
+                        hasPreviousTrue?: boolean,
+                        hasActiveBefore?: boolean,
+                        activeIcon?: string
+                      }) => {
+                        const hasValue = value && value.trim() !== '';
+                        const isTrue = hasValue;
+                        
+                        // Determine which SVG to use based on state and position
+                        let statusIcon = statusFalse;
+                        if (isTrue) {
+                          statusIcon = isFirst ? statusTrueTop : (isLast ? statusTrueBottom : statusTrue);
+                        } else {
+                          statusIcon = isFirst ? statusFalseTop : (isLast ? statusFalseBottom : statusFalse);
+                        }
+                        
+                        // Determine label based on state (only true/false, no active)
+                        let displayLabel = label;
+                        if (isTrue && labelTrue) {
+                          displayLabel = labelTrue;
+                        } else if (!isTrue && labelFalse) {
+                          displayLabel = labelFalse;
+                        }
+                        
+                        return (
+                          <div className="flex items-center justify-between gap-[12px] h-[36px]">
+                            <div className="flex items-center gap-[10px]">
+                              <img 
+                                src={statusIcon} 
+                                alt={isTrue ? "Status true" : "Status false"}
+                                className="w-auto h-auto flex-shrink-0"
+                              />
+                              <span className={`text-sm font-normal ${isTrue ? 'text-foreground' : 'text-muted-foreground'}`}>{displayLabel}</span>
+                            </div>
+                            <span className="text-sm text-muted-foreground">{value ? formatDate(value) : ''}</span>
+                          </div>
+                        );
+                      };
+                      
+                      // Helper to check if item has a value
+                      const hasValueHelper = (val: string | null | undefined): boolean => !!(val && val.trim() !== '');
+                      
+                      // Determine states for all items to check for previous true items
+                      const kaufdatumTrue = hasValueHelper(selectedShipment.kaufdatum);
+                      const bezahltAmTrue = hasValueHelper(selectedShipment.bezahltAm);
+                      const rechnungVersendetValue = getFloatingColDate(checklistData?.rechnungVersendet, selectedShipment.rechnungVersendetDatum);
+                      const rechnungVersendetTrue = hasValueHelper(rechnungVersendetValue);
+                      const sendungErstelltValue = getFloatingColDate(checklistData?.sendungErstellt, selectedShipment.sendungErstelltDatum);
+                      const sendungErstelltTrue = hasValueHelper(sendungErstelltValue);
+                      const versandprofilHinzugefuegtValue = getFloatingColDate(checklistData?.versandprofilHinzugefuegt, selectedShipment.versandprofilHinzugefuegtDatum);
+                      const versandprofilHinzugefuegtTrue = hasValueHelper(versandprofilHinzugefuegtValue);
+                      const paketlisteErstelltValue = getFloatingColDate(checklistData?.paketlisteErstellt, selectedShipment.versandtGemeldet);
+                      const paketlisteErstelltTrue = hasValueHelper(paketlisteErstelltValue);
+                      const versendetValue = getFloatingColDate(checklistData?.versendet, selectedShipment.versanddatum);
+                      
+                      // Check which items have previous true items (next item after TRUE should be ACTIVE)
+                      // For bezahltAm: previous is kaufdatum
+                      const bezahltAmHasPrevTrue = kaufdatumTrue;
+                      // For rechnungVersendet: previous is bezahltAm
+                      const rechnungVersendetHasPrevTrue = bezahltAmTrue;
+                      // For sendungErstellt: previous is rechnungVersendet
+                      const sendungErstelltHasPrevTrue = rechnungVersendetTrue;
+                      // For versandprofilHinzugefuegt: previous is sendungErstellt
+                      const versandprofilHinzugefuegtHasPrevTrue = sendungErstelltTrue;
+                      // For paketlisteErstellt: previous is versandprofilHinzugefuegt
+                      const paketlisteErstelltHasPrevTrue = versandprofilHinzugefuegtTrue;
+                      // For versendet: previous is paketlisteErstellt
+                      const versendetHasPrevTrue = paketlisteErstelltTrue;
+                      
+                      // Check which items come after an active item (for muted color)
+                      const bezahltAmIsActive = bezahltAmHasPrevTrue && !bezahltAmTrue;
+                      const rechnungVersendetIsActive = rechnungVersendetHasPrevTrue && !rechnungVersendetTrue;
+                      const sendungErstelltIsActive = sendungErstelltHasPrevTrue && !sendungErstelltTrue;
+                      const versandprofilHinzugefuegtIsActive = versandprofilHinzugefuegtHasPrevTrue && !versandprofilHinzugefuegtTrue;
+                      const paketlisteErstelltIsActive = paketlisteErstelltHasPrevTrue && !paketlisteErstelltTrue;
+                      
+                      // Items after active items should use muted color
+                      const rechnungVersendetHasActiveBefore = bezahltAmIsActive;
+                      const sendungErstelltHasActiveBefore = bezahltAmIsActive || rechnungVersendetIsActive;
+                      const versandprofilHinzugefuegtHasActiveBefore = bezahltAmIsActive || rechnungVersendetIsActive || sendungErstelltIsActive;
+                      const paketlisteErstelltHasActiveBefore = bezahltAmIsActive || rechnungVersendetIsActive || sendungErstelltIsActive || versandprofilHinzugefuegtIsActive;
+                      const versendetHasActiveBefore = bezahltAmIsActive || rechnungVersendetIsActive || sendungErstelltIsActive || versandprofilHinzugefuegtIsActive || paketlisteErstelltIsActive;
+                      
+                      return (
+                        <div className="flex flex-col gap-0">
+                          <div>
+                            <StatusItem 
+                              value={sendungErstelltValue} 
+                              label="Sendung erstellt"
+                              isFirst={true}
+                              hasPreviousTrue={sendungErstelltHasPrevTrue}
+                              hasActiveBefore={sendungErstelltHasActiveBefore}
+                              activeIcon={statusActiveSendung}
+                              labelFalse="Sendung"
+                              labelActive="Sendung erstellen"
+                              labelTrue="Sendung erstellt"
+                            />
+                            <div className="pt-3 pb-3 pl-[42px] flex items-center justify-between gap-2">
+                              <div className="flex items-center justify-center gap-3">
+                                <Button
+                                  name="listItemDetails"
+                                  variant="outline"
+                                  size="lg"
+                                  className="h-10 w-10 ml-0"
+                                >
+                                  <CreditCard className="size-4" />
+                                </Button>
+                                <div className="flex flex-col gap-1">
+                                  <div className="text-xs text-muted-foreground">Bestellnummer</div>
+                                  <div className="text-sm">Text item 2</div>
+                                </div>
+                              </div>
+                              <Button
+                                variant="link"
+                                className="p-0 px-0 has-[>svg]:px-0 h-auto text-sm font-normal"
+                              >
+                                <Plus className="size-4" />
+                                Bestellung hinzufügen
+                              </Button>
+                            </div>
+                          </div>
+                          <StatusItem 
+                            value={versandprofilHinzugefuegtValue} 
+                            label="Versandprofil hinzugefügt"
+                            hasPreviousTrue={versandprofilHinzugefuegtHasPrevTrue}
+                            hasActiveBefore={versandprofilHinzugefuegtHasActiveBefore}
+                            activeIcon={statusActiveVersandprofil}
+                            labelFalse="Versandprofil"
+                            labelActive="Versandprofil hinzufügen"
+                            labelTrue="Versandprofil hinzugefügt"
+                          />
+                          <StatusItem 
+                            value={paketlisteErstelltValue} 
+                            label="Versandlabel erstellt"
+                            hasPreviousTrue={paketlisteErstelltHasPrevTrue}
+                            hasActiveBefore={paketlisteErstelltHasActiveBefore}
+                            activeIcon={statusActiveVersandlabel}
+                            labelFalse="Versandlabel"
+                            labelActive="Versandlabel erstellen"
+                            labelTrue="Versandlabel erstellt"
+                          />
+                          <StatusItem 
+                            value={versendetValue} 
+                            label="Versendet"
+                            isLast={true}
+                            hasPreviousTrue={versendetHasPrevTrue}
+                            hasActiveBefore={versendetHasActiveBefore}
+                            activeIcon={statusActiveVersand}
+                            labelFalse="Versand"
+                            labelActive="Versenden"
+                            labelTrue="Versendet"
+                          />
+                        </div>
+                      );
+                    })()}
+                  </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="item-2" className={`border-b border-border ${useWideLayout ? 'flex-1 flex flex-col' : ''}`}>
+                  <AccordionTrigger className="py-6 text-[20px] font-bold text-foreground hover:no-underline">
+                    Kundendaten
+                  </AccordionTrigger>
+                  <AccordionContent className={`mb-4 ${useWideLayout ? 'flex-1 flex flex-col' : ''}`}>
+                    {selectedShipment && (() => {
+                      // Replace commas with newlines, then add Deutschland
+                      const formattedAddress = selectedShipment.kundeAdresse
+                        .split(',')
+                        .map((part) => part.trim())
+                        .filter((part) => part.length > 0)
+                        .join('\n') + '\nDeutschland';
+                      
+                      const handleAddressChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                        const newValue = e.target.value;
+                        // Remove "Deutschland" if present, then convert newlines back to commas
+                        const addressWithoutCountry = newValue.replace(/\nDeutschland\s*$/, '').trim();
+                        const addressWithCommas = addressWithoutCountry.split('\n').join(', ');
+                        const updatedShipment = { ...selectedShipment, kundeAdresse: addressWithCommas };
+                        setSelectedShipment(updatedShipment);
+                        // Update sendungen table only
+                        const shipmentIndex = ordersState2.findIndex(o => o.nr === selectedShipment.nr);
+                        if (shipmentIndex !== -1) {
+                          setOrdersState2(prev => prev.map((o, idx) => idx === shipmentIndex ? updatedShipment : o));
+                        }
+                      };
+
+                      const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+                        const updatedShipment = { ...selectedShipment, email: e.target.value };
+                        setSelectedShipment(updatedShipment);
+                        // Update sendungen table only
+                        const shipmentIndex = ordersState2.findIndex(o => o.nr === selectedShipment.nr);
+                        if (shipmentIndex !== -1) {
+                          setOrdersState2(prev => prev.map((o, idx) => idx === shipmentIndex ? updatedShipment : o));
+                        }
+                      };
+
+                      const handleTelefonChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+                        const updatedShipment = { ...selectedShipment, telefonnummer: e.target.value };
+                        setSelectedShipment(updatedShipment);
+                        // Update sendungen table only
+                        const shipmentIndex = ordersState2.findIndex(o => o.nr === selectedShipment.nr);
+                        if (shipmentIndex !== -1) {
+                          setOrdersState2(prev => prev.map((o, idx) => idx === shipmentIndex ? updatedShipment : o));
+                        }
+                      };
+                      
+                      return (
+                        <div className={`grid ${!useWideLayout ? 'grid-cols-1' : 'grid-cols-2'} gap-x-[28px] gap-y-5 items-stretch ${useWideLayout ? 'h-full' : ''}`}>
+                            <div className={`flex flex-col ${useWideLayout ? 'h-full' : ''}`}>
+                              <label className="text-sm font-medium text-foreground">Kunde/Lieferadresse</label>
+                              <textarea
+                                className={`mt-2 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] resize-none ${!useWideLayout ? 'h-24' : useWideLayout ? 'flex-1' : 'min-h-[80px]'}`}
+                                value={formattedAddress}
+                                onChange={handleAddressChange}
+                              />
+                            </div>
+                          <div>
+                            <div className="flex flex-col gap-2">
+                              <label className="text-sm font-medium text-foreground">E-Mail</label>
+                              <Input
+                                type="email"
+                                value={selectedShipment.email}
+                                onChange={handleEmailChange}
+                              />
+                            </div>
+                            <div className="flex flex-col gap-2 mt-4">
+                              <label className="text-sm font-medium text-foreground">Telefonnummer</label>
+                              <Input
+                                type="tel"
+                                value={selectedShipment.telefonnummer}
+                                onChange={handleTelefonChange}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="item-3" className="border-b border-border">
+                  <AccordionTrigger className="py-6 text-[20px] font-bold text-foreground hover:no-underline">
+                    Versand
+                  </AccordionTrigger>
+                  <AccordionContent className="mb-4">
+                    {selectedShipment && (
+                      <>
+                        <div className="mb-5">
+                          <label className="text-sm font-medium text-foreground">Versandprofil</label>
+                          <Select 
+                            value={selectedShipment.versandprofil || ""}
+                            onValueChange={(value) => {
+                              const updatedShipment = { ...selectedShipment, versandprofil: value };
+                              setSelectedShipment(updatedShipment);
+                              // Update sendungen table only
+                              const shipmentIndex = ordersState2.findIndex(o => o.nr === selectedShipment.nr);
+                              if (shipmentIndex !== -1) {
+                                setOrdersState2(prev => prev.map((o, idx) => idx === shipmentIndex ? updatedShipment : o));
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="mt-2">
+                              <SelectValue placeholder="Versandprofil auswählen" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {versandprofilOptions.map((profil) => (
+                                <SelectItem key={profil} value={profil}>
+                                  {profil}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className={`grid ${!useWideLayout ? 'grid-cols-1' : 'grid-cols-2'} gap-x-[28px] gap-y-5`}>
+                        <div>
+                          <label className="text-sm font-medium text-foreground">Versanddienstleister</label>
+                          <Select 
+                            value={selectedShipment.versanddienstleister}
+                            onValueChange={(value) => {
+                              const updatedShipment = { ...selectedShipment, versanddienstleister: value };
+                              setSelectedShipment(updatedShipment);
+                              // Update sendungen table only
+                              const shipmentIndex = ordersState2.findIndex(o => o.nr === selectedShipment.nr);
+                              if (shipmentIndex !== -1) {
+                                setOrdersState2(prev => prev.map((o, idx) => idx === shipmentIndex ? updatedShipment : o));
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="mt-2">
+                              <SelectValue placeholder="Versanddienstleister auswählen" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="DHL">DHL</SelectItem>
+                              <SelectItem value="Hermes">Hermes</SelectItem>
+                              <SelectItem value="DPD">DPD</SelectItem>
+                              <SelectItem value="UPS">UPS</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-foreground">Versandverpackung</label>
+                          <Select 
+                            value={selectedShipment.versandverpackung}
+                            onValueChange={(value) => {
+                              const updatedShipment = { ...selectedShipment, versandverpackung: value };
+                              setSelectedShipment(updatedShipment);
+                              // Update sendungen table only
+                              const shipmentIndex = ordersState2.findIndex(o => o.nr === selectedShipment.nr);
+                              if (shipmentIndex !== -1) {
+                                setOrdersState2(prev => prev.map((o, idx) => idx === shipmentIndex ? updatedShipment : o));
+                              }
+                            }}
+                          >
+                            <SelectTrigger className="mt-2">
+                              <SelectValue placeholder="Versandverpackung auswählen" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Karton S">Karton S</SelectItem>
+                              <SelectItem value="Karton M">Karton M</SelectItem>
+                              <SelectItem value="Karton L">Karton L</SelectItem>
+                              <SelectItem value="Karton XL">Karton XL</SelectItem>
+                              <SelectItem value="Spezialkarton">Spezialkarton</SelectItem>
+                              <SelectItem value="Palette">Palette</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      </>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+                </Accordion>
+              </div>
+              {/* Divider */}
+              {sheetWidth >= 1024 && (
+                <div className="w-px bg-border" />
+              )}
+              {/* Right Column: Sendung */}
+              <div className={sheetWidth >= 1024 ? '' : 'w-full'}>
+                <Accordion type="multiple" defaultValue={["item-4"]} className="w-full">
+                <AccordionItem value="item-4" className="border-b border-border">
+                  <AccordionTrigger className="py-6 text-[20px] font-bold text-foreground hover:no-underline">
+                    Bestellung
+                  </AccordionTrigger>
+                  <AccordionContent className="mb-4">
+                    {selectedShipment && (
+                      <>
+                        <div className="grid grid-cols-2 gap-[32px] mb-[32px]">
+                          <div>
+                            <label className="text-sm font-medium text-foreground">Bestellnummer</label>
+                            <p className="mt-1 text-sm">{selectedShipment.bestellnummer}</p>
+                          </div>
+                          {selectedShipment.info && selectedShipment.info.trim() !== "" && (
+                            <div>
+                              <label className="text-sm font-medium text-foreground">Info</label>
+                              <p className="mt-1 text-sm">{selectedShipment.info}</p>
+                            </div>
+                          )}
+                        </div>
+                        {(() => {
+                          const articles = generateArticles(selectedShipment);
+                          return (
+                            <div className="!border !border-border rounded-[12px] overflow-hidden">
+                              <Table>
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead className="w-1/3">Artikel</TableHead>
+                                <TableHead className="text-right">Anzahl</TableHead>
+                                <TableHead className="text-right">MwSt. Satz</TableHead>
+                                <TableHead className="text-right">Preis Netto</TableHead>
+                                <TableHead className="text-right">Preis Brutto</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {articles.map((article, index) => (
+                                <TableRow key={index}>
+                                  <TableCell>{article.artikel}</TableCell>
+                                  <TableCell className="text-right">{article.anzahl}</TableCell>
+                                  <TableCell className="text-right">{selectedShipment.mwstSatz}%</TableCell>
+                                  <TableCell className="text-right">{formatEUR(article.preisNetto)}</TableCell>
+                                  <TableCell className="text-right">{formatEUR(article.preisBrutto)}</TableCell>
+                                </TableRow>
+                              ))}
+                              <TableRow>
+                                <TableCell>Versand</TableCell>
+                                <TableCell></TableCell>
+                                <TableCell className="text-right">{selectedShipment.mwstSatz}%</TableCell>
+                                <TableCell className="text-right">{formatEUR(selectedShipment.versandNetto)}</TableCell>
+                                <TableCell className="text-right">{formatEUR(selectedShipment.versandBrutto)}</TableCell>
+                              </TableRow>
+                              <TableRow>
+                                <TableCell className="font-medium text-foreground">Gesamt</TableCell>
+                                <TableCell></TableCell>
+                                <TableCell></TableCell>
+                                <TableCell className="text-right font-medium text-foreground">{formatEUR(selectedShipment.gesamtNetto)}</TableCell>
+                                <TableCell className="text-right font-medium text-foreground">{formatEUR(selectedShipment.gesamtBrutto)}</TableCell>
                               </TableRow>
                             </TableBody>
                           </Table>
