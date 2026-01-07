@@ -4974,7 +4974,7 @@ function ShippingPage() {
         <SheetContent
           name="BestellungSheet"
           side="right"
-          className="overflow-y-auto p-6 lg:p-10 !max-w-full lg:!max-w-none"
+          className="overflow-y-auto p-6 lg:p-10 pb-[90px] !max-w-full lg:!max-w-none"
           style={isSmallScreen ? { width: '100%', maxWidth: '100%' } : { width: `${responsiveSheetWidth}px`, maxWidth: `${responsiveSheetWidth}px` }}
           onPrevClick={showArrows ? handlePrevClick : undefined}
           onNextClick={showArrows ? handleNextClick : undefined}
@@ -5003,7 +5003,7 @@ function ShippingPage() {
             // Helper: check if we should use wide layout (sheet width >= 640 AND window width >= 640)
             const useWideLayout = (sheetWidth ?? 1255) >= 640 && !isUnderSm;
             return (
-            <div className={`mt-3 ${(sheetWidth >= 1024 && !isUnderSm) ? 'grid grid-cols-[1fr_auto_1fr] gap-[32px]' : 'space-y-6'}`}>
+            <div className={`mt-3 pb-[90px] ${(sheetWidth >= 1024 && !isUnderSm) ? 'grid grid-cols-[1fr_auto_1fr] gap-[32px]' : 'space-y-6'}`}>
               {/* Left Column: Status, Kundendaten, Versand */}
               <div className={useWideLayout ? 'flex flex-col h-full' : 'w-full'}>
                 <Accordion type="multiple" defaultValue={["item-1", "item-2"]} className={`w-full ${useWideLayout ? 'flex-1 flex flex-col' : ''}`}>
@@ -5078,7 +5078,7 @@ function ShippingPage() {
                         }
                         
                         return (
-                          <div className="flex items-center justify-between gap-[12px] h-[36px]">
+                          <div className="flex items-center justify-between gap-[12px] h-[40px]">
                             <div className="flex items-center gap-[10px]">
                               <img 
                                 src={statusIcon} 
@@ -5160,7 +5160,7 @@ function ShippingPage() {
                               labelActive="Sendung erstellen"
                               labelTrue="Sendung erstellt"
                             />
-                            <div className="pt-3 pb-3 pl-[42px] flex items-center justify-between gap-2">
+                            <div className="pt-[8px] pb-[8px] pl-[42px] flex items-center justify-between gap-2">
                               <div className="flex items-center justify-center gap-3">
                                 <Button
                                   name="listItemDetails"
@@ -5180,7 +5180,7 @@ function ShippingPage() {
                                 className="p-0 px-0 has-[>svg]:px-0 h-auto text-sm font-normal"
                               >
                                 <Plus className="size-4" />
-                                Bestellung hinzufügen
+                                Sendung hinzufügen
                               </Button>
                             </div>
                           </div>
@@ -5371,7 +5371,7 @@ function ShippingPage() {
         <SheetContent
           name="SendungSheet"
           side="right"
-          className="overflow-y-auto p-6 lg:p-10 !max-w-full lg:!max-w-none"
+          className="overflow-y-auto p-6 lg:p-10 pb-[90px] !max-w-full lg:!max-w-none"
           style={isSmallScreen ? { width: '100%', maxWidth: '100%' } : { width: `${responsiveSheetWidth}px`, maxWidth: `${responsiveSheetWidth}px` }}
           onPrevClick={showShipmentArrows ? handlePrevClickShipment : undefined}
           onNextClick={showShipmentArrows ? handleNextClickShipment : undefined}
@@ -5410,7 +5410,7 @@ function ShippingPage() {
                   <span className="text-sm">Sendung</span>
                 </div>
                 <SheetTitle className={`font-bold tracking-tight text-foreground mb-2 mt-4`}>
-                  #{selectedShipment?.bestellnummer}
+                  #{selectedShipment?.sendungsnummer || selectedShipment?.bestellnummer}
                 </SheetTitle>
               </>
             );
@@ -5419,7 +5419,7 @@ function ShippingPage() {
             // Helper: check if we should use wide layout (sheet width >= 640 AND window width >= 640)
             const useWideLayout = (sheetWidth ?? 1255) >= 640 && !isUnderSm;
             return (
-            <div className={`mt-3 ${(sheetWidth >= 1024 && !isUnderSm) ? 'grid grid-cols-[1fr_auto_1fr] gap-[32px]' : 'space-y-6'}`}>
+            <div className={`mt-3 pb-[90px] ${(sheetWidth >= 1024 && !isUnderSm) ? 'grid grid-cols-[1fr_auto_1fr] gap-[32px]' : 'space-y-6'}`}>
               {/* Left Column: Status, Kundendaten, Versand */}
               <div className={useWideLayout ? 'flex flex-col h-full' : 'w-full'}>
                 <Accordion type="multiple" defaultValue={["item-1", "item-2", "item-3"]} className={`w-full ${useWideLayout ? 'flex-1 flex flex-col' : ''}`}>
@@ -5461,7 +5461,8 @@ function ShippingPage() {
                         labelTrue,
                         hasPreviousTrue,
                         hasActiveBefore,
-                        activeIcon
+                        activeIcon,
+                        showDate = true
                       }: { 
                         value: string | null | undefined, 
                         label: string,
@@ -5472,7 +5473,8 @@ function ShippingPage() {
                         labelTrue?: string,
                         hasPreviousTrue?: boolean,
                         hasActiveBefore?: boolean,
-                        activeIcon?: string
+                        activeIcon?: string,
+                        showDate?: boolean
                       }) => {
                         const hasValue = value && value.trim() !== '';
                         const isTrue = hasValue;
@@ -5494,7 +5496,7 @@ function ShippingPage() {
                         }
                         
                         return (
-                          <div className="flex items-center justify-between gap-[12px] h-[36px]">
+                          <div className="flex items-center justify-between gap-[12px] h-[40px]">
                             <div className="flex items-center gap-[10px]">
                               <img 
                                 src={statusIcon} 
@@ -5503,7 +5505,7 @@ function ShippingPage() {
                               />
                               <span className={`text-sm font-normal ${isTrue ? 'text-foreground' : 'text-muted-foreground'}`}>{displayLabel}</span>
                             </div>
-                            <span className="text-sm text-muted-foreground">{value ? formatDate(value) : ''}</span>
+                            {showDate && <span className="text-sm text-muted-foreground">{value ? formatDate(value) : ''}</span>}
                           </div>
                         );
                       };
@@ -5552,21 +5554,29 @@ function ShippingPage() {
                       const paketlisteErstelltHasActiveBefore = bezahltAmIsActive || rechnungVersendetIsActive || sendungErstelltIsActive || versandprofilHinzugefuegtIsActive;
                       const versendetHasActiveBefore = bezahltAmIsActive || rechnungVersendetIsActive || sendungErstelltIsActive || versandprofilHinzugefuegtIsActive || paketlisteErstelltIsActive;
                       
+                      // Split bestellnummer by comma if it contains multiple values
+                      const bestellnummern = selectedShipment?.bestellnummer 
+                        ? selectedShipment.bestellnummer.split(',').map(bn => bn.trim()).filter(bn => bn)
+                        : [];
+                      const hasMultipleBestellnummern = bestellnummern.length > 1;
+                      const firstBestellnummer = bestellnummern[0] || selectedShipment?.bestellnummer || '';
+                      const secondBestellnummer = bestellnummern[1] || '';
+                      
                       return (
                         <div className="flex flex-col gap-0">
                           <div>
                             <StatusItem 
                               value={sendungErstelltValue} 
-                              label="Sendung erstellt"
+                              label="Sendung erstellt für"
                               isFirst={true}
                               hasPreviousTrue={sendungErstelltHasPrevTrue}
                               hasActiveBefore={sendungErstelltHasActiveBefore}
                               activeIcon={statusActiveSendung}
                               labelFalse="Sendung"
                               labelActive="Sendung erstellen"
-                              labelTrue="Sendung erstellt"
+                              labelTrue="Sendung erstellt für"
                             />
-                            <div className="pt-3 pb-3 pl-[42px] flex items-center justify-between gap-2">
+                            <div className="pt-[8px] pb-[8px] pl-[42px] flex items-center justify-between gap-2">
                               <div className="flex items-center justify-center gap-3">
                                 <Button
                                   name="listItemDetails"
@@ -5578,17 +5588,44 @@ function ShippingPage() {
                                 </Button>
                                 <div className="flex flex-col gap-1">
                                   <div className="text-xs text-muted-foreground">Bestellnummer</div>
-                                  <div className="text-sm">Text item 2</div>
+                                  <div className="text-sm">{firstBestellnummer}</div>
                                 </div>
                               </div>
-                              <Button
-                                variant="link"
-                                className="p-0 px-0 has-[>svg]:px-0 h-auto text-sm font-normal"
-                              >
-                                <Plus className="size-4" />
-                                Bestellung hinzufügen
-                              </Button>
+                              {!hasMultipleBestellnummern && (
+                                <Button
+                                  variant="link"
+                                  className="p-0 px-0 has-[>svg]:px-0 h-auto text-sm font-normal"
+                                >
+                                  <Plus className="size-4" />
+                                  Bestellung hinzufügen
+                                </Button>
+                              )}
                             </div>
+                            {hasMultipleBestellnummern && (
+                              <div className="pt-[8px] pb-[8px] pl-[42px] flex items-center justify-between gap-2">
+                                <div className="flex items-center justify-center gap-3">
+                                  <Button
+                                    name="listItemDetails"
+                                    variant="outline"
+                                    size="lg"
+                                    className="h-10 w-10 ml-0"
+                                  >
+                                    <CreditCard className="size-4" />
+                                  </Button>
+                                  <div className="flex flex-col gap-1">
+                                    <div className="text-xs text-muted-foreground">Bestellnummer</div>
+                                    <div className="text-sm">{secondBestellnummer}</div>
+                                  </div>
+                                </div>
+                                <Button
+                                  variant="link"
+                                  className="p-0 px-0 has-[>svg]:px-0 h-auto text-sm font-normal"
+                                >
+                                  <Plus className="size-4" />
+                                  Bestellung hinzufügen
+                                </Button>
+                              </div>
+                            )}
                           </div>
                           <StatusItem 
                             value={versandprofilHinzugefuegtValue} 
@@ -5811,65 +5848,147 @@ function ShippingPage() {
                     Bestellung
                   </AccordionTrigger>
                   <AccordionContent className="mb-4">
-                    {selectedShipment && (
-                      <>
-                        <div className="grid grid-cols-2 gap-[32px] mb-[32px]">
-                          <div>
-                            <label className="text-sm font-medium text-foreground">Bestellnummer</label>
-                            <p className="mt-1 text-sm">{selectedShipment.bestellnummer}</p>
-                          </div>
-                          {selectedShipment.info && selectedShipment.info.trim() !== "" && (
+                    {selectedShipment && (() => {
+                      // Split bestellnummer by comma if it contains multiple values
+                      const bestellnummern = selectedShipment.bestellnummer 
+                        ? selectedShipment.bestellnummer.split(',').map(bn => bn.trim()).filter(bn => bn)
+                        : [];
+                      const hasMultipleBestellnummern = bestellnummern.length > 1;
+                      const firstBestellnummer = bestellnummern[0] || selectedShipment.bestellnummer || '';
+                      const secondBestellnummer = bestellnummern[1] || '';
+                      
+                      return (
+                        <>
+                          <div className="grid grid-cols-2 gap-[32px] mb-[32px]">
                             <div>
-                              <label className="text-sm font-medium text-foreground">Info</label>
-                              <p className="mt-1 text-sm">{selectedShipment.info}</p>
+                              <label className="text-sm font-medium text-foreground">Bestellnummer</label>
+                              <p className="mt-1 text-sm">{firstBestellnummer}</p>
                             </div>
-                          )}
-                        </div>
-                        {(() => {
-                          const articles = generateArticles(selectedShipment);
-                          return (
-                            <div className="!border !border-border rounded-[12px] overflow-hidden">
-                              <Table>
-                            <TableHeader>
-                              <TableRow>
-                                <TableHead className="w-1/3">Artikel</TableHead>
-                                <TableHead className="text-right">Anzahl</TableHead>
-                                <TableHead className="text-right">MwSt. Satz</TableHead>
-                                <TableHead className="text-right">Preis Netto</TableHead>
-                                <TableHead className="text-right">Preis Brutto</TableHead>
-                              </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                              {articles.map((article, index) => (
-                                <TableRow key={index}>
-                                  <TableCell>{article.artikel}</TableCell>
-                                  <TableCell className="text-right">{article.anzahl}</TableCell>
-                                  <TableCell className="text-right">{selectedShipment.mwstSatz}%</TableCell>
-                                  <TableCell className="text-right">{formatEUR(article.preisNetto)}</TableCell>
-                                  <TableCell className="text-right">{formatEUR(article.preisBrutto)}</TableCell>
+                            {selectedShipment.info && selectedShipment.info.trim() !== "" && (
+                              <div>
+                                <label className="text-sm font-medium text-foreground">Info</label>
+                                <p className="mt-1 text-sm">{selectedShipment.info}</p>
+                              </div>
+                            )}
+                          </div>
+                          {(() => {
+                            const articles = generateArticles(selectedShipment);
+                            return (
+                              <div className="!border !border-border rounded-[12px] overflow-hidden mb-6">
+                                <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead className="w-1/3">Artikel</TableHead>
+                                  <TableHead className="text-right">Anzahl</TableHead>
+                                  <TableHead className="text-right">MwSt. Satz</TableHead>
+                                  <TableHead className="text-right">Preis Netto</TableHead>
+                                  <TableHead className="text-right">Preis Brutto</TableHead>
                                 </TableRow>
-                              ))}
-                              <TableRow>
-                                <TableCell>Versand</TableCell>
-                                <TableCell></TableCell>
-                                <TableCell className="text-right">{selectedShipment.mwstSatz}%</TableCell>
-                                <TableCell className="text-right">{formatEUR(selectedShipment.versandNetto)}</TableCell>
-                                <TableCell className="text-right">{formatEUR(selectedShipment.versandBrutto)}</TableCell>
-                              </TableRow>
-                              <TableRow>
-                                <TableCell className="font-medium text-foreground">Gesamt</TableCell>
-                                <TableCell></TableCell>
-                                <TableCell></TableCell>
-                                <TableCell className="text-right font-medium text-foreground">{formatEUR(selectedShipment.gesamtNetto)}</TableCell>
-                                <TableCell className="text-right font-medium text-foreground">{formatEUR(selectedShipment.gesamtBrutto)}</TableCell>
-                              </TableRow>
-                            </TableBody>
-                          </Table>
-                        </div>
-                        );
-                      })()}
-                      </>
-                    )}
+                              </TableHeader>
+                              <TableBody>
+                                {articles.map((article, index) => (
+                                  <TableRow key={index}>
+                                    <TableCell>{article.artikel}</TableCell>
+                                    <TableCell className="text-right">{article.anzahl}</TableCell>
+                                    <TableCell className="text-right">{selectedShipment.mwstSatz}%</TableCell>
+                                    <TableCell className="text-right">{formatEUR(article.preisNetto)}</TableCell>
+                                    <TableCell className="text-right">{formatEUR(article.preisBrutto)}</TableCell>
+                                  </TableRow>
+                                ))}
+                                <TableRow>
+                                  <TableCell>Versand</TableCell>
+                                  <TableCell></TableCell>
+                                  <TableCell className="text-right">{selectedShipment.mwstSatz}%</TableCell>
+                                  <TableCell className="text-right">{formatEUR(selectedShipment.versandNetto)}</TableCell>
+                                  <TableCell className="text-right">{formatEUR(selectedShipment.versandBrutto)}</TableCell>
+                                </TableRow>
+                                <TableRow>
+                                  <TableCell className="font-medium text-foreground">Gesamt</TableCell>
+                                  <TableCell></TableCell>
+                                  <TableCell></TableCell>
+                                  <TableCell className="text-right font-medium text-foreground">{formatEUR(selectedShipment.gesamtNetto)}</TableCell>
+                                  <TableCell className="text-right font-medium text-foreground">{formatEUR(selectedShipment.gesamtBrutto)}</TableCell>
+                                </TableRow>
+                              </TableBody>
+                            </Table>
+                          </div>
+                          );
+                        })()}
+                        {hasMultipleBestellnummern && (
+                          <>
+                            <div className="grid grid-cols-2 gap-[32px] mb-[32px]">
+                              <div>
+                                <label className="text-sm font-medium text-foreground">Bestellnummer</label>
+                                <p className="mt-1 text-sm">{secondBestellnummer}</p>
+                              </div>
+                              {selectedShipment.info && selectedShipment.info.trim() !== "" && (
+                                <div>
+                                  <label className="text-sm font-medium text-foreground">Info</label>
+                                  <p className="mt-1 text-sm">{selectedShipment.info}</p>
+                                </div>
+                              )}
+                            </div>
+                            {(() => {
+                              // Create a modified order object with different values for the second bestellnummer
+                              const modifiedOrder: Order = {
+                                ...selectedShipment,
+                                nr: typeof selectedShipment.nr === 'number' ? selectedShipment.nr + 1000 : selectedShipment.nr,
+                                artikelanzahl: Math.max(2, selectedShipment.artikelanzahl - 1),
+                                gesamtNetto: selectedShipment.gesamtNetto * 0.75,
+                                gesamtBrutto: selectedShipment.gesamtBrutto * 0.75,
+                                versandNetto: selectedShipment.versandNetto * 0.8,
+                                versandBrutto: selectedShipment.versandBrutto * 0.8,
+                              };
+                              const articles = generateArticles(modifiedOrder);
+                              const modifiedGesamtNetto = articles.reduce((sum, a) => sum + a.preisNetto, 0) + modifiedOrder.versandNetto;
+                              const modifiedGesamtBrutto = articles.reduce((sum, a) => sum + a.preisBrutto, 0) + modifiedOrder.versandBrutto;
+                              
+                              return (
+                                <div className="!border !border-border rounded-[12px] overflow-hidden">
+                                  <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead className="w-1/3">Artikel</TableHead>
+                                    <TableHead className="text-right">Anzahl</TableHead>
+                                    <TableHead className="text-right">MwSt. Satz</TableHead>
+                                    <TableHead className="text-right">Preis Netto</TableHead>
+                                    <TableHead className="text-right">Preis Brutto</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {articles.map((article, index) => (
+                                    <TableRow key={index}>
+                                      <TableCell>{article.artikel}</TableCell>
+                                      <TableCell className="text-right">{article.anzahl}</TableCell>
+                                      <TableCell className="text-right">{modifiedOrder.mwstSatz}%</TableCell>
+                                      <TableCell className="text-right">{formatEUR(article.preisNetto)}</TableCell>
+                                      <TableCell className="text-right">{formatEUR(article.preisBrutto)}</TableCell>
+                                    </TableRow>
+                                  ))}
+                                  <TableRow>
+                                    <TableCell>Versand</TableCell>
+                                    <TableCell></TableCell>
+                                    <TableCell className="text-right">{modifiedOrder.mwstSatz}%</TableCell>
+                                    <TableCell className="text-right">{formatEUR(modifiedOrder.versandNetto)}</TableCell>
+                                    <TableCell className="text-right">{formatEUR(modifiedOrder.versandBrutto)}</TableCell>
+                                  </TableRow>
+                                  <TableRow>
+                                    <TableCell className="font-medium text-foreground">Gesamt</TableCell>
+                                    <TableCell></TableCell>
+                                    <TableCell></TableCell>
+                                    <TableCell className="text-right font-medium text-foreground">{formatEUR(modifiedGesamtNetto)}</TableCell>
+                                    <TableCell className="text-right font-medium text-foreground">{formatEUR(modifiedGesamtBrutto)}</TableCell>
+                                  </TableRow>
+                                </TableBody>
+                              </Table>
+                            </div>
+                            );
+                          })()}
+                          </>
+                        )}
+                        </>
+                      );
+                    })()}
                   </AccordionContent>
                 </AccordionItem>
               </Accordion>
