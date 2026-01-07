@@ -2743,6 +2743,33 @@ function ShippingPage() {
     setMarkedRows1(newMarkedRows1);
   }, [visibleRows2, markedRows2, ordersState1]);
 
+  // Function to open bestellungsheet from sendungsheet button click
+  const handleOpenBestellungFromSendung = React.useCallback((bestellnummer: string) => {
+    if (!bestellnummer) return;
+    
+    // Find matching Bestellungen row by bestellnummer
+    const matchingOrder = ordersState1.find(order => 
+      order.bestellnummer === bestellnummer && order.type !== "Versandvorgang"
+    );
+    
+    if (!matchingOrder) {
+      // If no matching order found, show modal
+      setNoBestellungenModalIsSingle(true);
+      setShowNoBestellungenModal(true);
+      return;
+    }
+    
+    // Close sendungsheet
+    setIsSendungSheetOpen(false);
+    
+    // Switch to Bestellungen tab
+    setActiveTab("rechnung");
+    
+    // Open bestellungsheet with the matching order
+    setSelectedOrder(matchingOrder);
+    setIsSheetOpen(true);
+  }, [ordersState1]);
+
   const handleFilteredDataChange1 = React.useCallback((data: Order[]) => {
     // Store actually visible rows (after global filter is applied)
     setVisibleRows1(data);
@@ -4781,12 +4808,12 @@ function ShippingPage() {
                   <span className="text-sm font-medium sm:hidden">
                     {activeTab === "rechnung" ? "Bestellungen" : "Sendungen"}
                   </span>
-                  <TabsList className="p-0 border shadow-xs">
-                    <TabsTrigger value="rechnung" className="h-9">
+                  <TabsList className="p-0 border shadow-xs bg-primary text-primary-foreground">
+                    <TabsTrigger value="rechnung" className="h-9 data-[state=active]:bg-primary-foreground data-[state=active]:text-foreground">
                       <CreditCard className="size-4 mr-2" />
                       <span>Bestellungen</span>
                     </TabsTrigger>
-                    <TabsTrigger value="versand" className="h-9">
+                    <TabsTrigger value="versand" className="h-9 data-[state=active]:bg-primary-foreground data-[state=active]:text-foreground">
                       <Package className="size-4 mr-2" />
                       <span>Sendungen</span>
                     </TabsTrigger>
@@ -5583,6 +5610,7 @@ function ShippingPage() {
                                   variant="outline"
                                   size="lg"
                                   className="h-10 w-10 ml-0"
+                                  onClick={() => handleOpenBestellungFromSendung(firstBestellnummer)}
                                 >
                                   <CreditCard className="size-4" />
                                 </Button>
@@ -5609,6 +5637,7 @@ function ShippingPage() {
                                     variant="outline"
                                     size="lg"
                                     className="h-10 w-10 ml-0"
+                                    onClick={() => handleOpenBestellungFromSendung(secondBestellnummer)}
                                   >
                                     <CreditCard className="size-4" />
                                   </Button>
