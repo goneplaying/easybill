@@ -2770,6 +2770,30 @@ function ShippingPage() {
     setIsSheetOpen(true);
   }, [ordersState1]);
 
+  // Function to open sendungsheet from bestellungsheet button click
+  const handleOpenSendungFromBestellung = React.useCallback((bestellnummer?: string, sendungsnummer?: string) => {
+    // Find matching Sendungen row by bestellnummer or sendungsnummer
+    const matchingSendung = ordersState2.find(order => 
+      (bestellnummer && order.bestellnummer === bestellnummer) || 
+      (sendungsnummer && order.sendungsnummer === sendungsnummer)
+    );
+    
+    if (!matchingSendung) {
+      // If no matching sendung found, do nothing or show a message
+      return;
+    }
+    
+    // Close bestellungsheet
+    setIsSheetOpen(false);
+    
+    // Switch to Sendungen tab
+    setActiveTab("versand");
+    
+    // Open sendungsheet with the matching sendung
+    setSelectedShipment(matchingSendung);
+    setIsSendungSheetOpen(true);
+  }, [ordersState2]);
+
   const handleFilteredDataChange1 = React.useCallback((data: Order[]) => {
     // Store actually visible rows (after global filter is applied)
     setVisibleRows1(data);
@@ -5187,29 +5211,57 @@ function ShippingPage() {
                               labelActive="Sendung erstellen"
                               labelTrue="Sendung erstellt"
                             />
-                            <div className="pt-[8px] pb-[8px] pl-[42px] flex items-center justify-between gap-2">
-                              <div className="flex items-center justify-center gap-3">
-                                <Button
-                                  name="listItemDetails"
-                                  variant="outline"
-                                  size="lg"
-                                  className="h-10 w-10 ml-0"
-                                >
-                                  <CreditCard className="size-4" />
-                                </Button>
-                                <div className="flex flex-col gap-1">
-                                  <div className="text-xs text-muted-foreground">Sendungsnummer</div>
-                                  <div className="text-sm">Text item 2</div>
+                            {sendungErstelltTrue && (
+                              <div className="pt-[8px] pb-[8px] pl-[42px] flex items-center justify-between gap-2">
+                                <div className="flex items-center justify-center gap-3">
+                                  {(() => {
+                                    // Find corresponding sendung row by bestellnummer or sendungsnummer
+                                    const correspondingSendung = ordersState2.find(order => 
+                                      order.bestellnummer === selectedOrder?.bestellnummer || 
+                                      order.sendungsnummer === selectedOrder?.sendungsnummer
+                                    );
+                                    
+                                    // Determine icon based on sendung status (same logic as sendungen table)
+                                    let sendungIcon = <PackageOpen className="size-4" />;
+                                    if (correspondingSendung) {
+                                      const sendungRowNr = typeof correspondingSendung.nr === 'number' ? correspondingSendung.nr : parseInt(String(correspondingSendung.nr)) || null;
+                                      const sendungChecklistData = sendungRowNr !== null ? checklistMap.get(sendungRowNr) : null;
+                                      const versendet = sendungChecklistData?.versendet ?? false;
+                                      const paketlabelErstellt = sendungChecklistData?.paketlisteErstellt ?? false;
+                                      
+                                      if (versendet) {
+                                        sendungIcon = <PackageCheck className="size-4" />;
+                                      } else if (paketlabelErstellt) {
+                                        sendungIcon = <Package className="size-4" />;
+                                      }
+                                    }
+                                    
+                                    return (
+                                      <Button
+                                        name="listItemDetails"
+                                        variant="outline"
+                                        size="lg"
+                                        className="h-10 w-10 ml-0"
+                                        onClick={() => handleOpenSendungFromBestellung(selectedOrder?.bestellnummer, selectedOrder?.sendungsnummer)}
+                                      >
+                                        {sendungIcon}
+                                      </Button>
+                                    );
+                                  })()}
+                                  <div className="flex flex-col gap-1">
+                                    <div className="text-xs text-muted-foreground">Sendungsnummer</div>
+                                    <div className="text-sm">{selectedOrder?.sendungsnummer || '-'}</div>
+                                  </div>
                                 </div>
+                                <Button
+                                  variant="link"
+                                  className="p-0 px-0 has-[>svg]:px-0 h-auto text-sm font-normal"
+                                >
+                                  <Plus className="size-4" />
+                                  Sendung hinzufügen
+                                </Button>
                               </div>
-                              <Button
-                                variant="link"
-                                className="p-0 px-0 has-[>svg]:px-0 h-auto text-sm font-normal"
-                              >
-                                <Plus className="size-4" />
-                                Sendung hinzufügen
-                              </Button>
-                            </div>
+                            )}
                           </div>
                         </div>
                       );
@@ -5552,6 +5604,7 @@ function ShippingPage() {
                       const paketlisteErstelltValue = getFloatingColDate(checklistData?.paketlisteErstellt, selectedShipment.versandtGemeldet);
                       const paketlisteErstelltTrue = hasValueHelper(paketlisteErstelltValue);
                       const versendetValue = getFloatingColDate(checklistData?.versendet, selectedShipment.versanddatum);
+                      const versendetTrue = hasValueHelper(versendetValue);
                       
                       // Check which items have previous true items (next item after TRUE should be ACTIVE)
                       // For bezahltAm: previous is kaufdatum
@@ -5619,7 +5672,7 @@ function ShippingPage() {
                                   <div className="text-sm">{firstBestellnummer}</div>
                                 </div>
                               </div>
-                              {!hasMultipleBestellnummern && (
+                              {!hasMultipleBestellnummern && !versendetTrue && (
                                 <Button
                                   variant="link"
                                   className="p-0 px-0 has-[>svg]:px-0 h-auto text-sm font-normal"
@@ -5646,13 +5699,15 @@ function ShippingPage() {
                                     <div className="text-sm">{secondBestellnummer}</div>
                                   </div>
                                 </div>
-                                <Button
-                                  variant="link"
-                                  className="p-0 px-0 has-[>svg]:px-0 h-auto text-sm font-normal"
-                                >
-                                  <Plus className="size-4" />
-                                  Bestellung hinzufügen
-                                </Button>
+                                {!versendetTrue && (
+                                  <Button
+                                    variant="link"
+                                    className="p-0 px-0 has-[>svg]:px-0 h-auto text-sm font-normal"
+                                  >
+                                    <Plus className="size-4" />
+                                    Bestellung hinzufügen
+                                  </Button>
+                                )}
                               </div>
                             )}
                           </div>
