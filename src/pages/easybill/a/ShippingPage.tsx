@@ -4834,13 +4834,13 @@ function ShippingPage() {
                     {activeTab === "rechnung" ? "Bestellungen" : "Sendungen"}
                   </span>
                   <TabsList className="p-0 border shadow-xs bg-primary text-primary-foreground">
-                    <TabsTrigger value="rechnung" className="h-9 data-[state=active]:bg-primary-foreground data-[state=active]:text-foreground">
-                      <CreditCard className="size-4 mr-2" />
-                      <span>Bestellungen</span>
+                    <TabsTrigger value="rechnung" className="h-9 w-9 px-0 sm:w-auto sm:px-3 data-[state=active]:bg-primary-foreground data-[state=active]:text-foreground">
+                      <CreditCard className="size-4 sm:mr-2" />
+                      <span className="hidden sm:inline">Bestellungen</span>
                     </TabsTrigger>
-                    <TabsTrigger value="versand" className="h-9 data-[state=active]:bg-primary-foreground data-[state=active]:text-foreground">
-                      <Package className="size-4 mr-2" />
-                      <span>Sendungen</span>
+                    <TabsTrigger value="versand" className="h-9 w-9 px-0 sm:w-auto sm:px-3 data-[state=active]:bg-primary-foreground data-[state=active]:text-foreground">
+                      <Package className="size-4 sm:mr-2" />
+                      <span className="hidden sm:inline">Sendungen</span>
                     </TabsTrigger>
                   </TabsList>
               </div>
@@ -5756,86 +5756,6 @@ function ShippingPage() {
                 </AccordionItem>
                 <AccordionItem value="item-2" className="border-b border-border">
                   <AccordionTrigger className="py-6 text-[20px] font-bold text-foreground hover:no-underline">
-                    Kundendaten
-                  </AccordionTrigger>
-                  <AccordionContent className="mb-4">
-                    {selectedShipment && (() => {
-                      // Replace commas with newlines, then add Deutschland
-                      const formattedAddress = selectedShipment.kundeAdresse
-                        .split(',')
-                        .map((part) => part.trim())
-                        .filter((part) => part.length > 0)
-                        .join('\n') + '\nDeutschland';
-                      
-                      const handleAddressChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-                        const newValue = e.target.value;
-                        // Remove "Deutschland" if present, then convert newlines back to commas
-                        const addressWithoutCountry = newValue.replace(/\nDeutschland\s*$/, '').trim();
-                        const addressWithCommas = addressWithoutCountry.split('\n').join(', ');
-                        const updatedShipment = { ...selectedShipment, kundeAdresse: addressWithCommas };
-                        setSelectedShipment(updatedShipment);
-                        // Update sendungen table only
-                        const shipmentIndex = ordersState2.findIndex(o => o.nr === selectedShipment.nr);
-                        if (shipmentIndex !== -1) {
-                          setOrdersState2(prev => prev.map((o, idx) => idx === shipmentIndex ? updatedShipment : o));
-                        }
-                      };
-
-                      const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-                        const updatedShipment = { ...selectedShipment, email: e.target.value };
-                        setSelectedShipment(updatedShipment);
-                        // Update sendungen table only
-                        const shipmentIndex = ordersState2.findIndex(o => o.nr === selectedShipment.nr);
-                        if (shipmentIndex !== -1) {
-                          setOrdersState2(prev => prev.map((o, idx) => idx === shipmentIndex ? updatedShipment : o));
-                        }
-                      };
-
-                      const handleTelefonChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-                        const updatedShipment = { ...selectedShipment, telefonnummer: e.target.value };
-                        setSelectedShipment(updatedShipment);
-                        // Update sendungen table only
-                        const shipmentIndex = ordersState2.findIndex(o => o.nr === selectedShipment.nr);
-                        if (shipmentIndex !== -1) {
-                          setOrdersState2(prev => prev.map((o, idx) => idx === shipmentIndex ? updatedShipment : o));
-                        }
-                      };
-                      
-                      return (
-                        <div className={`grid ${!useWideLayout ? 'grid-cols-1' : 'grid-cols-2'} gap-x-[28px] gap-y-5 items-stretch ${useWideLayout ? 'h-full' : ''}`}>
-                            <div className={`flex flex-col ${useWideLayout ? 'h-full' : ''}`}>
-                              <label className="text-sm font-medium text-foreground">Kunde/Lieferadresse</label>
-                              <textarea
-                                className={`mt-2 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] resize-none ${!useWideLayout ? 'h-24' : useWideLayout ? 'flex-1' : 'min-h-[80px]'}`}
-                                value={formattedAddress}
-                                onChange={handleAddressChange}
-                              />
-                            </div>
-                          <div>
-                            <div className="flex flex-col gap-2">
-                              <label className="text-sm font-medium text-foreground">E-Mail</label>
-                              <Input
-                                type="email"
-                                value={selectedShipment.email}
-                                onChange={handleEmailChange}
-                              />
-                            </div>
-                            <div className="flex flex-col gap-2 mt-4">
-                              <label className="text-sm font-medium text-foreground">Telefonnummer</label>
-                              <Input
-                                type="tel"
-                                value={selectedShipment.telefonnummer}
-                                onChange={handleTelefonChange}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })()}
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="item-3" className="border-b border-border">
-                  <AccordionTrigger className="py-6 text-[20px] font-bold text-foreground hover:no-underline">
                     Versand
                   </AccordionTrigger>
                   <AccordionContent className="mb-4">
@@ -5923,6 +5843,86 @@ function ShippingPage() {
                       </div>
                       </>
                     )}
+                  </AccordionContent>
+                </AccordionItem>
+                <AccordionItem value="item-3" className="border-b border-border">
+                  <AccordionTrigger className="py-6 text-[20px] font-bold text-foreground hover:no-underline">
+                    Kundendaten
+                  </AccordionTrigger>
+                  <AccordionContent className="mb-4">
+                    {selectedShipment && (() => {
+                      // Replace commas with newlines, then add Deutschland
+                      const formattedAddress = selectedShipment.kundeAdresse
+                        .split(',')
+                        .map((part) => part.trim())
+                        .filter((part) => part.length > 0)
+                        .join('\n') + '\nDeutschland';
+                      
+                      const handleAddressChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+                        const newValue = e.target.value;
+                        // Remove "Deutschland" if present, then convert newlines back to commas
+                        const addressWithoutCountry = newValue.replace(/\nDeutschland\s*$/, '').trim();
+                        const addressWithCommas = addressWithoutCountry.split('\n').join(', ');
+                        const updatedShipment = { ...selectedShipment, kundeAdresse: addressWithCommas };
+                        setSelectedShipment(updatedShipment);
+                        // Update sendungen table only
+                        const shipmentIndex = ordersState2.findIndex(o => o.nr === selectedShipment.nr);
+                        if (shipmentIndex !== -1) {
+                          setOrdersState2(prev => prev.map((o, idx) => idx === shipmentIndex ? updatedShipment : o));
+                        }
+                      };
+
+                      const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+                        const updatedShipment = { ...selectedShipment, email: e.target.value };
+                        setSelectedShipment(updatedShipment);
+                        // Update sendungen table only
+                        const shipmentIndex = ordersState2.findIndex(o => o.nr === selectedShipment.nr);
+                        if (shipmentIndex !== -1) {
+                          setOrdersState2(prev => prev.map((o, idx) => idx === shipmentIndex ? updatedShipment : o));
+                        }
+                      };
+
+                      const handleTelefonChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+                        const updatedShipment = { ...selectedShipment, telefonnummer: e.target.value };
+                        setSelectedShipment(updatedShipment);
+                        // Update sendungen table only
+                        const shipmentIndex = ordersState2.findIndex(o => o.nr === selectedShipment.nr);
+                        if (shipmentIndex !== -1) {
+                          setOrdersState2(prev => prev.map((o, idx) => idx === shipmentIndex ? updatedShipment : o));
+                        }
+                      };
+                      
+                      return (
+                        <div className={`grid ${!useWideLayout ? 'grid-cols-1' : 'grid-cols-2'} gap-x-[28px] gap-y-5 items-stretch ${useWideLayout ? 'h-full' : ''}`}>
+                            <div className={`flex flex-col ${useWideLayout ? 'h-full' : ''}`}>
+                              <label className="text-sm font-medium text-foreground">Kunde/Lieferadresse</label>
+                              <textarea
+                                className={`mt-2 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] resize-none ${!useWideLayout ? 'h-24' : useWideLayout ? 'flex-1' : 'min-h-[80px]'}`}
+                                value={formattedAddress}
+                                onChange={handleAddressChange}
+                              />
+                            </div>
+                          <div>
+                            <div className="flex flex-col gap-2">
+                              <label className="text-sm font-medium text-foreground">E-Mail</label>
+                              <Input
+                                type="email"
+                                value={selectedShipment.email}
+                                onChange={handleEmailChange}
+                              />
+                            </div>
+                            <div className="flex flex-col gap-2 mt-4">
+                              <label className="text-sm font-medium text-foreground">Telefonnummer</label>
+                              <Input
+                                type="tel"
+                                value={selectedShipment.telefonnummer}
+                                onChange={handleTelefonChange}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </AccordionContent>
                 </AccordionItem>
                 </Accordion>

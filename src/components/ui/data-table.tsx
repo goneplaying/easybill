@@ -36,6 +36,7 @@ import {
   Mail,
   Package,
   Settings2,
+  Columns3,
   QrCode,
   ClipboardList,
   ListChecks,
@@ -368,9 +369,14 @@ function DataTable<TData, TValue>({
         {/* Column Visibility Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="h-9 ml-auto">
+            <Button variant="outline" size="sm" className="h-9 w-9 px-0 sm:w-auto sm:px-3 ml-auto">
+              {tableName === "VersandvorgaengeTable" ? (
+                <Columns3 className="size-4 sm:hidden" />
+              ) : (
+                <Settings2 className="size-4 sm:hidden" />
+              )}
               <span className="hidden sm:inline">Spalten</span>
-              <ChevronDown className="size-4 text-muted-foreground" />
+              <ChevronDown className="size-4 text-muted-foreground hidden sm:inline-block sm:ml-1" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56 max-h-[400px] overflow-y-auto">
@@ -413,9 +419,10 @@ function DataTable<TData, TValue>({
         {/* Floating Columns Visibility Dropdown (Checklisten) */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="h-9">
+            <Button variant="outline" size="sm" className="h-9 w-9 px-0 sm:w-auto sm:px-3">
+              <ListChecks className="size-4 sm:hidden" />
               <span className="hidden sm:inline">Checklisten</span>
-              <ChevronDown className="size-4 text-muted-foreground" />
+              <ChevronDown className="size-4 text-muted-foreground hidden sm:inline-block sm:ml-1" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-auto min-w-[8rem]">
