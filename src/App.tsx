@@ -9,6 +9,7 @@ const ShippingPage12 = lazy(() => import("./pages/easybill/a/ShippingPage"));
 const DashboardPage12 = lazy(() => import("./pages/easybill/a/DashboardPage"));
 const SettingsPage12 = lazy(() => import("./pages/easybill/a/SettingsPage"));
 const ToolsPage12 = lazy(() => import("./pages/easybill/a/ToolsPage"));
+const ShippingProfilesPage12 = lazy(() => import("./pages/easybill/a/ShippingProfilesPage"));
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
             <Route path="a/dashboard" element={<DashboardPage12 />} />
             <Route path="a/settings" element={<SettingsPage12 />} />
             <Route path="a/tools" element={<ToolsPage12 />} />
+            <Route path="a/shippingprofiles" element={<ShippingProfilesPage12 />} />
           </Routes>
         </Suspense>
       </BrowserRouter>

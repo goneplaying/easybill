@@ -84,7 +84,7 @@ import {
 import { format } from "date-fns";
 import { de } from "date-fns/locale";
 import type { DateRange } from "react-day-picker";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import logo from "@/assets/easybill-logo.svg";
 import logoPlus from "@/assets/easybill-logo+.svg";
 import logoDHL from "@/assets/logos/logo-dhl.svg";
@@ -1778,9 +1778,9 @@ const getColumns = (
     cell: ({ row }) => (
       <span>{row.getValue("versandland")}</span>
     ),
-    size: 120,
-    minSize: 120,
-    maxSize: 120,
+    size: 100,
+    minSize: 100,
+    maxSize: 100,
   },
   {
     accessorKey: "info",
@@ -2300,6 +2300,10 @@ const columnLabels2: Record<string, string> = {
 };
 
 function ShippingPage() {
+  const location = useLocation();
+  const isShippingActive = location.pathname.includes("/a/shipping") && !location.pathname.includes("/a/shippingprofiles");
+  const isShippingProfilesActive = location.pathname.includes("/a/shippingprofiles");
+
   // Load data from CSV files
   const loadCSVData = React.useCallback(() => {
     try {
@@ -4285,11 +4289,11 @@ function ShippingPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background mb-[80px]">
+    <div className="min-h-screen bg-background">
       <div className="mx-auto">
         <div className="flex flex-col lg:flex-row items-stretch">
           {/* Menu - horizontal on small screens, vertical on large screens */}
-          <div className="w-[calc(100%-40px)] lg:w-[56px] h-auto lg:h-[calc(100vh-40px)] mt-5 lg:mt-0 lg:sticky lg:top-5 pl-4 pr-1 py-1 lg:pl-2 lg:pr-2 lg:py-4 bg-primary mx-5 lg:ml-5 lg:mr-2 rounded-[12px] flex-shrink-0 flex flex-row lg:flex-col items-center justify-between lg:justify-start gap-2 lg:gap-4 mb-2 lg:mb-0" data-name="Menu">
+          <div className="w-[calc(100%-40px)] lg:w-[56px] h-auto lg:h-[calc(100vh-40px)] mt-5 lg:mt-[20px] lg:sticky lg:top-[20px] pl-4 pr-1 py-1 lg:pl-2 lg:pr-2 lg:py-4 bg-primary mx-5 lg:ml-5 lg:mr-2 rounded-[12px] flex-shrink-0 flex flex-row lg:flex-col items-center justify-between lg:justify-start gap-2 lg:gap-4 mb-2 lg:mb-0" data-name="Menu">
             <Link to="/versions" className="w-fit lg:w-full flex items-center justify-center">
               <img src={logoPlus} alt="Logo" className="w-[90px] h-auto lg:hidden brightness-0 invert" />
               <img src={logo} alt="Logo" className="hidden lg:block w-[90%] h-auto brightness-0 invert" />
@@ -4303,9 +4307,14 @@ function ShippingPage() {
               <Link to="/a/dashboard" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
                 <LayoutDashboard className="size-5 text-white" />
               </Link>
-              <Link to="/a/shipping" className="flex items-center justify-center w-full aspect-square rounded-md bg-white transition-colors">
-                <Truck className="size-5 text-foreground" />
-              </Link>
+              <div className="bg-white rounded-md p-0.5 flex flex-col gap-0">
+                <Link to="/a/shipping" className="flex items-center justify-center w-full aspect-square rounded-md transition-colors">
+                  <Truck className={`size-5 ${isShippingActive ? "text-gray-700" : "text-blue-500"}`} />
+                </Link>
+                <Link to="/a/shippingprofiles" className="flex items-center justify-center w-full aspect-square rounded-md transition-colors">
+                  <Settings2 className={`size-5 ${isShippingProfilesActive ? "text-gray-700" : "text-blue-500"}`} />
+                </Link>
+              </div>
               <Link to="/a/tools" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
                 <ToyBrick className="size-5 text-white" />
               </Link>
@@ -4317,8 +4326,10 @@ function ShippingPage() {
               </div>
             </div>
             {/* Version number at bottom */}
-            <div className="hidden lg:flex mt-auto text-xs text-white/60">
-              v1.11
+            <div className="hidden lg:block mt-auto pt-4">
+              <div className="text-white/70 text-xs text-center font-medium">
+                v1.12
+              </div>
             </div>
           </div>
           {/* Left part - 300px width */}
