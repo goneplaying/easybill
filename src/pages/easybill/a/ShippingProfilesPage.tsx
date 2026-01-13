@@ -574,7 +574,7 @@ function ShippingProfilesPage() {
               <Separator orientation="vertical" />
               <div className="w-[30%]">
                 <h2>
-                  Was sind Versandprofile
+                  Was sind Versandprofile?
                 </h2>
                 <div className="mt-4 space-y-4 text-muted-foreground !text-foreground text-sm font-light leading-[140%]">
                   <p>
@@ -582,7 +582,7 @@ function ShippingProfilesPage() {
                     Mit einem Versandprofil legen Sie einmalig fest, wie und mit welchem Versanddienstleister eine Sendung abgewickelt werden soll.
                   </p>
                   <p>
-                    Ein Versandprofil kann unter anderem folgende Elemente enthalten:
+                    Ein Versandprofil enthält folgende Elemente:
                   </p>
                   <ul className="space-y-2 ml-2">
                     <li className="flex items-start gap-2">
