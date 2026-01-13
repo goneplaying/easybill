@@ -4395,7 +4395,7 @@ function ShippingPage() {
                       <div
                         key={item.id}
                           className={cn(
-                            "group relative flex cursor-pointer items-center justify-between rounded-md !border !border-border px-3 py-2.5 text-sm outline-none transition-colors h-[116px]",
+                            "group relative flex cursor-pointer items-center justify-between rounded-md !border !border-border px-3 py-2.5 text-sm outline-none transition-colors h-[116px] bg-background shadow-xs",
                             "hover:bg-accent hover:text-accent-foreground",
                             "focus-visible:bg-accent focus-visible:text-accent-foreground"
                           )}
@@ -4461,7 +4461,7 @@ function ShippingPage() {
                       <div
                         key={item.id}
                           className={cn(
-                            "group relative flex cursor-pointer items-center justify-between rounded-md !border !border-border px-3 py-2.5 text-sm outline-none transition-colors h-[116px]",
+                            "group relative flex cursor-pointer items-center justify-between rounded-md !border !border-border px-3 py-2.5 text-sm outline-none transition-colors h-[116px] bg-background shadow-xs",
                             "hover:bg-accent hover:text-accent-foreground",
                             "focus-visible:bg-accent focus-visible:text-accent-foreground"
                           )}
@@ -4523,10 +4523,11 @@ function ShippingPage() {
                     ))}
                   </div>
                   <div className="flex justify-center mt-5">
-                    <Button variant="link" className="p-0 h-auto text-sm font-normal mb-2">
-                      <Plus className="size-4" />
-                      Versandprofil hinzufügen
-                    </Button>
+                    <Link to="/a/shippingprofiles">
+                      <Button variant="link" className="p-0 h-auto text-sm font-normal mb-2">
+                        Bearbeiten
+                      </Button>
+                    </Link>
                   </div>
                 </AccordionContent>
               </AccordionItem>

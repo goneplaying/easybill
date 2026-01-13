@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Truck, ToyBrick, Settings, HelpCircle, Menu, LayoutDashboard, Settings2 } from "lucide-react";
+import { Truck, ToyBrick, Settings, HelpCircle, Menu, LayoutDashboard, Settings2, ArrowRight, MoreHorizontal, Pencil, Copy, Trash2, Plus } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import logo from "@/assets/easybill-logo.svg";
 import logoPlus from "@/assets/easybill-logo+.svg";
@@ -14,56 +14,160 @@ import logoPost from "@/assets/logos/logo-post.svg";
 import logoTNT from "@/assets/logos/logo-tnt.svg";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Field, FieldLabel, FieldContent } from "@/components/ui/field";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
 function ShippingProfilesPage() {
   const location = useLocation();
   const isShippingActive = location.pathname.includes("/a/shipping") && !location.pathname.includes("/a/shippingprofiles");
   const isShippingProfilesActive = location.pathname.includes("/a/shippingprofiles");
+  const [isVersandprofilSheetOpen, setIsVersandprofilSheetOpen] = React.useState(false);
+  const [isAvailableProvidersVisible, setIsAvailableProvidersVisible] = React.useState(false);
+  const [isVersandprofilEditSheetOpen, setIsVersandprofilEditSheetOpen] = React.useState(false);
+  const [selectedProfile, setSelectedProfile] = React.useState<{
+    id: string;
+    name: string;
+    dienstleister: string;
+    verpackung: string;
+    zusatzleistungen: string;
+    additionalZusatzleistungen?: Array<{ id: string; value: string }>;
+  } | null>(null);
 
-  // Filter checkbox states
-  const [isChecked5, setIsChecked5] = React.useState(false); // DHL National
-  const [isChecked6, setIsChecked6] = React.useState(false); // DPD Europa
-  const [isChecked11, setIsChecked11] = React.useState(false); // UPS USA
+  // Filter items for Versandprofile - using state to allow dynamic additions
+  const [filterItems2, setFilterItems2] = React.useState<Array<{
+    id: string;
+    count: number;
+    label: string;
+    checked: boolean;
+    logo?: string;
+    isAddButton?: boolean;
+    verpackung?: string;
+    zusatzleistungen?: string;
+    additionalZusatzleistungen?: Array<{ id: string; value: string }>;
+  }>>([
+    {
+      id: "versandprofile-checkbox-1",
+      count: 0,
+      label: "DHL National",
+      checked: false,
+      logo: logoDHL,
+    },
+    {
+      id: "versandprofile-checkbox-2",
+      count: 0,
+      label: "DPD Europa",
+      checked: false,
+      logo: logoDPD,
+    },
+    {
+      id: "versandprofile-checkbox-3",
+      count: 0,
+      label: "UPS USA",
+      checked: false,
+      logo: logoUPS,
+    },
+    {
+      id: "versandprofile-add-button",
+      count: 0,
+      label: "",
+      checked: false,
+      logo: undefined,
+      isAddButton: true,
+    },
+  ]);
 
-  // Filter items for Versandprofile
-  const filterItems2 = React.useMemo(
-    () => [
-      {
-        id: "versandprofile-checkbox-1",
-        count: 0,
-        label: "DHL National",
-        checked: isChecked5,
+  // Function to handle duplication - creates a copy with the same logo
+  const handleDuplicate = React.useCallback((itemId: string) => {
+    setFilterItems2((prevItems) => {
+      const itemToDuplicate = prevItems.find((item) => item.id === itemId);
+      if (!itemToDuplicate || itemToDuplicate.isAddButton) return prevItems;
+
+      // Remove " Kopie" from the label if it already exists to get the base name
+      const baseLabel = itemToDuplicate.label.endsWith(" Kopie") 
+        ? itemToDuplicate.label.slice(0, -6) 
+        : itemToDuplicate.label;
+
+      // Separate regular items from the add button item
+      const regularItems = prevItems.filter((item) => !item.isAddButton);
+      const addButtonItem = prevItems.find((item) => item.isAddButton);
+
+      const newId = `versandprofile-checkbox-${Date.now()}`;
+      const duplicatedItem = {
+        ...itemToDuplicate,
+        id: newId,
+        label: `${baseLabel} Kopie`,
+        checked: false,
+        // Keep the logo from the original item
+        logo: itemToDuplicate.logo,
+        isAddButton: false,
+        // Deep copy additionalZusatzleistungen if it exists
+        additionalZusatzleistungen: itemToDuplicate.additionalZusatzleistungen
+          ? itemToDuplicate.additionalZusatzleistungen.map(az => ({ ...az }))
+          : undefined,
+      };
+
+      // Add the duplicated item and keep the add button at the end
+      return addButtonItem 
+        ? [...regularItems, duplicatedItem, addButtonItem]
+        : [...regularItems, duplicatedItem];
+    });
+  }, []);
+
+  // Function to handle deletion
+  const handleDelete = React.useCallback((itemId: string) => {
+    setFilterItems2((prevItems) => {
+      // Don't allow deleting the add button item
+      if (prevItems.find((item) => item.id === itemId)?.isAddButton) {
+        return prevItems;
+      }
+      return prevItems.filter((item) => item.id !== itemId);
+    });
+  }, []);
+
+  // Enhanced filterItems2 with handlers
+  const filterItems2WithHandlers = React.useMemo(
+    () =>
+      filterItems2.map((item) => ({
+        ...item,
         onCheckedChange: (checked: boolean) => {
-          setIsChecked5(checked);
+          setFilterItems2((prevItems) =>
+            prevItems.map((prevItem) =>
+              prevItem.id === item.id ? { ...prevItem, checked } : prevItem
+            )
+          );
         },
-      },
-      {
-        id: "versandprofile-checkbox-2",
-        count: 0,
-        label: "DPD Europa",
-        checked: isChecked6,
-        onCheckedChange: (checked: boolean) => {
-          setIsChecked6(checked);
-        },
-      },
-      {
-        id: "versandprofile-checkbox-3",
-        count: 0,
-        label: "UPS USA",
-        checked: isChecked11,
-        onCheckedChange: (checked: boolean) => {
-          setIsChecked11(checked);
-        },
-      },
-    ],
-    [isChecked5, isChecked6, isChecked11]
+      })),
+    [filterItems2]
   );
 
   // Additional checkbox states for available shipping service providers
   const [isCheckedAmazon, setIsCheckedAmazon] = React.useState(false);
   const [isCheckedPost, setIsCheckedPost] = React.useState(false);
+  const [isCheckedDHL, setIsCheckedDHL] = React.useState(false);
   const [isCheckedDHLExpress, setIsCheckedDHLExpress] = React.useState(false);
+  const [isCheckedDPD, setIsCheckedDPD] = React.useState(false);
+  const [isCheckedUPS, setIsCheckedUPS] = React.useState(false);
   const [isCheckedFedEx, setIsCheckedFedEx] = React.useState(false);
   const [isCheckedGLS, setIsCheckedGLS] = React.useState(false);
   const [isCheckedHermes, setIsCheckedHermes] = React.useState(false);
@@ -91,6 +195,15 @@ function ShippingProfilesPage() {
         logo: logoPost,
       },
       {
+        id: "available-provider-dhl",
+        label: "DHL",
+        checked: isCheckedDHL,
+        onCheckedChange: (checked: boolean) => {
+          setIsCheckedDHL(checked);
+        },
+        logo: logoDHL,
+      },
+      {
         id: "available-provider-dhl-express",
         label: "DHL Express",
         checked: isCheckedDHLExpress,
@@ -98,6 +211,24 @@ function ShippingProfilesPage() {
           setIsCheckedDHLExpress(checked);
         },
         logo: logoDHL,
+      },
+      {
+        id: "available-provider-dpd",
+        label: "DPD",
+        checked: isCheckedDPD,
+        onCheckedChange: (checked: boolean) => {
+          setIsCheckedDPD(checked);
+        },
+        logo: logoDPD,
+      },
+      {
+        id: "available-provider-ups",
+        label: "UPS",
+        checked: isCheckedUPS,
+        onCheckedChange: (checked: boolean) => {
+          setIsCheckedUPS(checked);
+        },
+        logo: logoUPS,
       },
       {
         id: "available-provider-fedex",
@@ -136,33 +267,81 @@ function ShippingProfilesPage() {
         logo: logoTNT,
       },
     ],
-    [isCheckedAmazon, isCheckedPost, isCheckedDHLExpress, isCheckedFedEx, isCheckedGLS, isCheckedHermes, isCheckedTNT]
+    [isCheckedAmazon, isCheckedPost, isCheckedDHL, isCheckedDHLExpress, isCheckedDPD, isCheckedUPS, isCheckedFedEx, isCheckedGLS, isCheckedHermes, isCheckedTNT]
   );
 
-  // Combined and sorted available providers (from filterItems2 and availableProviders)
+  // Combined and sorted available providers (only from availableProviders, not from filterItems2)
+  // This ensures that deleting items from "In Verwendung" doesn't affect this section
   const allAvailableProviders = React.useMemo(() => {
-    // Transform filterItems2 items to have logo and displayLabel
-    const transformedFilterItems = filterItems2.map((item) => {
-      const displayLabel = item.label === "DHL National" ? "DHL" : item.label === "DPD Europa" ? "DPD" : item.label === "UPS USA" ? "UPS" : item.label;
-      const logo = item.label === "DHL National" ? logoDHL : item.label === "DPD Europa" ? logoDPD : item.label === "UPS USA" ? logoUPS : undefined;
-      return {
-        ...item,
-        displayLabel,
-        logo,
+    // Only show items from availableProviders, not from filterItems2
+    // This keeps the "Verfügbare Versanddienstleister" section independent
+    const providers = availableProviders.map((provider) => ({
+      ...provider,
+      displayLabel: provider.label,
+    }));
+
+    return providers.sort((a, b) => a.displayLabel.localeCompare(b.displayLabel, 'de', { sensitivity: 'base' }));
+  }, [availableProviders]);
+
+  // Keyboard shortcut to toggle available providers section
+  React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Only toggle if 'h' key is pressed (case insensitive)
+      if (event.key.toLowerCase() === 'h') {
+        // Don't toggle if user is typing in an input or textarea
+        const activeElement = document.activeElement;
+        const isInputField = activeElement && (
+          (activeElement instanceof HTMLInputElement && activeElement.type !== 'button' && activeElement.type !== 'submit' && activeElement.type !== 'reset') ||
+          activeElement instanceof HTMLTextAreaElement ||
+          (activeElement as HTMLElement).isContentEditable
+        );
+        
+        if (!isInputField) {
+          event.preventDefault();
+          setIsAvailableProvidersVisible((prev) => !prev);
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
+  // Keyboard shortcuts to close sheets on Enter or ESC
+  React.useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Close sheets on Enter or ESC
+      if (event.key === 'Enter' || event.key === 'Escape') {
+        // Don't close if user is typing in an input or textarea (except ESC)
+        const activeElement = document.activeElement;
+        const isInputField = activeElement && (
+          (activeElement instanceof HTMLInputElement && activeElement.type !== 'button' && activeElement.type !== 'submit' && activeElement.type !== 'reset') ||
+          activeElement instanceof HTMLTextAreaElement ||
+          (activeElement as HTMLElement).isContentEditable
+        );
+        
+        // ESC always closes, Enter only closes if not in input field
+        if (event.key === 'Escape' || (event.key === 'Enter' && !isInputField)) {
+          if (isVersandprofilSheetOpen) {
+            setIsVersandprofilSheetOpen(false);
+          }
+          if (isVersandprofilEditSheetOpen) {
+            setIsVersandprofilEditSheetOpen(false);
+          }
+        }
+      }
+    };
+
+    // Only add listener if at least one sheet is open
+    if (isVersandprofilSheetOpen || isVersandprofilEditSheetOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown);
       };
-    });
-
-    // Combine and sort alphabetically by display label
-    const combined = [
-      ...transformedFilterItems,
-      ...availableProviders.map((provider) => ({
-        ...provider,
-        displayLabel: provider.label,
-      })),
-    ];
-
-    return combined.sort((a, b) => a.displayLabel.localeCompare(b.displayLabel, 'de', { sensitivity: 'base' }));
-  }, [filterItems2, availableProviders]);
+    }
+  }, [isVersandprofilSheetOpen, isVersandprofilEditSheetOpen]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -185,10 +364,10 @@ function ShippingProfilesPage() {
               </Link>
               <div className="bg-white rounded-md p-0.5 flex flex-col gap-0">
                 <Link to="/a/shipping" className="flex items-center justify-center w-full aspect-square rounded-md transition-colors">
-                  <Truck className={`size-5 ${isShippingActive ? "text-gray-700" : "text-blue-500"}`} />
+                  <Truck className={`size-5 ${isShippingActive ? "text-gray-700" : ""}`} style={!isShippingActive ? { color: '#1354F9' } : undefined} />
                 </Link>
                 <Link to="/a/shippingprofiles" className="flex items-center justify-center w-full aspect-square rounded-md transition-colors">
-                  <Settings2 className={`size-5 ${isShippingProfilesActive ? "text-gray-700" : "text-blue-500"}`} />
+                  <Settings2 className={`size-5 ${isShippingProfilesActive ? "text-gray-700" : ""}`} style={!isShippingProfilesActive ? { color: '#1354F9' } : undefined} />
                 </Link>
               </div>
               <Link to="/a/tools" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
@@ -210,119 +389,428 @@ function ShippingProfilesPage() {
           </div>
 
           {/* Right part - flexible width */}
-          <div className="flex-1 min-w-0 px-6 py-5 lg:px-8 lg:py-10 flex flex-col gap-[28px]">
+          <div className="flex-1 min-w-0 px-6 py-5 lg:pl-8 lg:pr-10 lg:py-10 flex flex-col gap-[28px]">
             <h1>
               Versandprofile
             </h1>
-            <div className="flex flex-col gap-8 h-full">
-              <div className="w-full flex-1 flex flex-col gap-[28px]">
-                <h2>
-                  In Verwendung
-                </h2>
-                <div className="flex gap-3 items-stretch">
-                  {filterItems2.map((item) => (
-                    <div
-                      key={item.id}
-                      className={cn(
-                        "group relative flex cursor-pointer items-center justify-between rounded-md !border !border-border px-3 py-2.5 text-sm outline-none transition-colors h-[116px] w-[116px]",
-                        "hover:bg-accent hover:text-accent-foreground",
-                        "focus-visible:bg-accent focus-visible:text-accent-foreground"
-                      )}
-                      onClick={() => item.onCheckedChange(!item.checked)}
-                    >
-                      <div className="flex flex-col justify-between flex-1 h-full">
-                        <div className="flex items-start justify-between">
-                          {item.label === "DHL National" ? (
-                            <img 
-                              src={logoDHL} 
-                              alt="DHL" 
-                              className="h-8 w-auto"
-                            />
-                          ) : item.label === "DPD Europa" ? (
-                            <img 
-                              src={logoDPD} 
-                              alt="DPD" 
-                              className="h-8 w-auto"
-                            />
-                          ) : item.label === "UPS USA" ? (
-                            <img 
-                              src={logoUPS} 
-                              alt="UPS" 
-                              className="h-8 w-auto"
-                            />
-                          ) : (
-                            <div className="text-[20px] font-medium leading-[1.1] text-foreground group-hover:text-accent-foreground" style={{ fontFamily: "'Ryker', sans-serif" }}>
-                              {item.count}
+            <div className="flex flex-row gap-[28px] h-full">
+              <div className="flex flex-col gap-8 h-full w-[70%]">
+                <div className="w-full flex-1 flex flex-col gap-[28px]">
+                  <h2>
+                    Aktive Profile
+                  </h2>
+                  <div className="flex gap-3 items-stretch">
+                    {filterItems2WithHandlers.map((item) => (
+                      <div
+                        key={item.id}
+                        className={cn(
+                          "group relative flex cursor-pointer items-center justify-between rounded-md !border px-3 py-2.5 text-sm outline-none transition-colors h-[116px] w-[116px]",
+                          item.isAddButton ? "border-dashed border-border" : "!border-border",
+                          !item.isAddButton && "bg-background shadow-xs",
+                          "hover:bg-accent hover:text-accent-foreground",
+                          "focus-visible:bg-accent focus-visible:text-accent-foreground"
+                        )}
+                        onClick={() => {
+                          if (item.isAddButton) {
+                            setIsVersandprofilSheetOpen(true);
+                          } else {
+                            // Open edit sheet with profile data
+                            setSelectedProfile({
+                              id: item.id,
+                              name: item.label,
+                              dienstleister: item.label.split(' ')[0] || item.label, // Extract provider name
+                              verpackung: item.verpackung || '',
+                              zusatzleistungen: item.zusatzleistungen || '',
+                              additionalZusatzleistungen: item.additionalZusatzleistungen || [],
+                            });
+                            setIsVersandprofilEditSheetOpen(true);
+                          }
+                        }}
+                      >
+                        {item.isAddButton ? (
+                          // Render only a "+" icon centered for add button items
+                          <div className="flex items-center justify-center w-full h-full">
+                            <Plus className="size-5 text-muted-foreground" />
+                          </div>
+                        ) : (
+                          // Normal item rendering
+                          <div className="flex flex-col justify-between flex-1 h-full">
+                            <div className="flex items-start justify-between">
+                              {item.logo ? (
+                                <img 
+                                  src={item.logo} 
+                                  alt={item.label} 
+                                  className="h-8 w-auto"
+                                />
+                              ) : (
+                                <div className="text-[20px] font-medium leading-[1.1] text-foreground group-hover:text-accent-foreground" style={{ fontFamily: "'Ryker', sans-serif" }}>
+                                  {item.count}
+                                </div>
+                              )}
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="link"
+                                    size="sm"
+                                    className="h-5 w-5 p-0 min-w-0 text-muted-foreground hover:text-foreground"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
+                                    <MoreHorizontal className="size-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      // Open edit sheet with profile data
+                                      setSelectedProfile({
+                                        id: item.id,
+                                        name: item.label,
+                                        dienstleister: item.label.split(' ')[0] || item.label, // Extract provider name
+                                        verpackung: item.verpackung || '',
+                                        zusatzleistungen: item.zusatzleistungen || '',
+                                        additionalZusatzleistungen: item.additionalZusatzleistungen || [],
+                                      });
+                                      setIsVersandprofilEditSheetOpen(true);
+                                    }}
+                                  >
+                                    <Pencil className="size-4 mr-2" />
+                                    Bearbeiten
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDuplicate(item.id);
+                                    }}
+                                  >
+                                    <Copy className="size-4 mr-2" />
+                                    Duplizieren
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDelete(item.id);
+                                    }}
+                                    variant="destructive"
+                                  >
+                                    <Trash2 className="size-4 mr-2" />
+                                    Löschen
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             </div>
-                          )}
-                          <Checkbox
-                            id={item.id}
-                            checked={item.checked}
-                            onCheckedChange={(checked) => {
-                              item.onCheckedChange(checked === true);
-                            }}
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                        </div>
-                        <Label
-                          htmlFor={item.id}
-                          className={cn(
-                            "text-[0.8rem] leading-[130%] text-muted-foreground group-hover:text-accent-foreground cursor-pointer break-words antialiased",
-                            item.checked ? "font-medium" : "font-normal"
-                          )}
-                        >
-                          {item.label}
-                        </Label>
+                            <Label
+                              className={cn(
+                                "text-[0.8rem] leading-[130%] text-muted-foreground group-hover:text-accent-foreground cursor-pointer break-words antialiased",
+                                item.checked ? "font-medium" : "font-normal"
+                              )}
+                            >
+                              {item.label}
+                            </Label>
+                          </div>
+                        )}
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-              <div className="w-full flex-1 flex flex-col gap-[28px]">
-                <h2>
-                  Verfügbare Versanddienstleister
-                </h2>
-                <div className="flex gap-3 items-stretch flex-wrap">
-                  {allAvailableProviders.map((item) => (
-                    <div
-                      key={item.id + (item.id.includes("versandprofile-checkbox") ? "-available" : "")}
-                      className={cn(
-                        "group relative flex cursor-pointer items-center justify-between rounded-md !border !border-border px-3 py-2.5 text-sm outline-none transition-colors h-[116px] w-[116px]",
-                        "hover:bg-accent hover:text-accent-foreground",
-                        "focus-visible:bg-accent focus-visible:text-accent-foreground"
-                      )}
-                    >
-                      <div className="flex flex-col justify-between flex-1 h-full">
-                        <div className="flex items-start justify-start">
-                          {item.logo ? (
-                            <img 
-                              src={item.logo} 
-                              alt={item.displayLabel} 
-                              className="h-8 w-auto"
-                            />
-                          ) : (
-                            <div className="text-[20px] font-medium leading-[1.1] text-foreground group-hover:text-accent-foreground" style={{ fontFamily: "'Ryker', sans-serif" }}>
-                              {'count' in item ? item.count : 0}
-                            </div>
-                          )}
+                {isAvailableProvidersVisible && (
+                  <>
+                    <Separator orientation="horizontal" />
+                    <div className="w-full flex-1 flex flex-col gap-[28px]">
+                      <h2>
+                        Versanddienstleister hinzufügen
+                      </h2>
+                    <div className="flex gap-3 items-stretch flex-wrap">
+                      {allAvailableProviders.map((item) => (
+                      <div
+                        key={item.id + (item.id.includes("versandprofile-checkbox") ? "-available" : "")}
+                        className={cn(
+                          "group relative flex cursor-pointer items-center justify-between rounded-md !border !border-border px-3 py-2.5 text-sm outline-none transition-colors h-[116px] w-[116px] bg-background shadow-xs",
+                          "hover:bg-accent hover:text-accent-foreground",
+                          "focus-visible:bg-accent focus-visible:text-accent-foreground"
+                        )}
+                      >
+                        <div className="flex flex-col justify-between flex-1 h-full">
+                          <div className="flex items-start justify-between">
+                            {item.logo ? (
+                              <img 
+                                src={item.logo} 
+                                alt={item.displayLabel} 
+                                className="h-8 w-auto"
+                              />
+                            ) : (
+                              <div className="text-[20px] font-medium leading-[1.1] text-foreground group-hover:text-accent-foreground" style={{ fontFamily: "'Ryker', sans-serif" }}>
+                                {'count' in item ? item.count : 0}
+                              </div>
+                            )}
+                            <Button
+                              variant="link"
+                              size="sm"
+                              className="h-5 w-5 p-0 min-w-0 text-muted-foreground hover:text-foreground"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                // Handle add action
+                              }}
+                            >
+                              <Plus className="size-4" />
+                            </Button>
+                          </div>
+                          <Label
+                            className={cn(
+                              "text-[0.8rem] leading-[130%] text-muted-foreground group-hover:text-accent-foreground cursor-pointer break-words antialiased",
+                              item.checked ? "font-medium" : "font-normal"
+                            )}
+                          >
+                            {item.displayLabel}
+                          </Label>
                         </div>
-                        <Label
-                          className={cn(
-                            "text-[0.8rem] leading-[130%] text-muted-foreground group-hover:text-accent-foreground cursor-pointer break-words antialiased",
-                            item.checked ? "font-medium" : "font-normal"
-                          )}
-                        >
-                          {item.displayLabel}
-                        </Label>
                       </div>
+                    ))}
                     </div>
-                  ))}
+                  </div>
+                  </>
+                )}
+              </div>
+              <Separator orientation="vertical" />
+              <div className="w-[30%]">
+                <h2>
+                  Was sind Versandprofile
+                </h2>
+                <div className="mt-4 space-y-4 text-muted-foreground !text-foreground text-sm font-light leading-[140%]">
+                  <p>
+                    Versandprofile dienen der Definition der optimalen Versandkonfiguration für Ihre zu versendenden Sendungen.
+                    Mit einem Versandprofil legen Sie einmalig fest, wie und mit welchem Versanddienstleister eine Sendung abgewickelt werden soll.
+                  </p>
+                  <p>
+                    Ein Versandprofil kann unter anderem folgende Elemente enthalten:
+                  </p>
+                  <ul className="space-y-2 ml-2">
+                    <li className="flex items-start gap-2">
+                      <ArrowRight className="size-4 shrink-0 mt-0.5" style={{ color: '#1354F9' }} />
+                      <span>den <span className="font-medium">Versanddienstleister</span> (z. B. Paket-, Express- oder Speditionsdienst)</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ArrowRight className="size-4 shrink-0 mt-0.5" style={{ color: '#1354F9' }} />
+                      <span>das konkrete <span className="font-medium">Versandprodukt</span> des Dienstleisters</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ArrowRight className="size-4 shrink-0 mt-0.5" style={{ color: '#1354F9' }} />
+                      <span>die Art der <span className="font-medium">Verpackung</span>, z. B. Karton, Palette, Umschlag oder Sonderverpackung</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ArrowRight className="size-4 shrink-0 mt-0.5" style={{ color: '#1354F9' }} />
+                      <span>optionale <span className="font-medium">Zusatzleistungen</span> wie Versicherung, Nachnahme, Expresszustellung oder Sendungsverfolgung</span>
+                    </li>
+                  </ul>
+                  <p>
+                    Das definierte Versandprofil kann anschließend mehrfach verwendet und einzelnen Sendungen oder Bestellungen zugewiesen werden. Dadurch wird der Versandprozess vereinheitlicht, beschleunigt und Fehler bei der Auswahl von Dienstleistern oder Versandoptionen werden reduziert.
+                  </p>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Versandprofil Hinzufügen Sheet */}
+      <Sheet open={isVersandprofilSheetOpen} onOpenChange={setIsVersandprofilSheetOpen}>
+        <SheetContent
+          name="VersandprofilHinzufugen"
+          side="right"
+          className="overflow-y-auto p-6 lg:p-10"
+          style={{ width: '456px', maxWidth: '456px' }}
+        >
+          <SheetTitle className="font-bold tracking-tight text-foreground mb-2 mt-4">
+            Hinzufügen
+          </SheetTitle>
+          <div className="mt-10">
+            <div className="flex gap-3 items-stretch flex-wrap">
+              {allAvailableProviders.map((item) => (
+                <div
+                  key={item.id + (item.id.includes("versandprofile-checkbox") ? "-available" : "")}
+                  className={cn(
+                    "group relative flex cursor-pointer items-center justify-between rounded-md !border !border-border px-3 py-2.5 text-sm outline-none transition-colors h-[116px] w-[116px] bg-background shadow-xs",
+                    "hover:bg-accent hover:text-accent-foreground",
+                    "focus-visible:bg-accent focus-visible:text-accent-foreground"
+                  )}
+                >
+                  <div className="flex flex-col justify-between flex-1 h-full">
+                    <div className="flex items-start">
+                      {item.logo ? (
+                        <img 
+                          src={item.logo} 
+                          alt={item.displayLabel} 
+                          className="h-8 w-auto"
+                        />
+                      ) : (
+                        <div className="text-[20px] font-medium leading-[1.1] text-foreground group-hover:text-accent-foreground" style={{ fontFamily: "'Ryker', sans-serif" }}>
+                          {'count' in item ? item.count : 0}
+                        </div>
+                      )}
+                    </div>
+                    <Label
+                      className={cn(
+                        "text-[0.8rem] leading-[130%] text-muted-foreground group-hover:text-accent-foreground cursor-pointer break-words antialiased",
+                        item.checked ? "font-medium" : "font-normal"
+                      )}
+                    >
+                      {item.displayLabel}
+                    </Label>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Versandprofil Edit Sheet */}
+      <Sheet open={isVersandprofilEditSheetOpen} onOpenChange={(open) => {
+        setIsVersandprofilEditSheetOpen(open);
+        // Save data when sheet closes
+        if (!open && selectedProfile) {
+          setFilterItems2((prevItems) =>
+            prevItems.map((prevItem) =>
+              prevItem.id === selectedProfile.id
+                ? { 
+                    ...prevItem, 
+                    label: selectedProfile.name,
+                    verpackung: selectedProfile.verpackung,
+                    zusatzleistungen: selectedProfile.zusatzleistungen,
+                    additionalZusatzleistungen: selectedProfile.additionalZusatzleistungen || [],
+                  }
+                : prevItem
+            )
+          );
+          setSelectedProfile(null);
+        }
+      }}>
+        <SheetContent
+          name="Versandprofil"
+          side="right"
+          className="overflow-y-auto p-6 lg:p-10"
+          style={{ width: '456px', maxWidth: '456px' }}
+        >
+          <SheetTitle className="font-bold tracking-tight text-foreground mb-2 mt-4">
+            Versandprofil
+          </SheetTitle>
+          <div className="mt-10 space-y-6">
+            <Field orientation="vertical">
+              <FieldLabel>Profilname</FieldLabel>
+              <FieldContent>
+                <Input
+                  value={selectedProfile?.name || ''}
+                  onChange={(e) => setSelectedProfile(prev => prev ? { ...prev, name: e.target.value } : null)}
+                  placeholder="Profilname eingeben"
+                />
+              </FieldContent>
+            </Field>
+
+            <Field orientation="vertical">
+              <FieldLabel>Versanddienstleister</FieldLabel>
+              <FieldContent>
+                <div className="text-sm text-muted-foreground">
+                  {selectedProfile?.dienstleister || '-'}
+                </div>
+              </FieldContent>
+            </Field>
+
+            <Field orientation="vertical">
+              <FieldLabel>Versandverpackung</FieldLabel>
+              <FieldContent>
+                <Select
+                  value={selectedProfile?.verpackung || ''}
+                  onValueChange={(value) => setSelectedProfile(prev => prev ? { ...prev, verpackung: value } : null)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Verpackung auswählen" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="karton">Karton</SelectItem>
+                    <SelectItem value="palette">Palette</SelectItem>
+                    <SelectItem value="umschlag">Umschlag</SelectItem>
+                    <SelectItem value="sonderverpackung">Sonderverpackung</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FieldContent>
+            </Field>
+
+            <Field orientation="vertical">
+              <FieldLabel>Zusatzleistungen</FieldLabel>
+              <FieldContent>
+                <Select
+                  value={selectedProfile?.zusatzleistungen || ''}
+                  onValueChange={(value) => setSelectedProfile(prev => prev ? { ...prev, zusatzleistungen: value } : null)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Zusatzleistung auswählen" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="versicherung">Versicherung</SelectItem>
+                    <SelectItem value="nachnahme">Nachnahme</SelectItem>
+                    <SelectItem value="expresszustellung">Expresszustellung</SelectItem>
+                    <SelectItem value="sendungsverfolgung">Sendungsverfolgung</SelectItem>
+                  </SelectContent>
+                </Select>
+              </FieldContent>
+            </Field>
+
+            {/* Additional Zusatzleistungen dropdowns */}
+            {selectedProfile?.additionalZusatzleistungen?.map((item) => (
+              <Field key={item.id} orientation="vertical" className="-mt-4">
+                <FieldContent>
+                  <Select
+                    value={item.value || ''}
+                    onValueChange={(value) => setSelectedProfile(prev => {
+                      if (!prev) return null;
+                      return {
+                        ...prev,
+                        additionalZusatzleistungen: prev.additionalZusatzleistungen?.map(az =>
+                          az.id === item.id ? { ...az, value } : az
+                        ) || []
+                      };
+                    })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Zusatzleistung auswählen" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="versicherung">Versicherung</SelectItem>
+                      <SelectItem value="nachnahme">Nachnahme</SelectItem>
+                      <SelectItem value="expresszustellung">Expresszustellung</SelectItem>
+                      <SelectItem value="sendungsverfolgung">Sendungsverfolgung</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </FieldContent>
+              </Field>
+            ))}
+
+            <div className="flex justify-start mt-5">
+              <Button
+                variant="link"
+                size={undefined}
+                className="p-0 !px-0 h-auto text-sm font-normal mb-2 has-[>svg]:!px-0"
+                onClick={() => {
+                  setSelectedProfile(prev => {
+                    if (!prev) return null;
+                    const newId = `zusatzleistung-${Date.now()}`;
+                    return {
+                      ...prev,
+                      additionalZusatzleistungen: [
+                        ...(prev.additionalZusatzleistungen || []),
+                        { id: newId, value: '' }
+                      ]
+                    };
+                  });
+                }}
+              >
+                <Plus className="size-4" />
+                Zusatzleistung hinzufügen
+              </Button>
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
