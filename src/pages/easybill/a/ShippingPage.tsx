@@ -21,6 +21,11 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Search, X, Plus, Truck, CreditCard, Package, PackageOpen, PackageCheck, MoreHorizontal, Check, Circle, RotateCcw, RefreshCw, CalendarIcon, Filter, Settings2, ChevronDown, ToyBrick, Settings, HelpCircle, Merge, Menu, LayoutDashboard, ClipboardList, QrCode, Mail, ListChecks, AlertTriangle, CloudDownload, Printer, Trash2 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { Progress } from "@/components/ui/progress";
@@ -1427,6 +1432,12 @@ const getColumns = (
   onChecklistChange?: (rowNr: number, field: keyof import("@/lib/csvParser").ChecklistData, value: boolean) => void,
   animatedButton?: { rowNr: number; field: string; tableId: string; timestamp: number } | null
 ): ColumnDef<Order>[] => {
+  // Get tooltip text for floating column
+  const getFloatingColTooltip = (colId: string): string => {
+    const columnLabels = tableId === "rechnung" ? columnLabels1 : columnLabels2;
+    return columnLabels[colId] || "";
+  };
+
   // Custom select column that shows icons when unchecked
   const customSelectColumn: ColumnDef<Order> = {
     id: "select",
@@ -1948,7 +1959,16 @@ const getColumns = (
     id: `floating-col-9-${tableId}`,
     header: () => (
       <div className="flex items-center justify-center h-full w-full min-h-[44px]">
-        <Mail className="size-4" />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div>
+              <Mail className="size-4" />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            {getFloatingColTooltip(`floating-col-9-${tableId}`)}
+          </TooltipContent>
+        </Tooltip>
       </div>
     ),
     cell: ({ row }) => {
@@ -1983,7 +2003,16 @@ const getColumns = (
     id: `floating-col-7-${tableId}`,
     header: () => (
       <div className="flex items-center justify-center h-full w-full min-h-[44px]">
-        <Package className="size-4" />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div>
+              <Package className="size-4" />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            {getFloatingColTooltip(`floating-col-7-${tableId}`)}
+          </TooltipContent>
+        </Tooltip>
       </div>
     ),
     cell: ({ row }) => {
@@ -2018,7 +2047,16 @@ const getColumns = (
     id: `floating-col-8-${tableId}`,
     header: () => (
       <div className="flex items-center justify-center h-full w-full min-h-[44px]">
-        <Settings2 className="size-4" />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div>
+              <Settings2 className="size-4" />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            {getFloatingColTooltip(`floating-col-8-${tableId}`)}
+          </TooltipContent>
+        </Tooltip>
       </div>
     ),
     cell: ({ row }) => {
@@ -2053,7 +2091,16 @@ const getColumns = (
     id: `floating-col-5-${tableId}`,
     header: () => (
       <div className="flex items-center justify-center h-full w-full min-h-[44px]">
-        <QrCode className="size-4" />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div>
+              <QrCode className="size-4" />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            {getFloatingColTooltip(`floating-col-5-${tableId}`)}
+          </TooltipContent>
+        </Tooltip>
       </div>
     ),
     cell: ({ row }) => {
@@ -2088,7 +2135,16 @@ const getColumns = (
     id: `floating-col-6-${tableId}`,
     header: () => (
       <div className="flex items-center justify-center h-full w-full min-h-[44px]">
-        <ClipboardList className="size-4" />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div>
+              <ClipboardList className="size-4" />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            {getFloatingColTooltip(`floating-col-6-${tableId}`)}
+          </TooltipContent>
+        </Tooltip>
       </div>
     ),
     cell: ({ row }) => {
@@ -2123,7 +2179,16 @@ const getColumns = (
     id: `floating-col-4-${tableId}`,
     header: () => (
       <div className="flex items-center justify-center h-full w-full min-h-[44px]">
-        <ListChecks className="size-4" />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div>
+              <ListChecks className="size-4" />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            {getFloatingColTooltip(`floating-col-4-${tableId}`)}
+          </TooltipContent>
+        </Tooltip>
       </div>
     ),
     cell: ({ row }) => {
@@ -2158,7 +2223,16 @@ const getColumns = (
     id: `floating-col-3-${tableId}`,
     header: () => (
       <div className="flex items-center justify-center h-full w-full min-h-[44px]">
-        <Truck className="size-4" />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div>
+              <Truck className="size-4" />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            {getFloatingColTooltip(`floating-col-3-${tableId}`)}
+          </TooltipContent>
+        </Tooltip>
       </div>
     ),
     cell: ({ row }) => {
@@ -2193,7 +2267,16 @@ const getColumns = (
     id: `floating-col-2-${tableId}`,
     header: () => (
       <div className="flex items-center justify-center h-full w-full min-h-[44px]">
-        <AlertTriangle className="size-4" />
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div>
+              <AlertTriangle className="size-4" />
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            {getFloatingColTooltip(`floating-col-2-${tableId}`)}
+          </TooltipContent>
+        </Tooltip>
       </div>
     ),
     cell: ({ row }) => {
@@ -4444,6 +4527,8 @@ function ShippingPage() {
                 </div>
               </AccordionContent>
             </AccordionItem>
+            {/* Versandprofile accordion - shown only when Sendungen tab is active */}
+            {activeTab === "versand" && (
               <AccordionItem value="item-4" className="border-b border-border">
                 <AccordionTrigger 
                   className="py-6 text-[20px] font-bold text-foreground hover:no-underline"
@@ -4531,6 +4616,7 @@ function ShippingPage() {
                   </div>
                 </AccordionContent>
               </AccordionItem>
+            )}
               <AccordionItem value="item-1" className="border-b border-border">
                 <AccordionTrigger 
                   className="py-6 text-[20px] font-bold text-foreground hover:no-underline"
@@ -4685,6 +4771,8 @@ function ShippingPage() {
                   </div>
                 </AccordionContent>
               </AccordionItem>
+            {/* Versand accordion - shown only when Sendungen tab is active */}
+            {activeTab === "versand" && (
               <AccordionItem value="item-3" className="border-b border-border">
                 <AccordionTrigger className="py-6 text-[20px] font-bold text-foreground hover:no-underline">
                   Versand
@@ -4767,6 +4855,8 @@ function ShippingPage() {
                         </SelectContent>
                       </Select>
                     </div>
+                    {/* Versandprofil field - shown only when Sendungen tab is active */}
+                    {activeTab === "versand" && (
                     <div className="space-y-2">
                       <Label htmlFor="versandprofil" className="text-sm font-medium">
                         Versandprofil
@@ -4784,6 +4874,7 @@ function ShippingPage() {
                         </SelectContent>
                       </Select>
                     </div>
+                    )}
                     <div className="space-y-2">
                       <Label htmlFor="versanddienstleister" className="text-sm font-medium">
                         Versanddienstleister
@@ -4821,6 +4912,7 @@ function ShippingPage() {
                   </div>
                 </AccordionContent>
               </AccordionItem>
+            )}
             </Accordion>
             <Button 
               variant="outline" 

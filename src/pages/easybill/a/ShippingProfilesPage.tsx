@@ -12,7 +12,6 @@ import logoGLS from "@/assets/logos/logo-gls.svg";
 import logoHermes from "@/assets/logos/logo-hermes.svg";
 import logoPost from "@/assets/logos/logo-post.svg";
 import logoTNT from "@/assets/logos/logo-tnt.svg";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -400,7 +399,15 @@ function ShippingProfilesPage() {
                     Aktive Profile
                   </h2>
                   <div className="flex gap-3 items-stretch">
-                    {filterItems2WithHandlers.map((item) => (
+                    {filterItems2WithHandlers
+                      .filter((item) => {
+                        // Hide add button when available providers section is visible
+                        if (item.isAddButton && isAvailableProvidersVisible) {
+                          return false;
+                        }
+                        return true;
+                      })
+                      .map((item) => (
                       <div
                         key={item.id}
                         className={cn(
@@ -540,7 +547,7 @@ function ShippingProfilesPage() {
                               />
                             ) : (
                               <div className="text-[20px] font-medium leading-[1.1] text-foreground group-hover:text-accent-foreground" style={{ fontFamily: "'Ryker', sans-serif" }}>
-                                {'count' in item ? item.count : 0}
+                                {('count' in item ? (item.count as number) : 0)}
                               </div>
                             )}
                             <Button
@@ -644,7 +651,7 @@ function ShippingProfilesPage() {
                         />
                       ) : (
                         <div className="text-[20px] font-medium leading-[1.1] text-foreground group-hover:text-accent-foreground" style={{ fontFamily: "'Ryker', sans-serif" }}>
-                          {'count' in item ? item.count : 0}
+                          {('count' in item ? (item.count as number) : 0)}
                         </div>
                       )}
                     </div>
