@@ -2508,8 +2508,18 @@ function ShippingPage() {
   const [versandprofil, setVersandprofil] = React.useState<string>("");
   const [versanddienstleister, setVersanddienstleister] = React.useState<string>("");
   const [versandverpackung, setVersandverpackung] = React.useState<string>("");
-  const [selectedHistory, setSelectedHistory] = React.useState<string>("");
+  // Store history selection per tab
+  const [selectedHistoryByTab, setSelectedHistoryByTab] = React.useState<{ rechnung: string; versand: string }>({
+    rechnung: "",
+    versand: ""
+  });
   const [activeTab, setActiveTab] = React.useState<string>("rechnung"); // State for active tab
+  
+  // Get current history selection based on active tab
+  const selectedHistory = selectedHistoryByTab[activeTab as "rechnung" | "versand"] || "";
+  // For Select component display, use undefined when empty to show placeholder
+  // Only pass value if it's a non-empty string
+  const selectedHistoryForDisplay = selectedHistory && selectedHistory.trim() !== "" ? selectedHistory : undefined;
   const [showNoSelectionAlert, setShowNoSelectionAlert] = React.useState(false);
   const [showAddressMatchAlert, setShowAddressMatchAlert] = React.useState(false);
   const [showTipsModal, setShowTipsModal] = React.useState(false);
@@ -2798,6 +2808,50 @@ function ShippingPage() {
     
     return { picklisteMap, packlisteMap, versandprofilHinzugefuegtMap };
   }, [parseCSVLine]);
+
+  // Validate and restore history selection when tab changes
+  React.useEffect(() => {
+    const savedSelection = selectedHistoryByTab[activeTab as "rechnung" | "versand"] || "";
+    
+    // If no selection or "Alle", keep it
+    if (!savedSelection || savedSelection === "Alle") {
+      return;
+    }
+
+    // Check if the saved selection is still available (not hidden)
+    const isAvailable = historyItems.some((item) => {
+      // Check if item matches saved selection
+      if (item.value !== savedSelection) return false;
+      
+      // Check if item is visible for current tab
+      if (activeTab === "rechnung") {
+        const hiddenActions = [
+          "Versandprofil hinzugefügt",
+          "Versandlabel erstellt",
+          "Packliste erstellt",
+          "Pickliste erstellt",
+          "Versendet"
+        ];
+        return !hiddenActions.includes(item.action);
+      } else if (activeTab === "versand") {
+        const hiddenActions = [
+          "Rechnung versendet",
+          "Sendung erstellt"
+        ];
+        return !hiddenActions.includes(item.action);
+      }
+      return true;
+    });
+
+    // If saved selection is not available, reset it to empty string
+    if (!isAvailable) {
+      setSelectedHistoryByTab(prev => ({
+        ...prev,
+        [activeTab]: ""
+      }));
+    }
+  }, [activeTab, historyItems, selectedHistoryByTab]);
+
   const [rowSelection1, setRowSelection1] = React.useState<RowSelectionState>({}); // Separate row selection for table 1
   const [rowSelection2, setRowSelection2] = React.useState<RowSelectionState>({}); // Separate row selection for table 2
   
@@ -5193,11 +5247,18 @@ function ShippingPage() {
               <AccordionContent>
                 <div className="space-y-4 px-1 mt-2 mb-5">
                   <div className="space-y-2">
-                    <Select value={selectedHistory} onValueChange={setSelectedHistory}>
-                      <SelectTrigger id="historie" className="w-full flex items-center justify-between">
-                        <div className="truncate text-left flex-1 mr-2">
-                          <SelectValue placeholder="Ereignis auswählen" />
-                        </div>
+                    <Select 
+                      key={`historie-${activeTab}-${selectedHistoryForDisplay ? 'controlled' : 'uncontrolled'}`}
+                      {...(selectedHistoryForDisplay ? { value: selectedHistoryForDisplay } : {})}
+                      onValueChange={(value) => {
+                        setSelectedHistoryByTab(prev => ({
+                          ...prev,
+                          [activeTab]: value || ""
+                        }));
+                      }}
+                    >
+                      <SelectTrigger id="historie" className="w-full [&>span]:!truncate [&>span]:!block [&>span]:!max-w-full">
+                        <SelectValue placeholder="Ereignis auswählen" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Alle" className="!pl-3 pr-3 [&>span:first-child]:hidden" style={{ paddingLeft: '12px', paddingRight: '12px' }}>
