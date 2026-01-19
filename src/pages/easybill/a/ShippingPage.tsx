@@ -119,10 +119,69 @@ import statusActiveSendung from "@/assets/svgs/status-active-sendung.svg";
 import statusActiveVersandprofil from "@/assets/svgs/status-active-versandprofil.svg";
 import statusActiveVersandlabel from "@/assets/svgs/status-active-versandlabel.svg";
 import statusActiveVersand from "@/assets/svgs/status-active-versand.svg";
-import bestellungenCSV from "@/assets/tables/bestellungen.csv?raw";
-import sendungenCSV from "@/assets/tables/sendungen.csv?raw";
-import checklistenCSV from "@/assets/tables/checklisten.csv?raw";
 import { parseCSV, parseChecklistCSV } from "@/lib/csvParser";
+
+// Google Sheets IDs
+const GOOGLE_SHEETS = {
+  bestellungen: '1sqd3tcYkayCfCX0GEBF6xlLNsW5r7deVNGB_REapcE0',
+  sendungen: '1Fq5uu8XpDxpLQmVJN_D4mF35Q7hqrkyepgB-DaYZrGM',
+  checklisten: '1mIYFUO-kRr0hR6FDBwy_V_r_EoqQxsNVrJWlAUsgs6U'
+};
+
+// Helper function to fetch Google Sheet as CSV
+async function fetchGoogleSheetAsCSV(sheetId: string): Promise<string> {
+  const exportUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv`;
+  const gvizUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv`;
+
+  const fetchCsv = async (url: string) => {
+    const response = await fetch(url, { cache: "no-store" });
+    if (!response.ok) {
+      throw new Error(`Failed to fetch Google Sheet: ${response.statusText}`);
+    }
+    return await response.text();
+  };
+
+  const looksLikeHtml = (text: string) => {
+    const trimmed = text.trim().toLowerCase();
+    return trimmed.startsWith("<!doctype") || trimmed.startsWith("<html");
+  };
+
+  const exportText = await fetchCsv(exportUrl);
+  if (!looksLikeHtml(exportText)) {
+    return exportText;
+  }
+
+  const gvizText = await fetchCsv(gvizUrl);
+  if (looksLikeHtml(gvizText)) {
+    throw new Error("Google Sheet returned HTML instead of CSV");
+  }
+  return gvizText;
+}
+
+class ErrorBoundary extends React.Component<
+  { fallback: (error: Error) => React.ReactNode; children?: React.ReactNode },
+  { error: Error | null }
+> {
+  constructor(props: { fallback: (error: Error) => React.ReactNode; children?: React.ReactNode }) {
+    super(props);
+    this.state = { error: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error("ShippingPage render error:", error);
+  }
+
+  render() {
+    if (this.state.error) {
+      return this.props.fallback(this.state.error);
+    }
+    return this.props.children;
+  }
+}
 
 // Define the data type
 type Order = {
@@ -2388,8 +2447,53 @@ function ShippingPage() {
   const isShippingActive = location.pathname.includes("/a/shipping") && !location.pathname.includes("/a/shippingprofiles");
   const isShippingProfilesActive = location.pathname.includes("/a/shippingprofiles");
 
+  // State for CSV data from Google Sheets
+  const [bestellungenCSV, setBestellungenCSV] = React.useState<string>("");
+  const [sendungenCSV, setSendungenCSV] = React.useState<string>("");
+  const [checklistenCSV, setChecklistenCSV] = React.useState<string>("");
+  const [isLoadingCSV, setIsLoadingCSV] = React.useState<boolean>(true);
+  const [csvError, setCsvError] = React.useState<string | null>(null);
+
+  // Fetch CSV data from Google Sheets
+  React.useEffect(() => {
+    const fetchCSVData = async () => {
+      setIsLoadingCSV(true);
+      setCsvError(null);
+      try {
+        console.log("Fetching Google Sheets data...");
+        const [bestellungen, sendungen, checklisten] = await Promise.all([
+          fetchGoogleSheetAsCSV(GOOGLE_SHEETS.bestellungen),
+          fetchGoogleSheetAsCSV(GOOGLE_SHEETS.sendungen),
+          fetchGoogleSheetAsCSV(GOOGLE_SHEETS.checklisten)
+        ]);
+        
+        console.log("Bestellungen CSV length:", bestellungen.length);
+        console.log("Sendungen CSV length:", sendungen.length);
+        console.log("Checklisten CSV length:", checklisten.length);
+        console.log("Bestellungen preview:", bestellungen.substring(0, 200));
+        
+        setBestellungenCSV(bestellungen);
+        setSendungenCSV(sendungen);
+        setChecklistenCSV(checklisten);
+        console.log("CSV data set in state");
+      } catch (error) {
+        console.error("Error fetching Google Sheets:", error);
+        setCsvError(error instanceof Error ? error.message : "Failed to load data from Google Sheets");
+        toast.error("Fehler beim Laden der Daten aus Google Sheets");
+      } finally {
+        setIsLoadingCSV(false);
+      }
+    };
+
+    fetchCSVData();
+  }, []);
+
   // Load data from CSV files
   const loadCSVData = React.useCallback(() => {
+    if (!bestellungenCSV || !sendungenCSV || !checklistenCSV) {
+      return { bestellungenData: [], sendungenData: [], checklistMap: new Map() };
+    }
+
     try {
       // Parse Bestellungen CSV
       const bestellungenData = parseCSV(bestellungenCSV).map(order => ({
@@ -2412,16 +2516,37 @@ function ShippingPage() {
       toast.error("Fehler beim Laden der CSV-Dateien");
       return { bestellungenData: [], sendungenData: [], checklistMap: new Map() };
     }
-  }, []);
+  }, [bestellungenCSV, sendungenCSV, checklistenCSV]);
 
-  // Initialize data from CSV files
-  const initialData = React.useMemo(() => loadCSVData(), [loadCSVData]);
-  
   // Separate data sources for each table
-  const [ordersState1, setOrdersState1] = React.useState<Order[]>(initialData.bestellungenData);
-  const [ordersState2, setOrdersState2] = React.useState<Order[]>(initialData.sendungenData);
-  const [ordersState] = React.useState<Order[]>(initialData.bestellungenData); // Keep for compatibility with filters
-  const [checklistMap, setChecklistMap] = React.useState<Map<number, import("@/lib/csvParser").ChecklistData>>(initialData.checklistMap);
+  const [ordersState1, setOrdersState1] = React.useState<Order[]>([]);
+  const [ordersState2, setOrdersState2] = React.useState<Order[]>([]);
+  const ordersState = ordersState1; // Keep for compatibility with filters
+  const [checklistMap, setChecklistMap] = React.useState<Map<number, import("@/lib/csvParser").ChecklistData>>(new Map());
+
+  // Update state when CSV data is loaded
+  React.useEffect(() => {
+    console.log("Update state effect triggered:", {
+      isLoadingCSV,
+      hasBestellungen: !!bestellungenCSV,
+      hasSendungen: !!sendungenCSV,
+      hasChecklisten: !!checklistenCSV
+    });
+    
+    if (!isLoadingCSV && bestellungenCSV && sendungenCSV && checklistenCSV) {
+      console.log("Loading CSV data...");
+      const data = loadCSVData();
+      console.log("Parsed data:", {
+        bestellungenCount: data.bestellungenData.length,
+        sendungenCount: data.sendungenData.length,
+        checklistCount: data.checklistMap.size
+      });
+      setOrdersState1(data.bestellungenData);
+      setOrdersState2(data.sendungenData);
+      setChecklistMap(data.checklistMap);
+      console.log("State updated with loaded data");
+    }
+  }, [isLoadingCSV, bestellungenCSV, sendungenCSV, checklistenCSV, loadCSVData]);
   const [animatedButton, setAnimatedButton] = React.useState<{ rowNr: number; field: string; tableId: string; timestamp: number } | null>(null);
   const [refreshIconRotation, setRefreshIconRotation] = React.useState(0);
   const [selectedOrder, setSelectedOrder] = React.useState<Order | null>(null);
@@ -2770,7 +2895,7 @@ function ShippingPage() {
       column: item.column,
       type: item.type
     }));
-  }, [parseCSVLine, convertToDDMMYYYY, parseDate]);
+  }, [parseCSVLine, convertToDDMMYYYY, parseDate, bestellungenCSV, sendungenCSV]);
 
   // Create maps to store dates from CSV for columns not in Order type
   const sendungenDateMaps = React.useMemo(() => {
@@ -2807,7 +2932,7 @@ function ShippingPage() {
     }
     
     return { picklisteMap, packlisteMap, versandprofilHinzugefuegtMap };
-  }, [parseCSVLine]);
+  }, [parseCSVLine, sendungenCSV]);
 
   // Validate and restore history selection when tab changes
   React.useEffect(() => {
@@ -4697,10 +4822,82 @@ function ShippingPage() {
     setGlobalFilter("");
   }, []);
 
+  // Memoized step 2 content to avoid inline useMemo in JSX
+  const step2Content = React.useMemo(() => {
+    const markedCount = markedRows1.size;
+    const availableCount = markedCount > 0 ? Math.floor(Math.random() * (markedCount - 1)) + 1 : 0;
+    
+    return (
+      <div className="min-w-full">
+        <div className="p-4 flex gap-8">
+          <div className="flex-1">
+            <p className="text-xs text-muted-foreground mb-2">Sendungen erstellen</p>
+            <h3 className="text-xl font-bold mb-4">Versandprofil(e) hinzufügen</h3>
+            <p className="text-sm">
+              Für {availableCount} von {markedCount} Bestellungen sind passende Versandprofile verfügbar. Möchten Sie sie hinzufügen?
+            </p>
+          </div>
+          <div className="w-[220px] h-[220px] rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden" style={{ backgroundColor: '#D6F270' }}>
+            <img 
+              src={illuSendung3} 
+              alt="Sendungen erstellen Illustration 3" 
+              className="w-full h-full object-contain"
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }, [markedRows1]);
+
+  // Debug: Log state before render
+  console.log("Rendering ShippingPage with data:", {
+    isLoadingCSV,
+    csvError,
+    ordersState1Count: ordersState1.length,
+    ordersState2Count: ordersState2.length,
+    ordersStateCount: ordersState.length,
+    checklistMapSize: checklistMap.size
+  });
+
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto">
-        <div className="flex flex-col lg:flex-row items-stretch">
+    <>
+      {/* Show loading state while fetching Google Sheets data */}
+      {isLoadingCSV && (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Lade Daten aus Google Sheets...</p>
+          </div>
+        </div>
+      )}
+
+      {/* Show error state if CSV loading failed */}
+      {csvError && !isLoadingCSV && (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <p className="text-destructive mb-4">Fehler beim Laden der Daten</p>
+            <p className="text-muted-foreground text-sm">{csvError}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Main content - only show when not loading and no error */}
+      {!isLoadingCSV && !csvError && (
+    <ErrorBoundary
+      fallback={(error) => (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center max-w-md">
+            <p className="text-destructive mb-2">Fehler beim Rendern der Seite</p>
+            <p className="text-muted-foreground text-sm break-words">
+              {error.message}
+            </p>
+          </div>
+        </div>
+      )}
+    >
+      <div className="min-h-screen bg-background">
+        <div className="mx-auto">
+          <div className="flex flex-col lg:flex-row items-stretch">
           {/* Menu - horizontal on small screens, vertical on large screens */}
           <div className="w-[calc(100%-40px)] lg:w-[56px] h-auto lg:h-[calc(100vh-40px)] mt-5 lg:mt-[20px] lg:sticky lg:top-[20px] pl-4 pr-1 py-1 lg:pl-2 lg:pr-2 lg:py-4 bg-primary mx-5 lg:ml-5 lg:mr-2 rounded-[12px] flex-shrink-0 flex flex-row lg:flex-col items-center justify-between lg:justify-start gap-2 lg:gap-4 mb-2 lg:mb-0" data-name="Menu">
             <Link to="/versions" className="w-fit lg:w-full flex items-center justify-center">
@@ -5390,13 +5587,28 @@ function ShippingPage() {
                       <>
                         <Button 
                           className="h-9 w-9 shadow-sm"
-                          onClick={() => {
+                          onClick={async () => {
                             setRefreshIconRotation(prev => prev + 180);
-                            const { bestellungenData, sendungenData, checklistMap: newChecklistMap } = loadCSVData();
-                            setOrdersState1(bestellungenData);
-                            setOrdersState2(sendungenData);
-                            setChecklistMap(newChecklistMap);
-                            toast.success("Daten wurden erfolgreich geladen");
+                            setIsLoadingCSV(true);
+                            setCsvError(null);
+                            try {
+                              const [bestellungen, sendungen, checklisten] = await Promise.all([
+                                fetchGoogleSheetAsCSV(GOOGLE_SHEETS.bestellungen),
+                                fetchGoogleSheetAsCSV(GOOGLE_SHEETS.sendungen),
+                                fetchGoogleSheetAsCSV(GOOGLE_SHEETS.checklisten)
+                              ]);
+                              
+                              setBestellungenCSV(bestellungen);
+                              setSendungenCSV(sendungen);
+                              setChecklistenCSV(checklisten);
+                              toast.success("Daten wurden erfolgreich geladen");
+                            } catch (error) {
+                              console.error("Error refreshing Google Sheets:", error);
+                              setCsvError(error instanceof Error ? error.message : "Failed to refresh data from Google Sheets");
+                              toast.error("Fehler beim Aktualisieren der Daten");
+                            } finally {
+                              setIsLoadingCSV(false);
+                            }
                           }}
                         >
                           <RefreshCw 
@@ -5474,13 +5686,28 @@ function ShippingPage() {
                       <>
                         <Button 
                           className="h-9 w-9 shadow-sm"
-                          onClick={() => {
+                          onClick={async () => {
                             setRefreshIconRotation(prev => prev + 180);
-                            const { bestellungenData, sendungenData, checklistMap: newChecklistMap } = loadCSVData();
-                            setOrdersState1(bestellungenData);
-                            setOrdersState2(sendungenData);
-                            setChecklistMap(newChecklistMap);
-                            toast.success("Daten wurden erfolgreich geladen");
+                            setIsLoadingCSV(true);
+                            setCsvError(null);
+                            try {
+                              const [bestellungen, sendungen, checklisten] = await Promise.all([
+                                fetchGoogleSheetAsCSV(GOOGLE_SHEETS.bestellungen),
+                                fetchGoogleSheetAsCSV(GOOGLE_SHEETS.sendungen),
+                                fetchGoogleSheetAsCSV(GOOGLE_SHEETS.checklisten)
+                              ]);
+                              
+                              setBestellungenCSV(bestellungen);
+                              setSendungenCSV(sendungen);
+                              setChecklistenCSV(checklisten);
+                              toast.success("Daten wurden erfolgreich geladen");
+                            } catch (error) {
+                              console.error("Error refreshing Google Sheets:", error);
+                              setCsvError(error instanceof Error ? error.message : "Failed to refresh data from Google Sheets");
+                              toast.error("Fehler beim Aktualisieren der Daten");
+                            } finally {
+                              setIsLoadingCSV(false);
+                            }
                           }}
                         >
                           <RefreshCw 
@@ -7310,31 +7537,7 @@ function ShippingPage() {
               )}
               
               {/* Step 2: Versandprofile */}
-              {React.useMemo(() => {
-                const markedCount = markedRows1.size;
-                const availableCount = markedCount > 0 ? Math.floor(Math.random() * (markedCount - 1)) + 1 : 0;
-                
-                return (
-                  <div className="min-w-full">
-                    <div className="p-4 flex gap-8">
-                      <div className="flex-1">
-                        <p className="text-xs text-muted-foreground mb-2">Sendungen erstellen</p>
-                        <h3 className="text-xl font-bold mb-4">Versandprofil(e) hinzufügen</h3>
-                        <p className="text-sm">
-                          Für {availableCount} von {markedCount} Bestellungen sind passende Versandprofile verfügbar. Möchten Sie sie hinzufügen?
-                        </p>
-                      </div>
-                      <div className="w-[220px] h-[220px] rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden" style={{ backgroundColor: '#D6F270' }}>
-                        <img 
-                          src={illuSendung3} 
-                          alt="Sendungen erstellen Illustration 3" 
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                );
-              }, [markedRows1])}
+              {step2Content}
               
               {/* Step 3: Sendungen erstellt */}
               <div className="min-w-full">
@@ -8555,6 +8758,9 @@ function ShippingPage() {
 
       <Toaster />
     </div>
+    </ErrorBoundary>
+      )}
+    </>
   );
 }
 
