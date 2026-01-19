@@ -51,6 +51,7 @@ import {
   Select,
   SelectContent,
   SelectItem,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -2507,6 +2508,7 @@ function ShippingPage() {
   const [versandprofil, setVersandprofil] = React.useState<string>("");
   const [versanddienstleister, setVersanddienstleister] = React.useState<string>("");
   const [versandverpackung, setVersandverpackung] = React.useState<string>("");
+  const [selectedHistory, setSelectedHistory] = React.useState<string>("");
   const [activeTab, setActiveTab] = React.useState<string>("rechnung"); // State for active tab
   const [showNoSelectionAlert, setShowNoSelectionAlert] = React.useState(false);
   const [showAddressMatchAlert, setShowAddressMatchAlert] = React.useState(false);
@@ -2577,6 +2579,164 @@ function ShippingPage() {
     const uniqueVerpackungen = Array.from(new Set(ordersState.map(order => order.versandverpackung))).sort();
     return uniqueVerpackungen;
   }, [ordersState]);
+
+  // Helper function to parse CSV line
+  const parseCSVLine = React.useCallback((line: string): string[] => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      const nextChar = line[i + 1];
+      
+      if (char === '"') {
+        if (inQuotes && nextChar === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        result.push(current);
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    
+    result.push(current);
+    return result;
+  }, []);
+
+  // Helper function to convert M/D/YY format to dd.mm.yyyy format
+  const convertToDDMMYYYY = React.useCallback((dateStr: string): string => {
+    const parts = dateStr.split('/');
+    if (parts.length === 3) {
+      const month = parts[0].padStart(2, '0');
+      const day = parts[1].padStart(2, '0');
+      const year = (2000 + parseInt(parts[2])).toString();
+      return `${day}.${month}.${year}`;
+    }
+    return dateStr; // Return original if format doesn't match
+  }, []);
+
+  // Helper function to convert M/D/YY format to timestamp for sorting
+  const parseDate = React.useCallback((dateStr: string): number => {
+    const parts = dateStr.split('/');
+    if (parts.length === 3) {
+      const month = parseInt(parts[0]);
+      const day = parseInt(parts[1]);
+      const year = 2000 + parseInt(parts[2]);
+      return new Date(year, month - 1, day).getTime();
+    }
+    return 0;
+  }, []);
+
+  // Extract history items from CSV data
+  const historyItems = React.useMemo(() => {
+    const items: Array<{ date: string; formattedDate: string; action: string; type: 'bestellung' | 'sendung'; column: string }> = [];
+    
+    // Parse bestellungen CSV
+    const bestellungenLines = bestellungenCSV.trim().split('\n');
+    if (bestellungenLines.length > 1) {
+      const bestellungenHeaders = parseCSVLine(bestellungenLines[0]);
+      const rechnungIndex = bestellungenHeaders.findIndex(h => h.trim() === 'Rechnung versendet');
+      const sendungIndex = bestellungenHeaders.findIndex(h => h.trim() === 'Sendung erstellt');
+      const versandprofilIndex = bestellungenHeaders.findIndex(h => h.trim() === 'Versandprofil hinzugefugt');
+      
+      for (let i = 1; i < bestellungenLines.length; i++) {
+        const values = parseCSVLine(bestellungenLines[i]);
+        if (rechnungIndex >= 0 && values[rechnungIndex]?.trim()) {
+          const date = values[rechnungIndex].trim();
+          items.push({ date, formattedDate: convertToDDMMYYYY(date), action: 'Rechnung versendet', type: 'bestellung', column: 'rechnungVersendetDatum' });
+        }
+        if (sendungIndex >= 0 && values[sendungIndex]?.trim()) {
+          const date = values[sendungIndex].trim();
+          items.push({ date, formattedDate: convertToDDMMYYYY(date), action: 'Sendung erstellt', type: 'bestellung', column: 'sendungErstelltDatum' });
+        }
+        if (versandprofilIndex >= 0 && values[versandprofilIndex]?.trim()) {
+          const date = values[versandprofilIndex].trim();
+          items.push({ date, formattedDate: convertToDDMMYYYY(date), action: 'Versandprofil hinzugefügt', type: 'bestellung', column: 'versandprofilHinzugefuegtDatum' });
+        }
+      }
+    }
+    
+    // Parse sendungen CSV
+    const sendungenLines = sendungenCSV.trim().split('\n');
+    if (sendungenLines.length > 1) {
+      const sendungenHeaders = parseCSVLine(sendungenLines[0]);
+      const versandtGemeldetIndex = sendungenHeaders.findIndex(h => h.trim() === 'Versandt Gemeldet');
+      const versanddatumIndex = sendungenHeaders.findIndex(h => h.trim() === 'Versanddatum');
+      const picklisteIndex = sendungenHeaders.findIndex(h => h.trim() === 'Pickliste erstellt');
+      const packlisteIndex = sendungenHeaders.findIndex(h => h.trim() === 'Packliste erstellt');
+      
+      for (let i = 1; i < sendungenLines.length; i++) {
+        const values = parseCSVLine(sendungenLines[i]);
+        if (versandtGemeldetIndex >= 0 && values[versandtGemeldetIndex]?.trim()) {
+          const date = values[versandtGemeldetIndex].trim();
+          items.push({ date, formattedDate: convertToDDMMYYYY(date), action: 'Versandlabel erstellt', type: 'sendung', column: 'versandtGemeldet' });
+        }
+        if (picklisteIndex >= 0 && values[picklisteIndex]?.trim()) {
+          const date = values[picklisteIndex].trim();
+          items.push({ date, formattedDate: convertToDDMMYYYY(date), action: 'Pickliste erstellt', type: 'sendung', column: 'picklisteErstellt' });
+        }
+        if (packlisteIndex >= 0 && values[packlisteIndex]?.trim()) {
+          const date = values[packlisteIndex].trim();
+          items.push({ date, formattedDate: convertToDDMMYYYY(date), action: 'Packliste erstellt', type: 'sendung', column: 'packlisteErstellt' });
+        }
+        if (versanddatumIndex >= 0 && values[versanddatumIndex]?.trim()) {
+          const date = values[versanddatumIndex].trim();
+          items.push({ date, formattedDate: convertToDDMMYYYY(date), action: 'Versendet', type: 'sendung', column: 'versanddatum' });
+        }
+      }
+    }
+    
+    // Sort by date (descending - newest first)
+    items.sort((a, b) => parseDate(b.date) - parseDate(a.date));
+    
+    // Remove duplicates and format (using formattedDate for deduplication)
+    const uniqueItems = Array.from(new Map(items.map(item => [`${item.formattedDate}-${item.action}`, item])).values());
+    
+    return uniqueItems.map(item => ({
+      value: `${item.date}-${item.column}-${item.type}`, // Store original date for matching
+      label: item.formattedDate, // Display formatted date (without action)
+      date: item.date, // Original date for matching
+      formattedDate: item.formattedDate, // Formatted date for display
+      action: item.action,
+      column: item.column,
+      type: item.type
+    }));
+  }, [parseCSVLine, convertToDDMMYYYY, parseDate]);
+
+  // Create maps to store dates from CSV for columns not in Order type
+  const sendungenDateMaps = React.useMemo(() => {
+    const picklisteMap = new Map<number, string>();
+    const packlisteMap = new Map<number, string>();
+    
+    const sendungenLines = sendungenCSV.trim().split('\n');
+    if (sendungenLines.length > 1) {
+      const headers = parseCSVLine(sendungenLines[0]);
+      const nrIndex = headers.findIndex(h => h.trim() === 'Nr');
+      const picklisteIndex = headers.findIndex(h => h.trim() === 'Pickliste erstellt');
+      const packlisteIndex = headers.findIndex(h => h.trim() === 'Packliste erstellt');
+      
+      for (let i = 1; i < sendungenLines.length; i++) {
+        const values = parseCSVLine(sendungenLines[i]);
+        const nr = nrIndex >= 0 ? parseInt(values[nrIndex]?.trim() || '0') : null;
+        if (nr) {
+          if (picklisteIndex >= 0 && values[picklisteIndex]?.trim()) {
+            picklisteMap.set(nr, values[picklisteIndex].trim());
+          }
+          if (packlisteIndex >= 0 && values[packlisteIndex]?.trim()) {
+            packlisteMap.set(nr, values[packlisteIndex].trim());
+          }
+        }
+      }
+    }
+    
+    return { picklisteMap, packlisteMap };
+  }, [parseCSVLine]);
   const [rowSelection1, setRowSelection1] = React.useState<RowSelectionState>({}); // Separate row selection for table 1
   const [rowSelection2, setRowSelection2] = React.useState<RowSelectionState>({}); // Separate row selection for table 2
   
@@ -3557,9 +3717,26 @@ function ShippingPage() {
     // Filter out Versandvorgang rows
     result = result.filter((order) => order.type !== "Versandvorgang");
 
+    // Apply filter for history selection
+    if (selectedHistory && selectedHistory !== 'Alle') {
+      const [date, column, type] = selectedHistory.split('-');
+      if (type === 'bestellung') {
+        result = result.filter((order) => {
+          if (column === 'rechnungVersendetDatum') {
+            return order.rechnungVersendetDatum === date;
+          } else if (column === 'sendungErstelltDatum') {
+            return order.sendungErstelltDatum === date;
+          } else if (column === 'versandprofilHinzugefuegtDatum') {
+            return order.versandprofilHinzugefuegtDatum === date;
+          }
+          return false;
+        });
+      }
+    }
+
     // Return a new array reference to ensure React detects changes
     return result;
-  }, [ordersState1, importquelle, kaufdatum, importdatum, isChecked, isChecked2, isChecked3, isChecked4, isChecked5, isChecked6, isChecked9, isChecked11, checklistMap]);
+  }, [ordersState1, importquelle, kaufdatum, importdatum, isChecked, isChecked2, isChecked3, isChecked4, isChecked5, isChecked6, isChecked9, isChecked11, checklistMap, selectedHistory]);
 
   // Filter data for table 2 (only base orders)
   const filteredData2 = React.useMemo(() => {
@@ -3738,6 +3915,28 @@ function ShippingPage() {
     }
     // If combineDuplicateAddresses is null, don't apply duplicate filtering
 
+    // Apply filter for history selection
+    if (selectedHistory && selectedHistory !== 'Alle') {
+      const [date, column, type] = selectedHistory.split('-');
+      if (type === 'sendung') {
+        result = result.filter((order) => {
+          const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+          if (rowNr === null) return false;
+          
+          if (column === 'versandtGemeldet') {
+            return order.versandtGemeldet === date;
+          } else if (column === 'versanddatum') {
+            return order.versanddatum === date;
+          } else if (column === 'picklisteErstellt') {
+            return sendungenDateMaps.picklisteMap.get(rowNr) === date;
+          } else if (column === 'packlisteErstellt') {
+            return sendungenDateMaps.packlisteMap.get(rowNr) === date;
+          }
+          return false;
+        });
+      }
+    }
+
     // Sort by nr (ascending)
     result.sort((a, b) => {
       const aNr = typeof a.nr === "number" ? a.nr : parseInt(String(a.nr)) || 0;
@@ -3747,7 +3946,7 @@ function ShippingPage() {
 
     // Return a new array reference to ensure React detects changes
     return result;
-  }, [ordersState2, importquelle, kaufdatum, importdatum, isChecked, isChecked5, isChecked6, isChecked7, isChecked8, isChecked10, isChecked11, isChecked12, isChecked13, isChecked14, checklistMap, visibleKundeAdressenForSendungen, combineDuplicateAddresses]);
+  }, [ordersState2, importquelle, kaufdatum, importdatum, isChecked, isChecked5, isChecked6, isChecked7, isChecked8, isChecked10, isChecked11, isChecked12, isChecked13, isChecked14, checklistMap, visibleKundeAdressenForSendungen, combineDuplicateAddresses, selectedHistory, sendungenDateMaps]);
 
   // filteredOrders for BestellungSheet navigation - uses Bestellungen table data
   // Must be declared here after filteredData1 and filteredData2 are defined
@@ -4411,7 +4610,7 @@ function ShippingPage() {
             {/* Version number at bottom */}
             <div className="hidden lg:block mt-auto pt-4">
               <div className="text-white/70 text-xs text-center font-medium">
-                v1.12
+                v1.13
               </div>
             </div>
           </div>
@@ -4913,6 +5112,58 @@ function ShippingPage() {
                 </AccordionContent>
               </AccordionItem>
             )}
+            {/* Historie accordion */}
+            <AccordionItem value="item-5" className="border-b border-border">
+              <AccordionTrigger className="py-6 text-[20px] font-bold text-foreground hover:no-underline">
+                Historie
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-4 px-1 mt-2 mb-5">
+                  <div className="space-y-2">
+                    <Select value={selectedHistory} onValueChange={setSelectedHistory}>
+                      <SelectTrigger id="historie" className="w-full">
+                        <SelectValue placeholder="Ereignis auswählen" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Alle" className="!pl-3 pr-3 [&>span:first-child]:hidden">
+                          Alle anzeigen
+                        </SelectItem>
+                        <SelectSeparator />
+                        {historyItems
+                          .filter((item) => {
+                            // When Bestellungen tab is active, hide sendung-specific actions
+                            if (activeTab === "rechnung") {
+                              const hiddenActions = [
+                                "Versandprofil hinzugefügt",
+                                "Versandlabel erstellt",
+                                "Packliste erstellt",
+                                "Pickliste erstellt",
+                                "Versendet"
+                              ];
+                              return !hiddenActions.includes(item.action);
+                            }
+                            // When Sendungen tab is active, hide bestellung-specific actions
+                            if (activeTab === "versand") {
+                              const hiddenActions = [
+                                "Rechnung versendet"
+                              ];
+                              return !hiddenActions.includes(item.action);
+                            }
+                            // Show all items by default
+                            return true;
+                          })
+                          .map((item) => (
+                            <SelectItem key={item.value} value={item.value} className="!pl-3 pr-3 [&>span:first-child]:hidden">
+                              <span className="w-[76px] inline-block text-right">{item.formattedDate}</span>
+                              <span className="text-muted-foreground ml-3">{item.action}</span>
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
             </Accordion>
             <Button 
               variant="outline" 
