@@ -29,6 +29,7 @@ import {
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { Progress } from "@/components/ui/progress";
+import { Spinner } from "@/components/ui/spinner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -4865,7 +4866,7 @@ function ShippingPage() {
       {isLoadingCSV && (
         <div className="flex items-center justify-center min-h-screen">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <Spinner size="xl" className="mx-auto mb-4" />
             <p className="text-muted-foreground">Lade Daten aus Google Sheets...</p>
           </div>
         </div>
