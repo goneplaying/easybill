@@ -2609,27 +2609,72 @@ function ShippingPage() {
     return result;
   }, []);
 
-  // Helper function to convert M/D/YY format to dd.mm.yyyy format
+  // Helper function to convert various date formats to dd.mm.yyyy format
   const convertToDDMMYYYY = React.useCallback((dateStr: string): string => {
-    const parts = dateStr.split('/');
+    if (!dateStr || !dateStr.trim()) return dateStr;
+    
+    const trimmed = dateStr.trim();
+    
+    // Handle YYYY-MM-DD format (e.g., 2025-12-21)
+    const yyyyParts = trimmed.split('-');
+    if (yyyyParts.length === 3 && yyyyParts[0].length === 4) {
+      const year = yyyyParts[0];
+      const month = yyyyParts[1].padStart(2, '0');
+      const day = yyyyParts[2].padStart(2, '0');
+      return `${day}.${month}.${year}`;
+    }
+    
+    // Handle M/D/YY format (e.g., 12/21/25)
+    const parts = trimmed.split('/');
     if (parts.length === 3) {
       const month = parts[0].padStart(2, '0');
       const day = parts[1].padStart(2, '0');
       const year = (2000 + parseInt(parts[2])).toString();
       return `${day}.${month}.${year}`;
     }
+    
+    // If already in dd.mm.yyyy format, return as-is
+    const ddmmParts = trimmed.split('.');
+    if (ddmmParts.length === 3 && ddmmParts[0].length === 2 && ddmmParts[1].length === 2 && ddmmParts[2].length === 4) {
+      return trimmed;
+    }
+    
     return dateStr; // Return original if format doesn't match
   }, []);
 
-  // Helper function to convert M/D/YY format to timestamp for sorting
+  // Helper function to convert various date formats to timestamp for sorting
   const parseDate = React.useCallback((dateStr: string): number => {
-    const parts = dateStr.split('/');
+    if (!dateStr || !dateStr.trim()) return 0;
+    
+    const trimmed = dateStr.trim();
+    
+    // Handle YYYY-MM-DD format (e.g., 2025-12-21)
+    const yyyyParts = trimmed.split('-');
+    if (yyyyParts.length === 3 && yyyyParts[0].length === 4) {
+      const year = parseInt(yyyyParts[0]);
+      const month = parseInt(yyyyParts[1]);
+      const day = parseInt(yyyyParts[2]);
+      return new Date(year, month - 1, day).getTime();
+    }
+    
+    // Handle M/D/YY format (e.g., 12/21/25)
+    const parts = trimmed.split('/');
     if (parts.length === 3) {
       const month = parseInt(parts[0]);
       const day = parseInt(parts[1]);
       const year = 2000 + parseInt(parts[2]);
       return new Date(year, month - 1, day).getTime();
     }
+    
+    // Handle dd.mm.yyyy format (e.g., 21.12.2025)
+    const ddmmParts = trimmed.split('.');
+    if (ddmmParts.length === 3 && ddmmParts[2].length === 4) {
+      const day = parseInt(ddmmParts[0]);
+      const month = parseInt(ddmmParts[1]);
+      const year = parseInt(ddmmParts[2]);
+      return new Date(year, month - 1, day).getTime();
+    }
+    
     return 0;
   }, []);
 
@@ -2670,6 +2715,10 @@ function ShippingPage() {
       const versanddatumIndex = sendungenHeaders.findIndex(h => h.trim() === 'Versanddatum');
       const picklisteIndex = sendungenHeaders.findIndex(h => h.trim() === 'Pickliste erstellt');
       const packlisteIndex = sendungenHeaders.findIndex(h => h.trim() === 'Packliste erstellt');
+      const versandprofilHinzugefuegtIndex = sendungenHeaders.findIndex((h) => {
+        const trimmed = h.trim();
+        return trimmed === 'Versandprofil hinzugefügt' || trimmed === 'Versandprofil hinzugefugt';
+      });
       
       for (let i = 1; i < sendungenLines.length; i++) {
         const values = parseCSVLine(sendungenLines[i]);
@@ -2685,6 +2734,10 @@ function ShippingPage() {
           const date = values[packlisteIndex].trim();
           items.push({ date, formattedDate: convertToDDMMYYYY(date), action: 'Packliste erstellt', type: 'sendung', column: 'packlisteErstellt' });
         }
+        if (versandprofilHinzugefuegtIndex >= 0 && values[versandprofilHinzugefuegtIndex]?.trim()) {
+          const date = values[versandprofilHinzugefuegtIndex].trim();
+          items.push({ date, formattedDate: convertToDDMMYYYY(date), action: 'Versandprofil hinzugefügt', type: 'sendung', column: 'versandprofilHinzugefuegt' });
+        }
         if (versanddatumIndex >= 0 && values[versanddatumIndex]?.trim()) {
           const date = values[versanddatumIndex].trim();
           items.push({ date, formattedDate: convertToDDMMYYYY(date), action: 'Versendet', type: 'sendung', column: 'versanddatum' });
@@ -2699,7 +2752,7 @@ function ShippingPage() {
     const uniqueItems = Array.from(new Map(items.map(item => [`${item.formattedDate}-${item.action}`, item])).values());
     
     return uniqueItems.map(item => ({
-      value: `${item.date}-${item.column}-${item.type}`, // Store original date for matching
+      value: `${item.date}|${item.column}|${item.type}`, // Store original date for matching (use | separator to avoid conflicts with date format)
       label: item.formattedDate, // Display formatted date (without action)
       date: item.date, // Original date for matching
       formattedDate: item.formattedDate, // Formatted date for display
@@ -2713,6 +2766,7 @@ function ShippingPage() {
   const sendungenDateMaps = React.useMemo(() => {
     const picklisteMap = new Map<number, string>();
     const packlisteMap = new Map<number, string>();
+    const versandprofilHinzugefuegtMap = new Map<number, string>();
     
     const sendungenLines = sendungenCSV.trim().split('\n');
     if (sendungenLines.length > 1) {
@@ -2720,6 +2774,10 @@ function ShippingPage() {
       const nrIndex = headers.findIndex(h => h.trim() === 'Nr');
       const picklisteIndex = headers.findIndex(h => h.trim() === 'Pickliste erstellt');
       const packlisteIndex = headers.findIndex(h => h.trim() === 'Packliste erstellt');
+      const versandprofilHinzugefuegtIndex = headers.findIndex((h) => {
+        const trimmed = h.trim();
+        return trimmed === 'Versandprofil hinzugefügt' || trimmed === 'Versandprofil hinzugefugt';
+      });
       
       for (let i = 1; i < sendungenLines.length; i++) {
         const values = parseCSVLine(sendungenLines[i]);
@@ -2731,11 +2789,14 @@ function ShippingPage() {
           if (packlisteIndex >= 0 && values[packlisteIndex]?.trim()) {
             packlisteMap.set(nr, values[packlisteIndex].trim());
           }
+          if (versandprofilHinzugefuegtIndex >= 0 && values[versandprofilHinzugefuegtIndex]?.trim()) {
+            versandprofilHinzugefuegtMap.set(nr, values[versandprofilHinzugefuegtIndex].trim());
+          }
         }
       }
     }
     
-    return { picklisteMap, packlisteMap };
+    return { picklisteMap, packlisteMap, versandprofilHinzugefuegtMap };
   }, [parseCSVLine]);
   const [rowSelection1, setRowSelection1] = React.useState<RowSelectionState>({}); // Separate row selection for table 1
   const [rowSelection2, setRowSelection2] = React.useState<RowSelectionState>({}); // Separate row selection for table 2
@@ -3719,18 +3780,25 @@ function ShippingPage() {
 
     // Apply filter for history selection
     if (selectedHistory && selectedHistory !== 'Alle') {
-      const [date, column, type] = selectedHistory.split('-');
-      if (type === 'bestellung') {
-        result = result.filter((order) => {
-          if (column === 'rechnungVersendetDatum') {
-            return order.rechnungVersendetDatum === date;
-          } else if (column === 'sendungErstelltDatum') {
-            return order.sendungErstelltDatum === date;
-          } else if (column === 'versandprofilHinzugefuegtDatum') {
-            return order.versandprofilHinzugefuegtDatum === date;
-          }
-          return false;
-        });
+      const parts = selectedHistory.split('|');
+      if (parts.length === 3) {
+        const [date, column, type] = parts;
+        const trimmedDate = date?.trim() || '';
+        if (type === 'bestellung' && trimmedDate) {
+          result = result.filter((order) => {
+            if (column === 'rechnungVersendetDatum') {
+              const orderDate = (order.rechnungVersendetDatum || '').trim();
+              return orderDate === trimmedDate && orderDate !== '';
+            } else if (column === 'sendungErstelltDatum') {
+              const orderDate = (order.sendungErstelltDatum || '').trim();
+              return orderDate === trimmedDate && orderDate !== '';
+            } else if (column === 'versandprofilHinzugefuegtDatum') {
+              const orderDate = (order.versandprofilHinzugefuegtDatum || '').trim();
+              return orderDate === trimmedDate && orderDate !== '';
+            }
+            return false;
+          });
+        }
       }
     }
 
@@ -3917,23 +3985,28 @@ function ShippingPage() {
 
     // Apply filter for history selection
     if (selectedHistory && selectedHistory !== 'Alle') {
-      const [date, column, type] = selectedHistory.split('-');
-      if (type === 'sendung') {
-        result = result.filter((order) => {
-          const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
-          if (rowNr === null) return false;
-          
-          if (column === 'versandtGemeldet') {
-            return order.versandtGemeldet === date;
-          } else if (column === 'versanddatum') {
-            return order.versanddatum === date;
-          } else if (column === 'picklisteErstellt') {
-            return sendungenDateMaps.picklisteMap.get(rowNr) === date;
-          } else if (column === 'packlisteErstellt') {
-            return sendungenDateMaps.packlisteMap.get(rowNr) === date;
-          }
-          return false;
-        });
+      const parts = selectedHistory.split('|');
+      if (parts.length === 3) {
+        const [date, column, type] = parts;
+        if (type === 'sendung') {
+          result = result.filter((order) => {
+            const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+            if (rowNr === null) return false;
+            
+            if (column === 'versandtGemeldet') {
+              return order.versandtGemeldet === date;
+            } else if (column === 'versanddatum') {
+              return order.versanddatum === date;
+            } else if (column === 'picklisteErstellt') {
+              return sendungenDateMaps.picklisteMap.get(rowNr) === date;
+            } else if (column === 'packlisteErstellt') {
+              return sendungenDateMaps.packlisteMap.get(rowNr) === date;
+            } else if (column === 'versandprofilHinzugefuegt') {
+              return sendungenDateMaps.versandprofilHinzugefuegtMap.get(rowNr) === date;
+            }
+            return false;
+          });
+        }
       }
     }
 
@@ -5121,12 +5194,14 @@ function ShippingPage() {
                 <div className="space-y-4 px-1 mt-2 mb-5">
                   <div className="space-y-2">
                     <Select value={selectedHistory} onValueChange={setSelectedHistory}>
-                      <SelectTrigger id="historie" className="w-full">
-                        <SelectValue placeholder="Ereignis auswählen" />
+                      <SelectTrigger id="historie" className="w-full flex items-center justify-between">
+                        <div className="truncate text-left flex-1 mr-2">
+                          <SelectValue placeholder="Ereignis auswählen" />
+                        </div>
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Alle" className="!pl-3 pr-3 [&>span:first-child]:hidden">
-                          Alle anzeigen
+                        <SelectItem value="Alle" className="!pl-3 pr-3 [&>span:first-child]:hidden" style={{ paddingLeft: '12px', paddingRight: '12px' }}>
+                          Alle Ereignisse anzeigen
                         </SelectItem>
                         <SelectSeparator />
                         {historyItems
@@ -5145,7 +5220,8 @@ function ShippingPage() {
                             // When Sendungen tab is active, hide bestellung-specific actions
                             if (activeTab === "versand") {
                               const hiddenActions = [
-                                "Rechnung versendet"
+                                "Rechnung versendet",
+                                "Sendung erstellt"
                               ];
                               return !hiddenActions.includes(item.action);
                             }
@@ -5153,9 +5229,11 @@ function ShippingPage() {
                             return true;
                           })
                           .map((item) => (
-                            <SelectItem key={item.value} value={item.value} className="!pl-3 pr-3 [&>span:first-child]:hidden">
-                              <span className="w-[76px] inline-block text-right">{item.formattedDate}</span>
-                              <span className="text-muted-foreground ml-3">{item.action}</span>
+                            <SelectItem key={item.value} value={item.value} className="pl-3 pr-3 [&>span:first-child]:hidden" style={{ paddingLeft: '12px', paddingRight: '12px' }}>
+                              <span className="flex items-center">
+                                <span className="shrink-0">{item.formattedDate}</span>
+                                <span className="text-muted-foreground ml-3"> {item.action}</span>
+                              </span>
                             </SelectItem>
                           ))}
                       </SelectContent>
@@ -5418,7 +5496,7 @@ function ShippingPage() {
                   <AccordionTrigger className="py-6 text-[20px] font-bold text-foreground hover:no-underline">
                     Status
                   </AccordionTrigger>
-                  <AccordionContent className="flex flex-col gap-0 mb-4 min-h-[120px]">
+                  <AccordionContent className="flex flex-col gap-0 mb-4 min-h-[120px] px-1">
                     {selectedOrder && (() => {
                       const rowNr = typeof selectedOrder.nr === 'number' ? selectedOrder.nr : parseInt(String(selectedOrder.nr)) || null;
                       const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
@@ -5629,7 +5707,7 @@ function ShippingPage() {
                   <AccordionTrigger className="py-6 text-[20px] font-bold text-foreground hover:no-underline">
                     Kundendaten
                   </AccordionTrigger>
-                  <AccordionContent className="mb-4">
+                  <AccordionContent className="mb-4 px-1">
                     {selectedOrder && (() => {
                       // Replace commas with newlines, then add Deutschland
                       const formattedAddress = selectedOrder.kundeAdresse
@@ -5730,7 +5808,7 @@ function ShippingPage() {
                   <AccordionTrigger className="py-6 text-[20px] font-bold text-foreground hover:no-underline">
                     Bestellung
                   </AccordionTrigger>
-                  <AccordionContent className="mb-4">
+                  <AccordionContent className="mb-4 px-1">
                     {selectedOrder && (
                       <>
                         <div className="grid grid-cols-2 gap-[32px] mb-[32px]">
@@ -5752,11 +5830,11 @@ function ShippingPage() {
                               <Table>
                             <TableHeader>
                               <TableRow>
-                                <TableHead className="w-1/3">Artikel</TableHead>
-                                <TableHead className="text-right">Anzahl</TableHead>
-                                <TableHead className="text-right">MwSt. Satz</TableHead>
-                                <TableHead className="text-right">Preis Netto</TableHead>
-                                <TableHead className="text-right">Preis Brutto</TableHead>
+                                <TableHead className="w-1/3 font-semibold leading-tight whitespace-normal py-3">Artikel</TableHead>
+                                <TableHead className="text-right font-semibold leading-tight whitespace-normal py-3">Anzahl</TableHead>
+                                <TableHead className="text-right font-semibold leading-tight whitespace-normal py-3">MwSt. Satz</TableHead>
+                                <TableHead className="text-right font-semibold leading-tight whitespace-normal py-3">Preis Netto</TableHead>
+                                <TableHead className="text-right font-semibold leading-tight whitespace-normal py-3">Preis Brutto</TableHead>
                               </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -5863,7 +5941,7 @@ function ShippingPage() {
                   <AccordionTrigger className="py-6 text-[20px] font-bold text-foreground hover:no-underline">
                     Status
                   </AccordionTrigger>
-                  <AccordionContent className="flex flex-col gap-0 mb-4 min-h-[120px]">
+                  <AccordionContent className="flex flex-col gap-0 mb-4 min-h-[120px] px-1">
                     {selectedShipment && (() => {
                       const rowNr = typeof selectedShipment.nr === 'number' ? selectedShipment.nr : parseInt(String(selectedShipment.nr)) || null;
                       const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
@@ -6113,7 +6191,7 @@ function ShippingPage() {
                   <AccordionTrigger className="py-6 text-[20px] font-bold text-foreground hover:no-underline">
                     Versand
                   </AccordionTrigger>
-                  <AccordionContent className="mb-4">
+                  <AccordionContent className="mb-4 px-1">
                     {selectedShipment && (
                       <>
                         <div className="mb-5">
@@ -6204,7 +6282,7 @@ function ShippingPage() {
                   <AccordionTrigger className="py-6 text-[20px] font-bold text-foreground hover:no-underline">
                     Kundendaten
                   </AccordionTrigger>
-                  <AccordionContent className="mb-4">
+                  <AccordionContent className="mb-4 px-1">
                     {selectedShipment && (() => {
                       // Replace commas with newlines, then add Deutschland
                       const formattedAddress = selectedShipment.kundeAdresse
@@ -6293,7 +6371,7 @@ function ShippingPage() {
                   <AccordionTrigger className="py-6 text-[20px] font-bold text-foreground hover:no-underline">
                     Bestellung
                   </AccordionTrigger>
-                  <AccordionContent className="mb-4">
+                  <AccordionContent className="mb-4 px-1">
                     {selectedShipment && (() => {
                       // Split bestellnummer by comma if it contains multiple values
                       const bestellnummern = selectedShipment.bestellnummer 
@@ -6324,11 +6402,11 @@ function ShippingPage() {
                                 <Table>
                               <TableHeader>
                                 <TableRow>
-                                  <TableHead className="w-1/3">Artikel</TableHead>
-                                  <TableHead className="text-right">Anzahl</TableHead>
-                                  <TableHead className="text-right">MwSt. Satz</TableHead>
-                                  <TableHead className="text-right">Preis Netto</TableHead>
-                                  <TableHead className="text-right">Preis Brutto</TableHead>
+                                  <TableHead className="w-1/3 font-semibold leading-tight whitespace-normal py-3">Artikel</TableHead>
+                                  <TableHead className="text-right font-semibold leading-tight whitespace-normal py-3">Anzahl</TableHead>
+                                  <TableHead className="text-right font-semibold leading-tight whitespace-normal py-3">MwSt. Satz</TableHead>
+                                  <TableHead className="text-right font-semibold leading-tight whitespace-normal py-3">Preis Netto</TableHead>
+                                  <TableHead className="text-right font-semibold leading-tight whitespace-normal py-3">Preis Brutto</TableHead>
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
@@ -6394,11 +6472,11 @@ function ShippingPage() {
                                   <Table>
                                 <TableHeader>
                                   <TableRow>
-                                    <TableHead className="w-1/3">Artikel</TableHead>
-                                    <TableHead className="text-right">Anzahl</TableHead>
-                                    <TableHead className="text-right">MwSt. Satz</TableHead>
-                                    <TableHead className="text-right">Preis Netto</TableHead>
-                                    <TableHead className="text-right">Preis Brutto</TableHead>
+                                    <TableHead className="w-1/3 font-semibold leading-tight whitespace-normal py-3">Artikel</TableHead>
+                                    <TableHead className="text-right font-semibold leading-tight whitespace-normal py-3">Anzahl</TableHead>
+                                    <TableHead className="text-right font-semibold leading-tight whitespace-normal py-3">MwSt. Satz</TableHead>
+                                    <TableHead className="text-right font-semibold leading-tight whitespace-normal py-3">Preis Netto</TableHead>
+                                    <TableHead className="text-right font-semibold leading-tight whitespace-normal py-3">Preis Brutto</TableHead>
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
