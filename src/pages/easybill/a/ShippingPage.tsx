@@ -20,7 +20,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Search, X, Plus, Truck, CreditCard, Package, PackageOpen, PackageCheck, MoreHorizontal, Check, Circle, RotateCcw, RefreshCw, CalendarIcon, Filter, Settings2, ChevronDown, ToyBrick, Settings, HelpCircle, Merge, Menu, LayoutDashboard, ClipboardList, QrCode, Mail, ListChecks, AlertTriangle, CloudDownload, Printer, Trash2 } from "lucide-react";
+import { Search, X, Plus, Truck, CreditCard, Package, PackageOpen, PackageCheck, MoreHorizontal, Check, Circle, RotateCcw, RefreshCw, CalendarIcon, Filter, Settings2, ChevronDown, ToyBrick, Settings, HelpCircle, Merge, Menu, LayoutDashboard, ClipboardList, QrCode, Mail, ListChecks, AlertTriangle, CloudDownload, Printer, Trash2, Split } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -3512,18 +3512,29 @@ function ShippingPage() {
   const baseFilteredDataSendungen = React.useMemo(() => {
     let result = [...ordersState2];
 
-    // Apply visibility filter for specific rows (19-24)
-    if (visibleKundeAdressenForSendungen.size > 0) {
-      result = result.filter((order) => {
-        const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
-        if (rowNr === null) return true;
-        
-        if (rowNr === 19 || rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23 || rowNr === 24) {
-          return visibleKundeAdressenForSendungen.has(order.kundeAdresse || "");
+    // Hide row 24 always
+    result = result.filter((order) => {
+      const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+      if (rowNr === null) return true;
+      if (rowNr === 24) return false;
+      return true;
+    });
+
+    // Hide rows with numbers 19, 20, 21, 22, 23 at start (unless they match visible kundeAdresse values)
+    result = result.filter((order) => {
+      const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+      if (rowNr === null) return true;
+      
+      // Always hide rows 19, 20, 21, 22, 23 initially
+      if (rowNr === 19 || rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23) {
+        // Show them if their kundeAdresse matches a visible kundeAdresse
+        if (visibleKundeAdressenForSendungen.size > 0 && visibleKundeAdressenForSendungen.has(order.kundeAdresse || "")) {
+          return true;
         }
-        return true;
-      });
-    }
+        return false;
+      }
+      return true;
+    });
 
     // Apply filter for Importquelle dropdown
     if (importquelle && importquelle !== "Alle") {
@@ -8617,6 +8628,32 @@ function ShippingPage() {
             </CommandItem>
           </CommandGroup>
           <CommandGroup heading={markedRowsCount === 1 || isSheetOpen ? "Bestellung" : "Bestellungen"}>
+            {(markedRowsCount === 1 || isSheetOpen) && (
+              <CommandItem
+                onSelect={() => {
+                  setShowFunktionenBestellungenCommand(false);
+                  checkSelectionBeforeAction(() => {
+                    // Handle Bestellung splitten
+                  });
+                }}
+              >
+                <Split className="size-4 rotate-90" />
+                Bestellung splitten
+              </CommandItem>
+            )}
+            {markedRowsCount > 1 && !isSheetOpen && (
+              <CommandItem
+                onSelect={() => {
+                  setShowFunktionenBestellungenCommand(false);
+                  checkSelectionBeforeAction(() => {
+                    // Handle Bestellungen verbinden
+                  });
+                }}
+              >
+                <Merge className="size-4 rotate-90" />
+                Bestellungen zu einer Sendung verbinden
+              </CommandItem>
+            )}
             <CommandItem
               onSelect={() => {
                 setShowFunktionenBestellungenCommand(false);
