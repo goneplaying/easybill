@@ -8605,7 +8605,18 @@ function ShippingPage() {
               {markedRowsCount > 1 ? "Rechnungen downloaden" : "Rechnung downloaden"}
             </CommandItem>
           </CommandGroup>
-          <CommandGroup heading="Bestellungen">
+          <CommandGroup heading={markedRowsCount === 1 || isSendungSheetOpen ? "Sendung" : "Sendungen"}>
+            <CommandItem
+              onSelect={() => {
+                setShowFunktionenBestellungenCommand(false);
+                handleShowRelatedShipments();
+              }}
+            >
+              <Package className="size-4" />
+              {markedRowsCount === 1 || isSendungSheetOpen ? "Dazugehörige Sendung anzeigen" : "Dazugehörige Sendungen anzeigen"}
+            </CommandItem>
+          </CommandGroup>
+          <CommandGroup heading={markedRowsCount === 1 || isSheetOpen ? "Bestellung" : "Bestellungen"}>
             <CommandItem
               onSelect={() => {
                 setShowFunktionenBestellungenCommand(false);
@@ -8617,17 +8628,6 @@ function ShippingPage() {
             >
               <Trash2 className="size-4 text-destructive" />
               Löschen
-            </CommandItem>
-          </CommandGroup>
-          <CommandGroup heading="Sendungen">
-            <CommandItem
-              onSelect={() => {
-                setShowFunktionenBestellungenCommand(false);
-                handleShowRelatedShipments();
-              }}
-            >
-              <Package className="size-4" />
-              {markedRowsCount === 1 ? "Dazugehörige Sendung anzeigen" : "Dazugehörige Sendungen anzeigen"}
             </CommandItem>
           </CommandGroup>
         </CommandList>
@@ -8678,7 +8678,7 @@ function ShippingPage() {
               Versanddokumente drucken
             </CommandItem>
           </CommandGroup>
-          <CommandGroup heading="Bestellungen">
+          <CommandGroup heading={markedRowsCount === 1 || isSheetOpen ? "Bestellung" : "Bestellungen"}>
             <CommandItem
               onSelect={() => {
                 setShowFunktionenSendungenCommand(false);
@@ -8686,10 +8686,10 @@ function ShippingPage() {
               }}
             >
               <CreditCard className="size-4" />
-              {markedRowsCount === 1 ? "Dazugehörige Bestellung anzeigen" : "Dazugehörige Bestellungen anzeigen"}
+              {markedRowsCount === 1 || isSheetOpen ? "Dazugehörige Bestellung anzeigen" : "Dazugehörige Bestellungen anzeigen"}
             </CommandItem>
           </CommandGroup>
-          <CommandGroup heading="Sendungen">
+          <CommandGroup heading={markedRowsCount === 1 || isSendungSheetOpen ? "Sendung" : "Sendungen"}>
             <CommandItem
               onSelect={() => {
                 setShowFunktionenSendungenCommand(false);
