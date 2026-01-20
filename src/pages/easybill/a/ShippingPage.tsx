@@ -20,7 +20,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Search, X, Plus, Truck, CreditCard, Package, PackageOpen, PackageCheck, MoreHorizontal, Check, Circle, RotateCcw, RefreshCw, CalendarIcon, Filter, Settings2, ChevronDown, ToyBrick, Settings, HelpCircle, Merge, Menu, LayoutDashboard, ClipboardList, QrCode, Mail, ListChecks, AlertTriangle, CloudDownload, Printer, Trash2, Split } from "lucide-react";
+import { Search, X, Plus, Truck, CreditCard, Package, PackageOpen, PackageCheck, MoreHorizontal, Check, Circle, RotateCcw, RefreshCw, CalendarIcon, Filter, Settings2, ChevronDown, ToyBrick, Settings, HelpCircle, Merge, Menu, LayoutDashboard, ClipboardList, QrCode, Mail, ListChecks, AlertTriangle, CloudDownload, Printer, Trash2, Split, CopyPlus } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -5468,9 +5468,16 @@ function ShippingPage() {
                     {/* Versandprofil field - shown only when Sendungen tab is active */}
                     {activeTab === "versand" && (
                     <div className="space-y-2">
-                      <Label htmlFor="versandprofil" className="text-sm font-medium">
-                        Versandprofil
-                      </Label>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="versandprofil" className="text-sm font-medium">
+                          Versandprofil
+                        </Label>
+                        <Link to="/a/shippingprofiles">
+                          <Button variant="link" className="p-0 h-auto text-sm font-normal">
+                            Bearbeiten
+                          </Button>
+                        </Link>
+                      </div>
                       <Select value={versandprofil} onValueChange={setVersandprofil}>
                         <SelectTrigger id="versandprofil" className="w-full">
                           <SelectValue placeholder="Profil auswählen" />
@@ -6567,10 +6574,25 @@ function ShippingPage() {
                     Versand
                   </AccordionTrigger>
                   <AccordionContent className="mb-4 px-1">
-                    {selectedShipment && (
+                    {selectedShipment && (() => {
+                      // Check if shipping fields should be disabled
+                      const rowNr = typeof selectedShipment.nr === 'number' ? selectedShipment.nr : parseInt(String(selectedShipment.nr)) || null;
+                      const checklistData = rowNr !== null ? checklistMap.get(rowNr) : null;
+                      const isVersandlabelErstellt = checklistData?.paketlisteErstellt ?? false;
+                      const isVersendet = checklistData?.versendet ?? false;
+                      const isShippingDisabled = isVersandlabelErstellt || isVersendet;
+                      
+                      return (
                       <>
                         <div className="mb-5">
-                          <label className="text-sm font-medium text-foreground">Versandprofil</label>
+                          <div className="flex items-center justify-between">
+                            <label className="text-sm font-medium text-foreground">Versandprofil</label>
+                            <Link to="/a/shippingprofiles">
+                              <Button variant="link" className="p-0 h-auto text-sm font-normal">
+                                Bearbeiten
+                              </Button>
+                            </Link>
+                          </div>
                           <Select 
                             value={selectedShipment.versandprofil || ""}
                             onValueChange={(value) => {
@@ -6588,6 +6610,7 @@ function ShippingPage() {
                                 setOrdersState2(prev => prev.map((o, idx) => idx === shipmentIndex ? updatedShipment : o));
                               }
                             }}
+                            disabled={isShippingDisabled}
                           >
                             <SelectTrigger className="mt-2">
                               <SelectValue placeholder="Versandprofil auswählen" />
@@ -6615,6 +6638,7 @@ function ShippingPage() {
                                 setOrdersState2(prev => prev.map((o, idx) => idx === shipmentIndex ? updatedShipment : o));
                               }
                             }}
+                            disabled={isShippingDisabled}
                           >
                             <SelectTrigger className="mt-2">
                               <SelectValue placeholder="Versanddienstleister auswählen" />
@@ -6640,6 +6664,7 @@ function ShippingPage() {
                                 setOrdersState2(prev => prev.map((o, idx) => idx === shipmentIndex ? updatedShipment : o));
                               }
                             }}
+                            disabled={isShippingDisabled}
                           >
                             <SelectTrigger className="mt-2">
                               <SelectValue placeholder="Versandverpackung auswählen" />
@@ -6656,7 +6681,8 @@ function ShippingPage() {
                         </div>
                       </div>
                       </>
-                    )}
+                      );
+                    })()}
                   </AccordionContent>
                 </AccordionItem>
                 <AccordionItem value="item-3" className="border-b border-border">
@@ -8715,7 +8741,7 @@ function ShippingPage() {
               Versanddokumente drucken
             </CommandItem>
           </CommandGroup>
-          <CommandGroup heading={markedRowsCount === 1 || isSheetOpen ? "Bestellung" : "Bestellungen"}>
+          <CommandGroup heading={markedRowsCount === 1 || isSendungSheetOpen ? "Bestellung" : "Bestellungen"}>
             <CommandItem
               onSelect={() => {
                 setShowFunktionenSendungenCommand(false);
@@ -8723,32 +8749,75 @@ function ShippingPage() {
               }}
             >
               <CreditCard className="size-4" />
-              {markedRowsCount === 1 || isSheetOpen ? "Dazugehörige Bestellung anzeigen" : "Dazugehörige Bestellungen anzeigen"}
+              {markedRowsCount === 1 || isSendungSheetOpen ? "Dazugehörige Bestellung anzeigen" : "Dazugehörige Bestellungen anzeigen"}
             </CommandItem>
           </CommandGroup>
           <CommandGroup heading={markedRowsCount === 1 || isSendungSheetOpen ? "Sendung" : "Sendungen"}>
-            <CommandItem
-              onSelect={() => {
-                setShowFunktionenSendungenCommand(false);
-                checkSelectionBeforeAction(() => {
-                  // Handle Versandprofil hinzufügen
-                });
-              }}
-            >
-              <Settings2 className="size-4" />
-              Versandprofil hinzufügen
-            </CommandItem>
-            <CommandItem
-              onSelect={() => {
-                setShowFunktionenSendungenCommand(false);
-                checkSelectionBeforeAction(() => {
-                  // Handle Sendungen verbinden
-                });
-              }}
-            >
-              <Merge className="size-4 rotate-90" />
-              Sendungen verbinden
-            </CommandItem>
+            {(() => {
+              // Check if any selected shipment has Versandlabel or Versendet status
+              const markedShipments = filteredData2.filter(row => markedRows2.has(row.nr));
+              const hasVersandlabelOrVersendet = markedShipments.some(shipment => {
+                const rowNr = typeof shipment.nr === 'number' ? shipment.nr : parseInt(String(shipment.nr)) || null;
+                if (rowNr === null) return false;
+                const checklistData = checklistMap.get(rowNr);
+                return checklistData?.paketlisteErstellt || checklistData?.versendet;
+              });
+              
+              // Also check if sheet is open
+              if (isSendungSheetOpen && selectedShipment) {
+                const rowNr = typeof selectedShipment.nr === 'number' ? selectedShipment.nr : parseInt(String(selectedShipment.nr)) || null;
+                if (rowNr !== null) {
+                  const checklistData = checklistMap.get(rowNr);
+                  if (checklistData?.paketlisteErstellt || checklistData?.versendet) {
+                    return null; // Hide the button
+                  }
+                }
+              }
+              
+              if (hasVersandlabelOrVersendet) {
+                return null; // Hide the button
+              }
+              
+              return (
+                <CommandItem
+                  onSelect={() => {
+                    setShowFunktionenSendungenCommand(false);
+                    checkSelectionBeforeAction(() => {
+                      // Handle Versandprofil hinzufügen
+                    });
+                  }}
+                >
+                  <Settings2 className="size-4" />
+                  Versandprofil hinzufügen
+                </CommandItem>
+              );
+            })()}
+            {(markedRowsCount === 1 || isSendungSheetOpen) && (
+              <CommandItem
+                onSelect={() => {
+                  setShowFunktionenSendungenCommand(false);
+                  checkSelectionBeforeAction(() => {
+                    // Handle Neue Sendung für diese Bestellung erstellen
+                  });
+                }}
+              >
+                <CopyPlus className="size-4" />
+                Neue Sendung für diese Bestellung erstellen
+              </CommandItem>
+            )}
+            {markedRowsCount > 1 && !isSendungSheetOpen && (
+              <CommandItem
+                onSelect={() => {
+                  setShowFunktionenSendungenCommand(false);
+                  checkSelectionBeforeAction(() => {
+                    // Handle Sendungen verbinden
+                  });
+                }}
+              >
+                <Merge className="size-4 rotate-90" />
+                Sendungen verbinden
+              </CommandItem>
+            )}
             <CommandItem
               onSelect={() => {
                 setShowFunktionenSendungenCommand(false);
