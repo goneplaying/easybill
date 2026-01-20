@@ -2705,6 +2705,16 @@ function ShippingPage() {
     return ["DHL National", "DPD Europa", "UPS USA"];
   }, []);
 
+  // Helper function to get versanddienstleister and versandverpackung from versandprofil
+  const getShippingDetailsFromProfile = React.useCallback((versandprofil: string) => {
+    const profileMap: Record<string, { dienstleister: string; verpackung: string }> = {
+      "DHL National": { dienstleister: "DHL", verpackung: "Karton M" },
+      "DPD Europa": { dienstleister: "DPD", verpackung: "Karton M" },
+      "UPS USA": { dienstleister: "UPS", verpackung: "Karton M" },
+    };
+    return profileMap[versandprofil] || { dienstleister: "", verpackung: "" };
+  }, []);
+
   // Versanddienstleister options: DHL, DPD, UPS
   const versanddienstleisterOptions = React.useMemo(() => {
     return ["DHL", "DPD", "UPS"];
@@ -3498,130 +3508,202 @@ function ShippingPage() {
     return count;
   }, [ordersState2, checklistMap, visibleKundeAdressenForSendungen]);
 
+  // Base filtered data for Sendungen (without checkbox filters) - used for calculating counts
+  const baseFilteredDataSendungen = React.useMemo(() => {
+    let result = [...ordersState2];
+
+    // Apply visibility filter for specific rows (19-24)
+    if (visibleKundeAdressenForSendungen.size > 0) {
+      result = result.filter((order) => {
+        const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+        if (rowNr === null) return true;
+        
+        if (rowNr === 19 || rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23 || rowNr === 24) {
+          return visibleKundeAdressenForSendungen.has(order.kundeAdresse || "");
+        }
+        return true;
+      });
+    }
+
+    // Apply filter for Importquelle dropdown
+    if (importquelle && importquelle !== "Alle") {
+      result = result.filter((order) => order.importquelle === importquelle);
+    }
+
+    // Apply filter for Kaufdatum
+    if (kaufdatum?.from) {
+      const fromDate = format(kaufdatum.from, "yyyy-MM-dd");
+      const toDate = kaufdatum.to ? format(kaufdatum.to, "yyyy-MM-dd") : fromDate;
+      result = result.filter((order) => {
+        const orderDate = order.kaufdatum;
+        return orderDate >= fromDate && orderDate <= toDate;
+      });
+    }
+
+    // Apply filter for Importdatum
+    if (importdatum?.from) {
+      const fromDate = format(importdatum.from, "yyyy-MM-dd");
+      const toDate = importdatum.to ? format(importdatum.to, "yyyy-MM-dd") : fromDate;
+      result = result.filter((order) => {
+        const orderDate = order.importdatum;
+        return orderDate >= fromDate && orderDate <= toDate;
+      });
+    }
+
+    // Apply filter for "Zuletzt importiert" checkbox
+    if (isChecked) {
+      result = result.filter(
+        (order) => order.importdatum === "2025-12-09" || order.importdatum === "09.12.2025"
+      );
+    }
+
+    // Apply filter for "Fehler" checkbox (Sendungen)
+    if (isChecked12) {
+      result = result.filter((order) => {
+        const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+        if (rowNr === null) return false;
+        const checklistData = checklistMap.get(rowNr);
+        const hasError = checklistData?.fehler ?? false;
+        return hasError;
+      });
+    }
+
+    // Apply versandprofil filters
+    if (isChecked5) {
+      result = result.filter((order) => order.versandprofil === "DHL National");
+    }
+    if (isChecked6) {
+      result = result.filter((order) => order.versandprofil === "DPD Europa" || order.versandprofil === "DPD International");
+    }
+    if (isChecked11) {
+      result = result.filter((order) => order.versandprofil === "UPS USA");
+    }
+
+    // Filter IN Versandvorgang rows only
+    result = result.filter((order) => order.type === "Versandvorgang");
+
+    // Apply duplicate address filtering
+    if (combineDuplicateAddresses === true) {
+      const seenAddresses = new Set<string>();
+      result = result.filter((order) => {
+        const addr = order.kundeAdresse || "";
+        if (seenAddresses.has(addr)) {
+          return false;
+        }
+        seenAddresses.add(addr);
+        return true;
+      });
+    }
+
+    // Apply history filter
+    if (selectedHistory && selectedHistory !== 'Alle') {
+      const parts = selectedHistory.split('|');
+      if (parts.length === 3) {
+        const [date, column, type] = parts;
+        if (type === 'sendung') {
+          result = result.filter((order) => {
+            const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+            if (rowNr === null) return false;
+            
+            if (column === 'versandtGemeldet') {
+              return order.versandtGemeldet === date;
+            } else if (column === 'versanddatum') {
+              return order.versanddatum === date;
+            } else if (column === 'picklisteErstellt') {
+              return sendungenDateMaps.picklisteMap.get(rowNr) === date;
+            } else if (column === 'packlisteErstellt') {
+              return sendungenDateMaps.packlisteMap.get(rowNr) === date;
+            } else if (column === 'versandprofilHinzugefuegt') {
+              return sendungenDateMaps.versandprofilHinzugefuegtMap.get(rowNr) === date;
+            }
+            return false;
+          });
+        }
+      }
+    }
+
+    return result;
+  }, [ordersState2, visibleKundeAdressenForSendungen, importquelle, kaufdatum, importdatum, isChecked, isChecked5, isChecked6, isChecked11, isChecked12, checklistMap, combineDuplicateAddresses, selectedHistory, sendungenDateMaps]);
+
   // Count rows in Sendungen table where "Versendet" checkbox is false in checklistMap
   const nichtVersendetCount = React.useMemo(() => {
     let count = 0;
-    ordersState2.forEach((order) => {
-      if (order.type === "Versandvorgang") {
-        const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
-        if (rowNr === null) return;
-        
-        // Check if row is hidden
-        if (rowNr === 19 || rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23 || rowNr === 24) {
-          if (visibleKundeAdressenForSendungen.size === 0 || !visibleKundeAdressenForSendungen.has(order.kundeAdresse || "")) {
-            return; // Skip hidden rows
-          }
-        }
-        
-        const checklistData = checklistMap.get(rowNr);
-        const isVersendet = checklistData?.versendet ?? false;
-        if (!isVersendet) {
-          count++;
-        }
+    baseFilteredDataSendungen.forEach((order) => {
+      const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+      if (rowNr === null) return;
+      
+      const checklistData = checklistMap.get(rowNr);
+      const isVersendet = checklistData?.versendet ?? false;
+      if (!isVersendet) {
+        count++;
       }
     });
     return count;
-  }, [ordersState2, checklistMap, visibleKundeAdressenForSendungen]);
+  }, [baseFilteredDataSendungen, checklistMap]);
 
   // Count rows in Sendungen table where "Pickliste erstellt" checkbox is false in checklistMap
   const keinePicklisteCount = React.useMemo(() => {
     let count = 0;
-    ordersState2.forEach((order) => {
-      if (order.type === "Versandvorgang") {
-        const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
-        if (rowNr === null) return;
-        
-        // Check if row is hidden
-        if (rowNr === 19 || rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23 || rowNr === 24) {
-          if (visibleKundeAdressenForSendungen.size === 0 || !visibleKundeAdressenForSendungen.has(order.kundeAdresse || "")) {
-            return; // Skip hidden rows
-          }
-        }
-        
-        const checklistData = checklistMap.get(rowNr);
-        const hasPickliste = checklistData?.picklisteErstellt ?? false;
-        if (!hasPickliste) {
-          count++;
-        }
+    baseFilteredDataSendungen.forEach((order) => {
+      const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+      if (rowNr === null) return;
+      
+      const checklistData = checklistMap.get(rowNr);
+      const hasPickliste = checklistData?.picklisteErstellt ?? false;
+      if (!hasPickliste) {
+        count++;
       }
     });
     return count;
-  }, [ordersState2, checklistMap, visibleKundeAdressenForSendungen]);
+  }, [baseFilteredDataSendungen, checklistMap]);
 
   // Count rows in Sendungen table where "Packliste erstellt" checkbox is false in checklistMap
   const keinePacklisteCount = React.useMemo(() => {
     let count = 0;
-    ordersState2.forEach((order) => {
-      if (order.type === "Versandvorgang") {
-        const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
-        if (rowNr === null) return;
-        
-        // Check if row is hidden
-        if (rowNr === 19 || rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23 || rowNr === 24) {
-          if (visibleKundeAdressenForSendungen.size === 0 || !visibleKundeAdressenForSendungen.has(order.kundeAdresse || "")) {
-            return; // Skip hidden rows
-          }
-        }
-        
-        const checklistData = checklistMap.get(rowNr);
-        const hasPackliste = checklistData?.packlisteErstellt ?? false;
-        if (!hasPackliste) {
-          count++;
-        }
+    baseFilteredDataSendungen.forEach((order) => {
+      const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+      if (rowNr === null) return;
+      
+      const checklistData = checklistMap.get(rowNr);
+      const hasPackliste = checklistData?.packlisteErstellt ?? false;
+      if (!hasPackliste) {
+        count++;
       }
     });
     return count;
-  }, [ordersState2, checklistMap, visibleKundeAdressenForSendungen]);
+  }, [baseFilteredDataSendungen, checklistMap]);
 
   // Count rows in Sendungen table where "Versandprofil hinzugefügt" checkbox is false in checklistMap
   const keinVersandprofilCount = React.useMemo(() => {
     let count = 0;
-    ordersState2.forEach((order) => {
-      if (order.type === "Versandvorgang") {
-        const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
-        if (rowNr === null) return;
-        
-        // Check if row is hidden
-        if (rowNr === 19 || rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23 || rowNr === 24) {
-          if (visibleKundeAdressenForSendungen.size === 0 || !visibleKundeAdressenForSendungen.has(order.kundeAdresse || "")) {
-            return; // Skip hidden rows
-          }
-        }
-        
-        const checklistData = checklistMap.get(rowNr);
-        const hasVersandprofil = checklistData?.versandprofilHinzugefuegt ?? false;
-        if (!hasVersandprofil) {
-          count++;
-        }
+    baseFilteredDataSendungen.forEach((order) => {
+      const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+      if (rowNr === null) return;
+      
+      const checklistData = checklistMap.get(rowNr);
+      const hasVersandprofil = checklistData?.versandprofilHinzugefuegt ?? false;
+      if (!hasVersandprofil) {
+        count++;
       }
     });
     return count;
-  }, [ordersState2, checklistMap, visibleKundeAdressenForSendungen]);
+  }, [baseFilteredDataSendungen, checklistMap]);
 
   // Count rows in Sendungen table where Versandlabel (paketlisteErstellt) is false
   const keinVersandlabelCount = React.useMemo(() => {
     let count = 0;
-    ordersState2.forEach((order) => {
-      if (order.type === "Versandvorgang") {
-        const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
-        if (rowNr === null) return;
-        
-        // Check if row is hidden
-        if (rowNr === 19 || rowNr === 20 || rowNr === 21 || rowNr === 22 || rowNr === 23 || rowNr === 24) {
-          if (visibleKundeAdressenForSendungen.size === 0 || !visibleKundeAdressenForSendungen.has(order.kundeAdresse || "")) {
-            return; // Skip hidden rows
-          }
-        }
-        
-        const checklistData = checklistMap.get(rowNr);
-        const hasVersandlabel = checklistData?.paketlisteErstellt ?? false;
-        if (!hasVersandlabel) {
-          count++;
-        }
+    baseFilteredDataSendungen.forEach((order) => {
+      const rowNr = typeof order.nr === 'number' ? order.nr : parseInt(String(order.nr)) || null;
+      if (rowNr === null) return;
+      
+      const checklistData = checklistMap.get(rowNr);
+      const hasVersandlabel = checklistData?.paketlisteErstellt ?? false;
+      if (!hasVersandlabel) {
+        count++;
       }
     });
     return count;
-  }, [ordersState2, checklistMap, visibleKundeAdressenForSendungen]);
+  }, [baseFilteredDataSendungen, checklistMap]);
 
   // Count rows in Bestellungen table where Versandprofil is "DHL National"
   const dhlNationalCount = React.useMemo(() => {
@@ -4614,21 +4696,14 @@ function ShippingPage() {
 
   // Handle versandprofil change
   const handleProfilChange = React.useCallback((row: Order, newValue: string) => {
-    // Determine versanddienstleister based on versandprofil
-    let versanddienstleister = row.versanddienstleister; // Keep existing value by default
-    
-    if (newValue === "DHL National") {
-      versanddienstleister = "DHL";
-    } else if (newValue === "DPD Europa") {
-      versanddienstleister = "DPD";
-    } else if (newValue === "UPS USA") {
-      versanddienstleister = "UPS";
-    }
+    // Get versanddienstleister and versandverpackung based on versandprofil
+    const shippingDetails = getShippingDetailsFromProfile(newValue);
     
     const updatedOrder = { 
       ...row, 
       versandprofil: newValue,
-      versanddienstleister: versanddienstleister
+      versanddienstleister: shippingDetails.dienstleister || row.versanddienstleister,
+      versandverpackung: shippingDetails.verpackung || row.versandverpackung
     };
     
     // Update in ordersState1
@@ -4666,7 +4741,7 @@ function ShippingPage() {
         return newMap;
       });
     }
-  }, [selectedOrder]);
+  }, [selectedOrder, getShippingDetailsFromProfile]);
 
   // Handle versanddienstleister change
   const handleDienstleisterChange = React.useCallback((row: Order, newValue: string) => {
@@ -6488,7 +6563,13 @@ function ShippingPage() {
                           <Select 
                             value={selectedShipment.versandprofil || ""}
                             onValueChange={(value) => {
-                              const updatedShipment = { ...selectedShipment, versandprofil: value };
+                              const shippingDetails = getShippingDetailsFromProfile(value);
+                              const updatedShipment = { 
+                                ...selectedShipment, 
+                                versandprofil: value,
+                                versanddienstleister: shippingDetails.dienstleister,
+                                versandverpackung: shippingDetails.verpackung
+                              };
                               setSelectedShipment(updatedShipment);
                               // Update sendungen table only
                               const shipmentIndex = ordersState2.findIndex(o => o.nr === selectedShipment.nr);
@@ -7711,12 +7792,17 @@ function ShippingPage() {
                           );
                           
                           // Update versandprofil to "DHL National" for all rows in Sendungen where versandland is "DE"
+                          // Also set versanddienstleister and versandverpackung based on the profile
+                          const profileName = "DHL National";
+                          const shippingDetails = getShippingDetailsFromProfile(profileName);
                           setOrdersState2((prevOrders) => {
                             return prevOrders.map((order) => {
                               if (order.type === "Versandvorgang" && order.versandland === "DE") {
                                 return {
                                   ...order,
-                                  versandprofil: "DHL National",
+                                  versandprofil: profileName,
+                                  versanddienstleister: shippingDetails.dienstleister,
+                                  versandverpackung: shippingDetails.verpackung,
                                 };
                               }
                               return order;
