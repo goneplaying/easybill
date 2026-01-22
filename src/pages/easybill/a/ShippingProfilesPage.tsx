@@ -35,7 +35,51 @@ import {
   SheetContent,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+
+// Versandprofile data from Google Sheets
+const VERSANDPROFILE_DATA: Record<string, {
+  produkte: string[];
+  verpackung: string[];
+  zusatzleistungen: string[];
+}> = {
+  "DHL": {
+    produkte: ["DHL Paket", "DHL Paket International", "DHL Europaket", "DHL Kleinpaket", "Warenpost International"],
+    verpackung: ["Umschlag", "Karton", "Palette", "Sonderverpackung"],
+    zusatzleistungen: ["Premium", "Wunschnachbar", "Wunschort", "Alterssichtprüfung", "Vorspersonline Übergabe", "Empfängerunterschrift", "Keine Nachbarschaftsstellung", "Wunschtag", "Vorabankündigung", "GoGreen", "GoGreen Plus", "Zusatzversicherung", "Sperrgut", "Nachnahme", "Filial-Routing", "pDDP", "Beileger"]
+  },
+  "DPD": {
+    produkte: ["DPD CLASSIC", "DPD Shop2Shop", "Shop-Shipping", "Home Collection", "DPD Expressversand", "DPD 12:00", "DPD Internationaler Versand"],
+    verpackung: ["Umschlag", "Karton", "Palette", "Sonderverpackung"],
+    zusatzleistungen: ["Predict (E-Mail/SMS Vorabinfo)", "Live-Tracking (Sendungsverfolgung)", "Retourenmanagement", "Höherversicherung", "Nachnahme", "Abteilungszustellung", "Gefahrgut", "ID-Prüfung", "Standardversicherung"]
+  },
+  "UPS": {
+    produkte: ["UPS Standard", "UPS Expedited", "UPS Express Saver", "UPS Express", "UPS Express Plus", "UPS Worldwide Express Freight"],
+    verpackung: ["Umschlag", "Karton", "Palette", "Sonderverpackung"],
+    zusatzleistungen: ["UPS Electronic Return Label (ERL)", "UPS Access Point (Zustellung an Abholpunkt)", "Hold for Pickup / Hold at Location", "UPS Delivery Intercept", "Delivery Change Requests", "Address Correction", "Saturday Delivery", "Signature Required", "Adult Signature Required", "Declared Value (höhere Haftung)", "Collect on Delivery (Nachnahme)", "UPS Carbon Neutral"]
+  },
+  "GLS": {
+    produkte: ["BusinessParcel (National)", "Domestic Parcel (Privat & Business)", "EuroBusinessParcel (Europa)", "ExpressParcel (National)", "GlobalExpressParcel (International)"],
+    verpackung: ["Umschlag", "Karton", "Palette", "Sonderverpackung"],
+    zusatzleistungen: ["FlexDeliveryService", "InfoCourierService (SMS-Benachrichtigung)", "Second Delivery Attempt", "Parcel Tracking (Sendungsverfolgung)", "Return/Retoure Services", "CashService (Nachnahme)", "Pick&Ship / Pick&Return", "ADE-Plus / Versandsoftware", "PaketShop / PaketBox Zustellung", "Abstellerlaubnis"]
+  },
+  "Hermes": {
+    produkte: ["Hermes Paket Päckchen", "Hermes Paket S", "Hermes Paket M", "Hermes Paket L", "Hermes Paket XL", "Hermes Paket XXL"],
+    verpackung: ["Umschlag", "Karton", "Palette", "Sonderverpackung"],
+    zusatzleistungen: ["PaketShop-Zustellung (Shop2Shop)", "Sperrgut-Zuschlag", "WunschAblageort", "WunschPaketShop", "WunschNachbar", "WunschTag", "Sendungsverfolgung", "Abholung im PaketShop"]
+  },
+  "Deutsche Post": {
+    produkte: [],
+    verpackung: ["Umschlag", "Karton", "Palette", "Sonderverpackung"],
+    zusatzleistungen: []
+  }
+};
 
 function ShippingProfilesPage() {
   const location = useLocation();
@@ -48,10 +92,36 @@ function ShippingProfilesPage() {
     id: string;
     name: string;
     dienstleister: string;
+    produkt?: string;
     verpackung: string;
     zusatzleistungen: string;
     additionalZusatzleistungen?: Array<{ id: string; value: string }>;
   } | null>(null);
+
+  // Get available options based on selected Versanddienstleister
+  const getAvailableProdukte = React.useMemo(() => {
+    if (!selectedProfile?.dienstleister) return [];
+    const providerKey = Object.keys(VERSANDPROFILE_DATA).find(key => 
+      selectedProfile.dienstleister.includes(key)
+    );
+    return providerKey ? VERSANDPROFILE_DATA[providerKey].produkte : [];
+  }, [selectedProfile?.dienstleister]);
+
+  const getAvailableVerpackung = React.useMemo(() => {
+    if (!selectedProfile?.dienstleister) return ["Umschlag", "Karton", "Palette", "Sonderverpackung"];
+    const providerKey = Object.keys(VERSANDPROFILE_DATA).find(key => 
+      selectedProfile.dienstleister.includes(key)
+    );
+    return providerKey ? VERSANDPROFILE_DATA[providerKey].verpackung : ["Umschlag", "Karton", "Palette", "Sonderverpackung"];
+  }, [selectedProfile?.dienstleister]);
+
+  const getAvailableZusatzleistungen = React.useMemo(() => {
+    if (!selectedProfile?.dienstleister) return [];
+    const providerKey = Object.keys(VERSANDPROFILE_DATA).find(key => 
+      selectedProfile.dienstleister.includes(key)
+    );
+    return providerKey ? VERSANDPROFILE_DATA[providerKey].zusatzleistungen : [];
+  }, [selectedProfile?.dienstleister]);
 
   // Filter items for Versandprofile - using state to allow dynamic additions
   const [filterItems2, setFilterItems2] = React.useState<Array<{
@@ -61,6 +131,7 @@ function ShippingProfilesPage() {
     checked: boolean;
     logo?: string;
     isAddButton?: boolean;
+    produkt?: string;
     verpackung?: string;
     zusatzleistungen?: string;
     additionalZusatzleistungen?: Array<{ id: string; value: string }>;
@@ -426,6 +497,7 @@ function ShippingProfilesPage() {
                               id: item.id,
                               name: item.label,
                               dienstleister: item.label.split(' ')[0] || item.label, // Extract provider name
+                              produkt: item.produkt || '',
                               verpackung: item.verpackung || '',
                               zusatzleistungen: item.zusatzleistungen || '',
                               additionalZusatzleistungen: item.additionalZusatzleistungen || [],
@@ -474,6 +546,7 @@ function ShippingProfilesPage() {
                                         id: item.id,
                                         name: item.label,
                                         dienstleister: item.label.split(' ')[0] || item.label, // Extract provider name
+                                        produkt: item.produkt || '',
                                         verpackung: item.verpackung || '',
                                         zusatzleistungen: item.zusatzleistungen || '',
                                         additionalZusatzleistungen: item.additionalZusatzleistungen || [],
@@ -682,6 +755,7 @@ function ShippingProfilesPage() {
                 ? { 
                     ...prevItem, 
                     label: selectedProfile.name,
+                    produkt: selectedProfile.produkt,
                     verpackung: selectedProfile.verpackung,
                     zusatzleistungen: selectedProfile.zusatzleistungen,
                     additionalZusatzleistungen: selectedProfile.additionalZusatzleistungen || [],
@@ -701,7 +775,12 @@ function ShippingProfilesPage() {
           <SheetTitle className="font-bold tracking-tight text-foreground mb-2 mt-4">
             Versandprofil
           </SheetTitle>
-          <div className="mt-10 space-y-6">
+          <Tabs defaultValue="profil" className="mt-10">
+            <TabsList variant="line">
+              <TabsTrigger value="profil">Profil</TabsTrigger>
+              <TabsTrigger value="einstellungen">Einstellungen</TabsTrigger>
+            </TabsList>
+            <TabsContent value="profil" className="mt-10 space-y-6">
             <Field orientation="vertical">
               <FieldLabel>Profilname</FieldLabel>
               <FieldContent>
@@ -723,7 +802,39 @@ function ShippingProfilesPage() {
             </Field>
 
             <Field orientation="vertical">
-              <FieldLabel>Versandverpackung</FieldLabel>
+              <FieldLabel>Produkt</FieldLabel>
+              <FieldContent>
+                <Select
+                  value={selectedProfile?.produkt || ''}
+                  onValueChange={(value) => setSelectedProfile(prev => prev ? { ...prev, produkt: value } : null)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Produkt auswählen" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {getAvailableProdukte.length > 0 ? (
+                      getAvailableProdukte.map((produkt) => (
+                        <SelectItem key={produkt} value={produkt}>{produkt}</SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="none" disabled>Keine Produkte verfügbar</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </FieldContent>
+            </Field>
+
+            <Field orientation="vertical">
+              <div className="flex items-center justify-between">
+                <FieldLabel>Versandverpackung</FieldLabel>
+                <Button
+                  variant="link"
+                  size={undefined}
+                  className="p-0 !px-0 h-auto text-sm font-normal has-[>svg]:!px-0"
+                >
+                  Bearbeiten
+                </Button>
+              </div>
               <FieldContent>
                 <Select
                   value={selectedProfile?.verpackung || ''}
@@ -733,10 +844,9 @@ function ShippingProfilesPage() {
                     <SelectValue placeholder="Verpackung auswählen" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="karton">Karton</SelectItem>
-                    <SelectItem value="palette">Palette</SelectItem>
-                    <SelectItem value="umschlag">Umschlag</SelectItem>
-                    <SelectItem value="sonderverpackung">Sonderverpackung</SelectItem>
+                    {getAvailableVerpackung.map((verpackung) => (
+                      <SelectItem key={verpackung} value={verpackung}>{verpackung}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </FieldContent>
@@ -753,10 +863,13 @@ function ShippingProfilesPage() {
                     <SelectValue placeholder="Zusatzleistung auswählen" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="versicherung">Versicherung</SelectItem>
-                    <SelectItem value="nachnahme">Nachnahme</SelectItem>
-                    <SelectItem value="expresszustellung">Expresszustellung</SelectItem>
-                    <SelectItem value="sendungsverfolgung">Sendungsverfolgung</SelectItem>
+                    {getAvailableZusatzleistungen.length > 0 ? (
+                      getAvailableZusatzleistungen.map((zusatz) => (
+                        <SelectItem key={zusatz} value={zusatz}>{zusatz}</SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="none" disabled>Keine Zusatzleistungen verfügbar</SelectItem>
+                    )}
                   </SelectContent>
                 </Select>
               </FieldContent>
@@ -782,10 +895,13 @@ function ShippingProfilesPage() {
                       <SelectValue placeholder="Zusatzleistung auswählen" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="versicherung">Versicherung</SelectItem>
-                      <SelectItem value="nachnahme">Nachnahme</SelectItem>
-                      <SelectItem value="expresszustellung">Expresszustellung</SelectItem>
-                      <SelectItem value="sendungsverfolgung">Sendungsverfolgung</SelectItem>
+                      {getAvailableZusatzleistungen.length > 0 ? (
+                        getAvailableZusatzleistungen.map((zusatz) => (
+                          <SelectItem key={zusatz} value={zusatz}>{zusatz}</SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="none" disabled>Keine Zusatzleistungen verfügbar</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                 </FieldContent>
@@ -815,7 +931,13 @@ function ShippingProfilesPage() {
                 Zusatzleistung hinzufügen
               </Button>
             </div>
-          </div>
+            </TabsContent>
+            <TabsContent value="einstellungen" className="mt-10 space-y-6">
+              <div className="text-sm text-muted-foreground">
+                Einstellungen coming soon...
+              </div>
+            </TabsContent>
+          </Tabs>
         </SheetContent>
       </Sheet>
     </div>
