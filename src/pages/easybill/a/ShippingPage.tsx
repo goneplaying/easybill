@@ -1639,6 +1639,9 @@ const getColumns = (
           <span>{row.getValue("bestellnummer")}</span>
         );
       },
+      size: 120,
+      minSize: 120,
+      maxSize: 120,
     },
   ];
 
@@ -1725,9 +1728,9 @@ const getColumns = (
     cell: ({ row }) => (
       <span className="text-sm">{row.getValue("email")}</span>
     ),
-    size: 260,
-    minSize: 260,
-    maxSize: 260,
+    size: 230,
+    minSize: 230,
+    maxSize: 230,
   },
   {
     accessorKey: "telefonnummer",
