@@ -1639,9 +1639,9 @@ const getColumns = (
           <span>{row.getValue("bestellnummer")}</span>
         );
       },
-      size: 120,
-      minSize: 120,
-      maxSize: 120,
+      size: 140,
+      minSize: 140,
+      maxSize: 140,
     },
   ];
 
