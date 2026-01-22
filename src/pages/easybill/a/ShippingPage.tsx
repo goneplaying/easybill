@@ -25,6 +25,7 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
+  TooltipProvider,
 } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
@@ -4982,9 +4983,10 @@ function ShippingPage() {
         </div>
       )}
     >
-      <div className="min-h-screen bg-background">
-        <div className="mx-auto">
-          <div className="flex flex-col lg:flex-row items-stretch">
+      <TooltipProvider delayDuration={1000}>
+        <div className="min-h-screen bg-background">
+          <div className="mx-auto">
+            <div className="flex flex-col lg:flex-row items-stretch">
           {/* Menu - horizontal on small screens, vertical on large screens */}
           <div className="w-[calc(100%-40px)] lg:w-[56px] h-auto lg:h-[calc(100vh-40px)] mt-5 lg:mt-[20px] lg:sticky lg:top-[20px] pl-4 pr-1 py-1 lg:pl-2 lg:pr-2 lg:py-4 bg-primary mx-5 lg:ml-5 lg:mr-2 rounded-[12px] flex-shrink-0 flex flex-row lg:flex-col items-center justify-between lg:justify-start gap-2 lg:gap-4 mb-2 lg:mb-0" data-name="Menu">
             <Link to="/versions" className="w-fit lg:w-full flex items-center justify-center">
@@ -4997,26 +4999,68 @@ function ShippingPage() {
             </button>
             {/* Original buttons for large screens */}
             <div className="hidden lg:flex flex-col gap-0.5 w-full mt-4">
-              <Link to="/a/dashboard" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
-                <LayoutDashboard className="size-5 text-white" />
-              </Link>
-              <div className="bg-white rounded-md p-0.5 flex flex-col gap-0">
-                <Link to="/a/shipping" className="flex items-center justify-center w-full aspect-square rounded-md transition-colors">
-                  <Truck className={`size-5 ${isShippingActive ? "text-gray-700" : "text-blue-500"}`} />
-                </Link>
-                <Link to="/a/shippingprofiles" className="flex items-center justify-center w-full aspect-square rounded-md transition-colors">
-                  <Settings2 className={`size-5 ${isShippingProfilesActive ? "text-gray-700" : "text-blue-500"}`} />
-                </Link>
-              </div>
-              <Link to="/a/tools" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
-                <ToyBrick className="size-5 text-white" />
-              </Link>
-              <Link to="/a/settings" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
-                <Settings className="size-5 text-white" />
-              </Link>
-              <div className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
-                <HelpCircle className="size-5 text-white" />
-              </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link to="/a/dashboard" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
+                      <LayoutDashboard className="size-5 text-white" />
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>Dashboard</p>
+                  </TooltipContent>
+                </Tooltip>
+                <div className="bg-white rounded-md p-0.5 flex flex-col gap-0">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link to="/a/shipping" className="flex items-center justify-center w-full aspect-square rounded-md transition-colors">
+                        <Truck className={`size-5 ${isShippingActive ? "text-gray-700" : "text-blue-500"}`} />
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <p>Versand</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link to="/a/shippingprofiles" className="flex items-center justify-center w-full aspect-square rounded-md transition-colors">
+                        <Settings2 className={`size-5 ${isShippingProfilesActive ? "text-gray-700" : "text-blue-500"}`} />
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <p>Versandprofile</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link to="/a/tools" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
+                      <ToyBrick className="size-5 text-white" />
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>Tools</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link to="/a/settings" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
+                      <Settings className="size-5 text-white" />
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>Einstellungen</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
+                      <HelpCircle className="size-5 text-white" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>Hilfe</p>
+                  </TooltipContent>
+                </Tooltip>
             </div>
             {/* Version number at bottom */}
             <div className="hidden lg:block mt-auto pt-4">
@@ -8950,7 +8994,8 @@ function ShippingPage() {
       </Dialog>
 
       <Toaster />
-    </div>
+        </div>
+      </TooltipProvider>
     </ErrorBoundary>
       )}
     </>

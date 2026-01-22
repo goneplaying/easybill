@@ -41,6 +41,12 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 // Versandprofile data from Google Sheets
@@ -420,7 +426,8 @@ function ShippingProfilesPage() {
   }, [isVersandprofilSheetOpen, isVersandprofilEditSheetOpen]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <TooltipProvider delayDuration={1000}>
+      <div className="min-h-screen bg-background">
       <div className="mx-auto">
         <div className="flex flex-col lg:flex-row items-stretch">
           {/* Menu - horizontal on small screens, vertical on large screens */}
@@ -435,26 +442,68 @@ function ShippingProfilesPage() {
             </button>
             {/* Original buttons for large screens */}
             <div className="hidden lg:flex flex-col gap-0.5 w-full mt-4">
-              <Link to="/a/dashboard" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
-                <LayoutDashboard className="size-5 text-white" />
-              </Link>
-              <div className="bg-white rounded-md p-0.5 flex flex-col gap-0">
-                <Link to="/a/shipping" className="flex items-center justify-center w-full aspect-square rounded-md transition-colors">
-                  <Truck className={`size-5 ${isShippingActive ? "text-gray-700" : ""}`} style={!isShippingActive ? { color: '#1354F9' } : undefined} />
-                </Link>
-                <Link to="/a/shippingprofiles" className="flex items-center justify-center w-full aspect-square rounded-md transition-colors">
-                  <Settings2 className={`size-5 ${isShippingProfilesActive ? "text-gray-700" : ""}`} style={!isShippingProfilesActive ? { color: '#1354F9' } : undefined} />
-                </Link>
-              </div>
-              <Link to="/a/tools" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
-                <ToyBrick className="size-5 text-white" />
-              </Link>
-              <Link to="/a/settings" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
-                <Settings className="size-5 text-white" />
-              </Link>
-              <div className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
-                <HelpCircle className="size-5 text-white" />
-              </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link to="/a/dashboard" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
+                      <LayoutDashboard className="size-5 text-white" />
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>Dashboard</p>
+                  </TooltipContent>
+                </Tooltip>
+                <div className="bg-white rounded-md p-0.5 flex flex-col gap-0">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link to="/a/shipping" className="flex items-center justify-center w-full aspect-square rounded-md transition-colors">
+                        <Truck className={`size-5 ${isShippingActive ? "text-gray-700" : ""}`} style={!isShippingActive ? { color: '#1354F9' } : undefined} />
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <p>Versand</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link to="/a/shippingprofiles" className="flex items-center justify-center w-full aspect-square rounded-md transition-colors">
+                        <Settings2 className={`size-5 ${isShippingProfilesActive ? "text-gray-700" : ""}`} style={!isShippingProfilesActive ? { color: '#1354F9' } : undefined} />
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent side="right">
+                      <p>Versandprofile</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link to="/a/tools" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
+                      <ToyBrick className="size-5 text-white" />
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>Tools</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link to="/a/settings" className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
+                      <Settings className="size-5 text-white" />
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>Einstellungen</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div className="flex items-center justify-center w-full aspect-square rounded-md hover:bg-white/15 transition-colors">
+                      <HelpCircle className="size-5 text-white" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>Hilfe</p>
+                  </TooltipContent>
+                </Tooltip>
             </div>
             {/* Version number at bottom */}
             <div className="hidden lg:block mt-auto pt-4">
@@ -946,7 +995,8 @@ function ShippingProfilesPage() {
           </Tabs>
         </SheetContent>
       </Sheet>
-    </div>
+      </div>
+    </TooltipProvider>
   );
 }
 
