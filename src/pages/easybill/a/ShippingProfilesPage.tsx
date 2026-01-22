@@ -142,6 +142,8 @@ function ShippingProfilesPage() {
       label: "DHL National",
       checked: false,
       logo: logoDHL,
+      produkt: "DHL Paket",
+      verpackung: "Karton",
     },
     {
       id: "versandprofile-checkbox-2",
@@ -149,6 +151,8 @@ function ShippingProfilesPage() {
       label: "DPD Europa",
       checked: false,
       logo: logoDPD,
+      produkt: "DPD Internationaler Versand",
+      verpackung: "Karton",
     },
     {
       id: "versandprofile-checkbox-3",
@@ -156,6 +160,8 @@ function ShippingProfilesPage() {
       label: "UPS USA",
       checked: false,
       logo: logoUPS,
+      produkt: "UPS Worldwide Express Freight",
+      verpackung: "Karton",
     },
     {
       id: "versandprofile-add-button",
@@ -453,7 +459,7 @@ function ShippingProfilesPage() {
             {/* Version number at bottom */}
             <div className="hidden lg:block mt-auto pt-4">
               <div className="text-white/70 text-xs text-center font-medium">
-                v1.12
+                v1.14
               </div>
             </div>
           </div>

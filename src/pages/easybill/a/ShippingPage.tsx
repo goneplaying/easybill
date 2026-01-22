@@ -5021,7 +5021,7 @@ function ShippingPage() {
             {/* Version number at bottom */}
             <div className="hidden lg:block mt-auto pt-4">
               <div className="text-white/70 text-xs text-center font-medium">
-                v1.13
+                v1.14
               </div>
             </div>
           </div>
