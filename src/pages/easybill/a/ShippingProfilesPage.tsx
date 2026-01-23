@@ -255,6 +255,22 @@ function ShippingProfilesPage() {
   const [isCheckedHermes, setIsCheckedHermes] = React.useState(false);
   const [isCheckedTNT, setIsCheckedTNT] = React.useState(false);
 
+  // Adjustable sheet width states - start with 1/3 of screen width for desktop
+  const [sheetWidth, setSheetWidth] = React.useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth >= 640 ? window.innerWidth / 3 : window.innerWidth;
+    }
+    return 450; // fallback for SSR
+  });
+  const [isSmallScreen, setIsSmallScreen] = React.useState(false);
+  const [responsiveSheetWidth, setResponsiveSheetWidth] = React.useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.innerWidth >= 640 ? window.innerWidth / 3 : window.innerWidth;
+    }
+    return 450; // fallback for SSR
+  });
+  const [isResizing, setIsResizing] = React.useState(false);
+
   // Available shipping service providers
   const availableProviders = React.useMemo(
     () => [
@@ -425,6 +441,62 @@ function ShippingProfilesPage() {
     }
   }, [isVersandprofilSheetOpen, isVersandprofilEditSheetOpen]);
 
+  // Screen size detection for responsive sheet width
+  React.useEffect(() => {
+    const checkScreenSize = () => {
+      const isSmall = window.innerWidth < 640; // sm breakpoint
+      setIsSmallScreen(isSmall);
+      
+      // For mobile (< 640px): use full width
+      // For desktop (>= 640px): use current width or 1/3 of screen if resetting
+      if (isSmall) {
+        setResponsiveSheetWidth(window.innerWidth);
+      } else {
+        // Calculate responsive sheet width for desktop
+        const minWidth = 300;
+        const maxWidth = window.innerWidth * 0.9;
+        const constrainedWidth = Math.max(minWidth, Math.min(maxWidth, sheetWidth));
+        setResponsiveSheetWidth(constrainedWidth);
+        
+        // Also update sheetWidth if it's out of bounds
+        if (sheetWidth < minWidth || sheetWidth > maxWidth) {
+          setSheetWidth(constrainedWidth);
+        }
+      }
+    };
+    
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, [sheetWidth]);
+
+  // Handle sheet resizing
+  React.useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const newWidth = window.innerWidth - e.clientX;
+      // Constrain width between 300px and 90% of viewport
+      const minWidth = 300;
+      const maxWidth = window.innerWidth * 0.9;
+      const constrainedWidth = Math.max(minWidth, Math.min(maxWidth, newWidth));
+      setSheetWidth(constrainedWidth);
+      setResponsiveSheetWidth(constrainedWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isResizing]);
+
   return (
     <TooltipProvider delayDuration={1000}>
       <div className="min-h-screen bg-background">
@@ -519,7 +591,7 @@ function ShippingProfilesPage() {
               Versandprofile
             </h1>
             <div className="flex flex-row gap-[28px] h-full">
-              <div className="flex flex-col gap-8 h-full w-[70%]">
+              <div className="flex flex-col gap-8 h-full w-[65%]">
                 <div className="w-full flex-1 flex flex-col gap-[28px]">
                   <h2>
                     Aktive Profile
@@ -707,7 +779,7 @@ function ShippingProfilesPage() {
                 )}
               </div>
               <Separator orientation="vertical" />
-              <div className="w-[30%]">
+              <div className="w-[35%]">
                 <h2>
                   Was sind Versandprofile?
                 </h2>
@@ -752,9 +824,17 @@ function ShippingProfilesPage() {
         <SheetContent
           name="VersandprofilHinzufugen"
           side="right"
-          className="overflow-y-auto p-6 lg:p-10"
-          style={{ width: '456px', maxWidth: '456px' }}
+          className="overflow-y-auto p-6 lg:p-10 pb-[90px] !max-w-full lg:!max-w-none"
+          style={isSmallScreen ? { width: '100%', maxWidth: '100%' } : { width: `${responsiveSheetWidth}px`, maxWidth: `${responsiveSheetWidth}px` }}
         >
+          {/* Resize handle */}
+          <div
+            className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/20 active:bg-primary/40 transition-colors z-50"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              setIsResizing(true);
+            }}
+          />
           <SheetTitle className="font-bold tracking-tight text-foreground mb-2 mt-4">
             Hinzufügen
           </SheetTitle>
@@ -824,9 +904,17 @@ function ShippingProfilesPage() {
         <SheetContent
           name="Versandprofil"
           side="right"
-          className="overflow-y-auto p-6 lg:p-10"
-          style={{ width: '456px', maxWidth: '456px' }}
+          className="overflow-y-auto p-6 lg:p-10 pb-[90px] !max-w-full lg:!max-w-none"
+          style={isSmallScreen ? { width: '100%', maxWidth: '100%' } : { width: `${responsiveSheetWidth}px`, maxWidth: `${responsiveSheetWidth}px` }}
         >
+          {/* Resize handle */}
+          <div
+            className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/20 active:bg-primary/40 transition-colors z-50"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              setIsResizing(true);
+            }}
+          />
           <SheetTitle className="font-bold tracking-tight text-foreground mb-2 mt-4">
             Versandprofil
           </SheetTitle>
@@ -834,6 +922,7 @@ function ShippingProfilesPage() {
             <TabsList variant="line">
               <TabsTrigger value="profil">Profil</TabsTrigger>
               <TabsTrigger value="einstellungen">Einstellungen</TabsTrigger>
+              <TabsTrigger value="anleitung">Anleitung</TabsTrigger>
             </TabsList>
             <TabsContent value="profil" className="mt-10 space-y-6">
             <Field orientation="vertical">
@@ -988,8 +1077,194 @@ function ShippingProfilesPage() {
             </div>
             </TabsContent>
             <TabsContent value="einstellungen" className="mt-10 space-y-6">
-              <div className="text-sm text-muted-foreground">
-                Einstellungen coming soon...
+              <div className={`${sheetWidth >= 1024 ? 'grid grid-cols-[1fr_auto_1fr] gap-[32px] items-start' : 'space-y-6'}`}>
+                {/* Left Column: Login & Passwort */}
+                <div className="space-y-6">
+                  <div className="text-sm">
+                    Einstellungen gelten für alle Profile, die mit diesem Dienstleister verbunden sind.
+                  </div>
+                  
+                  <div className={`${sheetWidth >= 640 ? 'grid grid-cols-2 gap-4' : 'space-y-6'}`}>
+                    <Field orientation="vertical">
+                      <FieldLabel>Login</FieldLabel>
+                      <FieldContent>
+                        <Input 
+                          value="user@easybill.de" 
+                          disabled 
+                          className="bg-muted"
+                        />
+                      </FieldContent>
+                    </Field>
+
+                    <Field orientation="vertical">
+                      <FieldLabel>Passwort</FieldLabel>
+                      <FieldContent>
+                        <Input 
+                          value="••••••••••••••••" 
+                          disabled 
+                          className="bg-muted"
+                        />
+                      </FieldContent>
+                    </Field>
+                  </div>
+
+                  <Button
+                    variant="link"
+                    className="p-0 !px-0 h-auto text-sm font-normal mb-2 has-[>svg]:!px-0"
+                  >
+                    Bearbeiten
+                  </Button>
+                </div>
+
+                {/* Separator for lg+ screens */}
+                {sheetWidth >= 1024 && (
+                  <Separator orientation="vertical" className="h-auto self-stretch" />
+                )}
+
+                {/* Right Column: Grundeinstellungen */}
+                <div className="space-y-6">
+
+              {selectedProfile?.dienstleister?.includes("DHL") && (
+                <>
+                  <h2 className={sheetWidth >= 1024 ? "" : "mt-8"}>Grundeinstellungen</h2>
+
+                  <Field orientation="vertical">
+                    <FieldLabel>Versandland</FieldLabel>
+                    <FieldContent>
+                      <Input 
+                        defaultValue="Deutschland"
+                      />
+                    </FieldContent>
+                  </Field>
+
+                  <Field orientation="vertical">
+                    <FieldLabel>Standardgewicht</FieldLabel>
+                    <FieldContent>
+                      <div className="relative">
+                        <Input 
+                          defaultValue="2,25"
+                          className="pr-10"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
+                          kg
+                        </span>
+                      </div>
+                    </FieldContent>
+                  </Field>
+
+                  <Field orientation="vertical">
+                    <FieldLabel>Maße in cm</FieldLabel>
+                    <FieldContent>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="relative">
+                          <Input 
+                            placeholder="Länge"
+                            className="pr-10"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
+                            cm
+                          </span>
+                        </div>
+                        <div className="relative">
+                          <Input 
+                            placeholder="Breite"
+                            className="pr-10"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
+                            cm
+                          </span>
+                        </div>
+                        <div className="relative">
+                          <Input 
+                            placeholder="Höhe"
+                            className="pr-10"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
+                            cm
+                          </span>
+                        </div>
+                      </div>
+                    </FieldContent>
+                  </Field>
+                </>
+              )}
+              
+              {selectedProfile?.dienstleister?.includes("DPD") && (
+                <>
+                  <h2 className={sheetWidth >= 1024 ? "" : "mt-8"}>Grundeinstellungen</h2>
+
+                  <Field orientation="vertical">
+                    <FieldLabel>Verpackungsart</FieldLabel>
+                    <FieldContent>
+                      <Select defaultValue="normalpaket">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Verpackungsart auswählen" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="normalpaket">Normalpaket (NP/NCP)</SelectItem>
+                          <SelectItem value="kleinespaket">Kleines Paket (KP/SCP)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FieldContent>
+                  </Field>
+
+                  <Field orientation="vertical">
+                    <FieldLabel>Standardgewicht</FieldLabel>
+                    <FieldContent>
+                      <div className="relative">
+                        <Input 
+                          defaultValue="2,25"
+                          className="pr-10"
+                        />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
+                          kg
+                        </span>
+                      </div>
+                    </FieldContent>
+                  </Field>
+
+                  <Field orientation="vertical">
+                    <FieldLabel>Maße in cm</FieldLabel>
+                    <FieldContent>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="relative">
+                          <Input 
+                            placeholder="Länge"
+                            className="pr-10"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
+                            cm
+                          </span>
+                        </div>
+                        <div className="relative">
+                          <Input 
+                            placeholder="Breite"
+                            className="pr-10"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
+                            cm
+                          </span>
+                        </div>
+                        <div className="relative">
+                          <Input 
+                            placeholder="Höhe"
+                            className="pr-10"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none">
+                            cm
+                          </span>
+                        </div>
+                      </div>
+                    </FieldContent>
+                  </Field>
+                </>
+              )}
+                </div>
+              </div>
+            </TabsContent>
+            <TabsContent value="anleitung" className="mt-10 space-y-6">
+              <div className="text-sm">
+                Anleitung content coming soon...
               </div>
             </TabsContent>
           </Tabs>
