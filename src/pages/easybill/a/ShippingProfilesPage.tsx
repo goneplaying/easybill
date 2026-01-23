@@ -839,6 +839,7 @@ function ShippingProfilesPage() {
             Hinzufügen
           </SheetTitle>
           <div className="mt-10">
+            <h2 className="mb-6">Versanddienstleister auswählen</h2>
             <div className="flex gap-3 items-stretch flex-wrap">
               {allAvailableProviders.map((item) => (
                 <div
